@@ -29,12 +29,15 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
   const handleComplete = async () => {
     try {
       setIsLoading(true);
-      onComplete({ objective, mode });
+      await onComplete({ objective, mode });
+      // Só reseta depois que o onboarding for salvo com sucesso
       setStep(1);
       setObjective('');
       setMode('equilibrado');
     } catch (error) {
       toast.error('Erro ao completar onboarding');
+      console.error('Erro no handleComplete:', error);
+      // Não reseta o state se houver erro
     } finally {
       setIsLoading(false);
     }

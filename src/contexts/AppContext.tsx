@@ -85,9 +85,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const completeOnboarding = async (objective: string, mode: 'conservador' | 'equilibrado' | 'expansao') => {
     try {
+      console.log('[AppContext] Iniciando completeOnboarding:', { objective, mode });
+      
       // Update user with objective
       const updatedUser = await mockService.updateUser({ objective });
       setUser(updatedUser);
+      console.log('[AppContext] Usuário atualizado:', updatedUser);
       
       // Save mode to backend (will be persisted via StrategicContext)
       await fetch('/api/user/mode', {
@@ -101,8 +104,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setHasCompletedOnboarding(true);
       localStorage.setItem('onboarding_completed', 'true');
+      console.log('[AppContext] Onboarding completado e salvo no localStorage');
     } catch (error) {
-      console.error('Failed to complete onboarding:', error);
+      console.error('[AppContext] Erro ao completar onboarding:', error);
       throw error;
     }
   };

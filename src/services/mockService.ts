@@ -2,7 +2,7 @@
 import { Decision, Risk, ExecutionPlan, StrategicSession, User } from '../types';
 
 // Mock Data
-const MOCK_USER: User = {
+let MOCK_USER: User = {
   id: 'u1',
   name: 'Alexandre',
   email: 'alexandre@example.com',
@@ -194,7 +194,8 @@ export const mockService = {
   },
   updateUser: async (user: Partial<User>): Promise<User> => {
     await delay(500);
-    return { ...MOCK_USER, ...user };
+    MOCK_USER = { ...MOCK_USER, ...user };
+    return MOCK_USER;
   },
 
   // Decisions
