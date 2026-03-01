@@ -80,10 +80,8 @@ export default function SignupPage() {
       {/* Nav */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center absolute top-0 left-0 z-50">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 flex items-center justify-center text-orange-500">
-            <Icons.Bot className="w-8 h-8" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-white">Super Agentes</span>
+          <img src="/logo.png" alt="TaskForge" className="w-8 h-8 object-contain" />
+          <span className="text-xl font-bold tracking-tight text-white">TaskForge</span>
         </Link>
         <div className="hidden md:block">
           <span className="text-sm text-zinc-400">Já tem uma conta? <Link to="/login" className="text-orange-500 hover:text-orange-400 ml-1 font-medium">Entrar</Link></span>

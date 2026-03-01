@@ -64,10 +64,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <nav className="w-64 border-r border-zinc-800 flex flex-col bg-[#0F0F0F] flex-shrink-0 z-20">
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-zinc-800/50">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Icons.Layers className="text-white w-5 h-5" />
-            </div>
+          <Link to="/" className="flex items-center gap-3">
+            <img 
+              src="/logo.png" 
+              alt="TaskForge" 
+              className="w-8 h-8 object-contain"
+            />
             <span className="font-bold text-lg tracking-tight text-white">TaskForge</span>
           </Link>
         </div>
