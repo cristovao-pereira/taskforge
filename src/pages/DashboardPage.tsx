@@ -3,6 +3,7 @@ import { Icons } from '../components/Icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { useApp } from '../contexts/AppContext';
+import { useUpgrade } from '../contexts/UpgradeContext';
 import { DecisionEditModal } from '../components/DecisionEditModal';
 import { OnboardingModal } from '../components/OnboardingModal';
 import { toast } from 'sonner';
@@ -27,9 +28,14 @@ interface PriorityItem {
 export default function DashboardPage() {
   const { mode, setMode } = useStrategicMode();
   const { decisions, risks, plans, isLoading, hasCompletedOnboarding, completeOnboarding } = useApp();
+  const { checkUpgradeTriggers } = useUpgrade();
   const navigate = useNavigate();
   const [editingDecision, setEditingDecision] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding);
+
+  useEffect(() => {
+    checkUpgradeTriggers();
+  }, []);
 
   useEffect(() => {
     setShowOnboarding(!hasCompletedOnboarding);
@@ -175,7 +181,7 @@ export default function DashboardPage() {
 
   return (
     <div className="section-spacing pb-12 animate-in fade-in duration-700 max-w-5xl mx-auto relative">
-      
+
       {/* 1. FOCO ESTRATÉGICO (Dominante) */}
       <section className="card-standard p-10 relative overflow-hidden shadow-2xl shadow-black/40 text-center group transition-all duration-500 bg-[#1e293b] border-zinc-800">
         <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none"></div>

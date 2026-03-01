@@ -5,6 +5,8 @@
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
+import HowItWorksPage from './pages/HowItWorksPage';
+import PricingPage from './pages/PricingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ChatPage from './pages/ChatPage';
@@ -28,19 +30,23 @@ import { EventProvider } from './contexts/EventContext';
 import { MetricsProvider } from './contexts/MetricsContext';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { UpgradeProvider } from './contexts/UpgradeContext';
 import { Toaster } from 'sonner';
 
 export default function App() {
   return (
     <AuthProvider>
-      <EventProvider>
-        <StrategicProvider>
-          <MetricsProvider>
-            <AppProvider>
-              <BrowserRouter>
-              <Routes>
+      <BrowserRouter>
+        <EventProvider>
+          <StrategicProvider>
+            <MetricsProvider>
+              <UpgradeProvider>
+                <AppProvider>
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/como-funciona" element={<HowItWorksPage />} />
+                <Route path="/precos" element={<PricingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
 
@@ -69,25 +75,26 @@ export default function App() {
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
-            </BrowserRouter>
-            <Toaster 
-              position="top-right" 
-              theme="dark"
-              toastOptions={{
-                style: {
-                  background: '#1e293b',
-                  color: '#ffffff',
-                  border: '1px solid #3b82f6',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem',
-                },
-                duration: 3000,
-              }}
-            />
-          </AppProvider>
-        </MetricsProvider>
-      </StrategicProvider>
-    </EventProvider>
+              <Toaster 
+                position="top-right" 
+                theme="dark"
+                toastOptions={{
+                  style: {
+                    background: '#1e293b',
+                    color: '#ffffff',
+                    border: '1px solid #3b82f6',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                  },
+                  duration: 3000,
+                }}
+              />
+                </AppProvider>
+              </UpgradeProvider>
+            </MetricsProvider>
+          </StrategicProvider>
+        </EventProvider>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

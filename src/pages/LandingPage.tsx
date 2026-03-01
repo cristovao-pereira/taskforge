@@ -89,9 +89,9 @@ export default function LandingPage() {
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
-            <a href="#sistema" className="hover:text-white transition-colors">O Sistema</a>
+            <button onClick={() => navigate('/como-funciona')} className="hover:text-white transition-colors">Como Funciona</button>
+            <button onClick={() => navigate('/precos')} className="hover:text-white transition-colors">Preços</button>
             <a href="#diferencial" className="hover:text-white transition-colors">Diferencial</a>
-            <a href="#memoria" className="hover:text-white transition-colors">Memória</a>
           </div>
 
           <div className="flex items-center gap-6">
@@ -150,7 +150,10 @@ export default function LandingPage() {
                 Começar Gratuitamente
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="px-8 py-4 bg-transparent border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white font-medium rounded-xl text-md transition-all flex items-center justify-center gap-2 group">
+              <button 
+                onClick={() => navigate('/como-funciona')}
+                className="px-8 py-4 bg-transparent border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white font-medium rounded-xl text-md transition-all flex items-center justify-center gap-2 group"
+              >
                 <Activity className="w-5 h-5 group-hover:scale-110 transition-transform text-slate-500 group-hover:text-white" />
                 Ver como funciona
               </button>

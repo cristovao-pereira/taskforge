@@ -803,11 +803,41 @@ app.get('/api/user/mode', authenticateUser, async (req, res) => {
 // --- Vite Middleware (Dev Mode) ---
 
 async function startServer() {
-  const PORT = process.env.PORT || 3000;
+    const basePort = Number(process.env.PORT || 5000);
+
+    const findAvailablePort = async (startPort: number, maxAttempts: number = 10): Promise<number> => {
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const port = startPort + attempt;
+            const isAvailable = await new Promise<boolean>((resolve) => {
+                const tester = createServer();
+                tester.once('error', () => {
+                    resolve(false);
+                });
+                tester.once('listening', () => {
+                    tester.close(() => resolve(true));
+                });
+                tester.listen(port);
+            });
+
+            if (isAvailable) {
+                return port;
+            }
+        }
+
+        throw new Error(`No available port found starting at ${startPort}`);
+    };
+
+    const port = await findAvailablePort(basePort);
+    if (port !== basePort) {
+        console.warn(`Port ${basePort} is in use. Starting server on port ${port} instead.`);
+    }
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+            server: {
+                middlewareMode: true,
+                hmr: false,
+            },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -816,8 +846,8 @@ async function startServer() {
     // app.use(express.static('dist'));
   }
 
-  httpServer.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    httpServer.listen(port, () => {
+        console.log(`Server running on http://localhost:${port}`);
   });
 
   // Global Error Handler

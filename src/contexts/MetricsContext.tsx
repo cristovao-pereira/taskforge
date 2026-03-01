@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useEvent } from './EventContext';
 import { useStrategicMode } from './StrategicContext';
+import { useAuth } from './AuthContext';
 
 // --- Types ---
 
@@ -57,19 +58,43 @@ const MetricsContext = createContext<MetricsContextType | undefined>(undefined);
 export function MetricsProvider({ children }: { children: ReactNode }) {
   const { socket } = useEvent(); // Assuming useEvent exposes socket, if not I need to check EventContext
   const { mode } = useStrategicMode();
+  const { user, getIdToken } = useAuth();
   
   const [dna, setDna] = useState<StrategicDNA>(INITIAL_DNA);
   const [health, setHealth] = useState<SystemHealth>(INITIAL_HEALTH);
 
   const fetchMetrics = async () => {
+      if (!user) {
+        return;
+      }
+
       try {
+          const token = await getIdToken();
+          if (!token) {
+            return;
+          }
+
           const [dnaRes, healthRes] = await Promise.all([
-              fetch('/api/metrics/dna'),
-              fetch('/api/metrics/health')
+              fetch('/api/metrics/dna', {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }),
+              fetch('/api/metrics/health', {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              })
           ]);
           
           if (dnaRes.ok) setDna(await dnaRes.json());
           if (healthRes.ok) setHealth(await healthRes.json());
+          if (!dnaRes.ok && dnaRes.status !== 401) {
+            console.error('Failed to fetch DNA metrics:', dnaRes.status, dnaRes.statusText);
+          }
+          if (!healthRes.ok && healthRes.status !== 401) {
+            console.error('Failed to fetch Health metrics:', healthRes.status, healthRes.statusText);
+          }
       } catch (error) {
           console.error('Failed to fetch metrics:', error);
       }
@@ -77,7 +102,7 @@ export function MetricsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchMetrics();
-  }, []);
+  }, [user, getIdToken]);
 
   // Listen for real-time updates from backend
   useEffect(() => {

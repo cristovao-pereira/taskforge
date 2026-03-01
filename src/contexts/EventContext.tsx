@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useAuth } from './AuthContext';
 
 // --- Types ---
 
@@ -82,6 +83,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<EventLog[]>([]);
   const [explanations, setExplanations] = useState<ExplanationLog[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const { user, getIdToken } = useAuth();
 
   // Initialize Socket.io
   useEffect(() => {
@@ -126,17 +128,29 @@ export function EventProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const emitEvent = async (eventType: EventType, entityType: EntityType, entityId?: string, metadata?: Record<string, any>) => {
+    if (!user) {
+      return;
+    }
+
     try {
+      const token = await getIdToken();
+      if (!token) {
+        return;
+      }
+
       // Send event to backend API
       await fetch('/api/events', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           eventType,
           entityType,
           entityId,
           metadata,
-          userId: 'user-1' // Mock user ID for now
+          userId: user.uid
         })
       });
     } catch (error) {

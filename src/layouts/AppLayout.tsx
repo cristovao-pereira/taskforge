@@ -1,6 +1,8 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Icons } from '../components/Icons';
+import { UpgradeBanner, UpgradeModal } from '../components/UpgradeComponents';
+import { useAuth } from '../contexts/AuthContext';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { useMetrics } from '../contexts/MetricsContext';
 import { AnimatePresence, motion } from 'motion/react';
@@ -11,6 +13,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
+  const { user } = useAuth();
   const { mode, setMode, getModeLabel, getModeColor } = useStrategicMode();
   const { health } = useMetrics();
 
@@ -155,12 +158,35 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </header>
 
         {/* Content Scroll Area */}
-        <div className={`flex-1 min-h-0 ${isChat ? 'overflow-hidden' : 'overflow-y-auto p-8 custom-scrollbar'}`}>
-          <div className={`${isChat ? 'h-full w-full' : 'max-w-6xl mx-auto'}`}>
+        <div className={`flex-1 min-h-0 ${isChat ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
+          {!isChat && <UpgradeBanner />}
+          {!isChat && !user && (
+            <div className="max-w-6xl mx-auto px-8 pt-6">
+              <div className="rounded-2xl border border-blue-500/25 bg-blue-500/10 p-5 md:p-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-blue-300 font-semibold mb-2">Modo Visitante</p>
+                    <h2 className="text-white text-lg md:text-xl font-semibold mb-1">Você está navegando sem autenticação.</h2>
+                    <p className="text-zinc-300 text-sm">Entre na sua conta para sincronizar dados, histórico e métricas estratégicas.</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Link to="/login" className="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-200 hover:bg-zinc-800 transition-colors text-sm font-medium">
+                      Entrar
+                    </Link>
+                    <Link to="/signup" className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white transition-colors text-sm font-semibold">
+                      Criar conta
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className={`${isChat ? 'h-full w-full' : 'max-w-6xl mx-auto p-8'}`}>
             {children}
           </div>
         </div>
       </main>
+      <UpgradeModal />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStrategicMode } from '../contexts/StrategicContext';
+import { useUpgrade } from '../contexts/UpgradeContext';
 import { toast } from 'sonner';
 
 // Types
@@ -40,10 +41,12 @@ interface RecentDecision {
 
 export default function DecisionForgePage() {
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
+  const { metrics, checkUpgradeTriggers } = useUpgrade();
   const [activeTab, setActiveTab] = useState<'analysis' | 'map' | 'history'>('analysis');
   const [decisionTheme, setDecisionTheme] = useState('');
   const [context, setContext] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [deepMode, setDeepMode] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
@@ -210,6 +213,33 @@ export default function DecisionForgePage() {
                       placeholder="Adicione detalhes sobre o cenário atual, restrições ou objetivos..."
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all min-h-[120px] resize-none"
                     />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 p-4 bg-zinc-900/50 rounded-xl border border-zinc-800 cursor-pointer hover:bg-zinc-900 transition-colors"
+                       onClick={() => {
+                          if (metrics.plan === 'free') {
+                              checkUpgradeTriggers('attempt_deep_mode');
+                          } else {
+                              setDeepMode(!deepMode);
+                          }
+                       }}
+                  >
+                      <div className="flex-1">
+                          <div className="text-sm font-medium text-white flex items-center gap-2">
+                              <Icons.Layers className={`w-4 h-4 ${deepMode ? 'text-blue-400' : 'text-zinc-500'}`} />
+                              Deep Mode
+                              {metrics.plan === 'free' && <Icons.Lock className="w-3 h-3 text-orange-400" />}
+                          </div>
+                          <div className="text-xs text-zinc-500 mt-1">Análise de risco de 2ª ordem e simulação de cenários.</div>
+                      </div>
+                      <div className={`w-11 h-6 rounded-full p-1 transition-colors relative ${deepMode ? 'bg-blue-600' : 'bg-zinc-700'}`}>
+                          <motion.div 
+                            layout 
+                            className="w-4 h-4 bg-white rounded-full shadow-sm"
+                            animate={{ x: deepMode ? 20 : 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          />
+                      </div>
                   </div>
 
                   <button 

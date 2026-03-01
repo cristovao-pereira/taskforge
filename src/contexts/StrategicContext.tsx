@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useEvent } from './EventContext';
+import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
 export type StrategicMode = 'conservador' | 'equilibrado' | 'expansao';
@@ -15,26 +16,42 @@ const StrategicContext = createContext<StrategicContextType | undefined>(undefin
 
 export function StrategicProvider({ children }: { children: ReactNode }) {
   const { emitEvent } = useEvent();
+  const { user, getIdToken } = useAuth();
   
   const [mode, setModeState] = useState<StrategicMode>('equilibrado');
 
   // Fetch initial mode from backend
   useEffect(() => {
     const fetchMode = async () => {
+      if (!user) {
+        return;
+      }
+
       try {
-        const res = await fetch('/api/user/mode');
+        const token = await getIdToken();
+        if (!token) {
+          return;
+        }
+
+        const res = await fetch('/api/user/mode', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.mode) {
             setModeState(data.mode as StrategicMode);
           }
+        } else if (res.status !== 401) {
+          console.error('Failed to fetch strategic mode:', res.status, res.statusText);
         }
       } catch (error) {
         console.error('Failed to fetch strategic mode:', error);
       }
     };
     fetchMode();
-  }, []);
+  }, [user, getIdToken]);
 
   const setMode = (newMode: StrategicMode) => {
     if (newMode !== mode) {
