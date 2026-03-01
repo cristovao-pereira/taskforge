@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Icons } from '../components/Icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { useApp } from '../contexts/AppContext';
 import { DecisionEditModal } from '../components/DecisionEditModal';
+import { OnboardingModal } from '../components/OnboardingModal';
+import { toast } from 'sonner';
 
 interface PriorityItem {
   id: string;
@@ -23,10 +25,27 @@ interface PriorityItem {
 }
 
 export default function DashboardPage() {
-  const { mode } = useStrategicMode();
-  const { decisions, risks, plans, isLoading } = useApp();
+  const { mode, setMode } = useStrategicMode();
+  const { decisions, risks, plans, isLoading, hasCompletedOnboarding, completeOnboarding } = useApp();
   const navigate = useNavigate();
   const [editingDecision, setEditingDecision] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding);
+
+  useEffect(() => {
+    setShowOnboarding(!hasCompletedOnboarding);
+  }, [hasCompletedOnboarding]);
+
+  const handleOnboardingComplete = async (data: { objective: string; mode: 'conservador' | 'equilibrado' | 'expansao' }) => {
+    try {
+      await completeOnboarding(data.objective, data.mode);
+      setMode(data.mode);
+      setShowOnboarding(false);
+      toast.success('🎯 Seu perfil estratégico foi configurado!');
+    } catch (error) {
+      toast.error('Erro ao completar onboarding');
+      console.error(error);
+    }
+  };
 
   // Transform AppContext data into PriorityItems
   const items: PriorityItem[] = useMemo(() => {
@@ -133,7 +152,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center h-96 animate-pulse">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-2 border-zinc-800 border-t-blue-500 animate-spin"></div>
-          <p className="text-zinc-500 text-sm">Sincronizando inteligência...</p>
+          <p className="text-zinc-500 text-sm">Carregando suas prioridades...</p>
         </div>
       </div>
     );
@@ -164,7 +183,7 @@ export default function DashboardPage() {
         <div className="relative z-10 flex flex-col items-center animate-in slide-in-from-bottom-4 duration-500" key={mainItem.id}>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-6">
             <Icons.Crosshair className="w-3 h-3" />
-            Prioridade Máxima
+            Foco Agora
           </div>
 
           <h1>
@@ -291,6 +310,12 @@ export default function DashboardPage() {
               onSave={() => {}}
           />
       )}
+
+      {/* Onboarding Modal */}
+      <OnboardingModal 
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
 
     </div>
   );

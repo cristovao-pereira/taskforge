@@ -10,10 +10,12 @@ interface AppContextType {
   plans: ExecutionPlan[];
   sessions: StrategicSession[];
   isLoading: boolean;
+  hasCompletedOnboarding: boolean;
   refreshData: () => Promise<void>;
   updateUser: (user: Partial<User>) => Promise<void>;
   addDecision: (decision: Omit<Decision, 'id' | 'date'>) => Promise<void>;
   resolveRisk: (id: string) => Promise<void>;
+  completeOnboarding: (objective: string, mode: 'conservador' | 'equilibrado' | 'expansao') => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -25,6 +27,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [plans, setPlans] = useState<ExecutionPlan[]>([]);
   const [sessions, setSessions] = useState<StrategicSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
   const refreshData = async () => {
     setIsLoading(true);
@@ -80,6 +83,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const completeOnboarding = async (objective: string, mode: 'conservador' | 'equilibrado' | 'expansao') => {
+    try {
+      // Update user with objective
+      const updatedUser = await mockService.updateUser({ objective });
+      setUser(updatedUser);
+      
+      // Save mode to backend (will be persisted via StrategicContext)
+      await fetch('/api/user/mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode })
+      }).catch(() => {
+        // Fail silently if no backend endpoint
+        console.log('Mode will be saved locally');
+      });
+
+      setHasCompletedOnboarding(true);
+      localStorage.setItem('onboarding_completed', 'true');
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    // Check if onboarding was already completed
+    const completed = localStorage.getItem('onboarding_completed') === 'true';
+    setHasCompletedOnboarding(completed);
+  }, []);
+
   return (
     <AppContext.Provider value={{
       user,
@@ -88,10 +121,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       plans,
       sessions,
       isLoading,
+      hasCompletedOnboarding,
       refreshData,
       updateUser,
       addDecision,
       resolveRisk,
+      completeOnboarding,
     }}>
       {children}
     </AppContext.Provider>
