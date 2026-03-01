@@ -29,9 +29,9 @@ export default function RiskAlertsPage() {
   
   const handleResolve = async (id: string) => {
     toast.promise(resolveRisk(id), {
-      loading: 'Resolvendo risco...',
-      success: 'Risco mitigado com sucesso!',
-      error: 'Erro ao resolver risco'
+      loading: 'Resolvendo...',
+      success: 'Risco resolvido!',
+      error: 'Erro ao resolver'
     });
   };
 
@@ -109,9 +109,9 @@ export default function RiskAlertsPage() {
 
       {/* Section 1: Risk Overview */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <OverviewCard label="Saúde Estratégica" value="78%" icon={Icons.Activity} color="text-emerald-500" />
+        <OverviewCard label="Saúde Geral" value="78%" icon={Icons.Activity} color="text-emerald-500" />
         <OverviewCard label="Riscos Ativos" value={activeRisks.length.toString()} icon={Icons.AlertOctagon} color="text-white" />
-        <OverviewCard label="Riscos Críticos" value={criticalRisks.length.toString()} icon={Icons.AlertTriangle} color="text-orange-500" />
+        <OverviewCard label="Exigem Atenção" value={criticalRisks.length.toString()} icon={Icons.AlertTriangle} color="text-orange-500" />
         <OverviewCard label="Tendência" value="Diminuindo" icon={Icons.TrendingUp} color="text-emerald-500" />
       </section>
 
@@ -150,7 +150,7 @@ export default function RiskAlertsPage() {
           <section className="card-standard">
             <div className="flex items-center gap-2 mb-6">
               <Icons.Sparkles className="w-4 h-4 text-blue-500" />
-              <h2 className="text-zinc-300 uppercase tracking-widest">Recomendações Estratégicas</h2>
+              <h2 className="text-zinc-300 uppercase tracking-widest">Sugestões</h2>
             </div>
             
             <div className="space-y-4">
@@ -166,7 +166,7 @@ export default function RiskAlertsPage() {
           <section className="space-y-4">
             <h2 className="text-zinc-500 uppercase tracking-widest flex items-center gap-2 px-1">
               <Icons.History className="w-4 h-4" />
-              Histórico Recente
+              Resolvidos
             </h2>
             <div className="card-standard divide-y divide-zinc-800/50">
               {history.map((item) => (

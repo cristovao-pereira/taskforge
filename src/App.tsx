@@ -70,7 +70,20 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </BrowserRouter>
-            <Toaster position="top-right" theme="dark" />
+            <Toaster 
+              position="top-right" 
+              theme="dark"
+              toastOptions={{
+                style: {
+                  background: '#1e293b',
+                  color: '#ffffff',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                },
+                duration: 3000,
+              }}
+            />
           </AppProvider>
         </MetricsProvider>
       </StrategicProvider>

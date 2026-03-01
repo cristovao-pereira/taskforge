@@ -29,7 +29,7 @@ export default function SystemStatusPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-8 border-b border-zinc-800 pb-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold text-white tracking-tight">Status do Sistema</h1>
-          <p className="text-xl text-zinc-400 font-light">Monitoramento em tempo real da saúde operacional.</p>
+          <p className="text-xl text-zinc-400 font-light">Saúde operacional em tempo real.</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -61,7 +61,7 @@ export default function SystemStatusPage() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 md:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400 font-medium">Severidade de Riscos</span>
+                    <span className="text-xs text-zinc-400 font-medium">Impacto dos Riscos</span>
                     <span className="text-sm font-bold text-white">{health.activeRisksSeverity}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -70,7 +70,7 @@ export default function SystemStatusPage() {
             </div>
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400 font-medium">Estabilidade Execução</span>
+                    <span className="text-xs text-zinc-400 font-medium">Estabilidade dos Planos</span>
                     <span className="text-sm font-bold text-white">{health.executionStability}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -88,7 +88,7 @@ export default function SystemStatusPage() {
             </div>
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400 font-medium">Momentum</span>
+                    <span className="text-xs text-zinc-400 font-medium">Ritmo de Execução</span>
                     <span className="text-sm font-bold text-white">{health.momentum}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -102,7 +102,7 @@ export default function SystemStatusPage() {
       <section className="space-y-6">
         <div className="flex items-center gap-2">
             <Icons.History className="w-5 h-5 text-zinc-400" />
-            <h2 className="text-lg font-bold text-white">Mudanças Recentes (Audit Log)</h2>
+            <h2 className="text-lg font-bold text-white">Histórico de Mudanças</h2>
         </div>
 
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl divide-y divide-zinc-800 overflow-hidden">

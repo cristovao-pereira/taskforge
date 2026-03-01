@@ -41,7 +41,7 @@ export default function StrategicDNAPage() {
           </div>
 
           <div className={`card-standard flex flex-col items-center ${getScoreBg(dna.overallScore)}`}>
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">Strategic Score</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">Score Geral</span>
               <span className={`text-4xl font-bold ${getScoreColor(dna.overallScore)}`}>{dna.overallScore}</span>
           </div>
         </div>
@@ -49,10 +49,10 @@ export default function StrategicDNAPage() {
 
       {/* DNA Breakdown */}
       <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <DnaPillar label="Qualidade Decisão" value={dna.decisionQuality} />
-        <DnaPillar label="Disciplina Risco" value={dna.riskDiscipline} />
-        <DnaPillar label="Disciplina Execução" value={dna.executionDiscipline} />
-        <DnaPillar label="Foco & Alavancagem" value={dna.focusLeverage} />
+        <DnaPillar label="Decisões" value={dna.decisionQuality} />
+        <DnaPillar label="Riscos" value={dna.riskDiscipline} />
+        <DnaPillar label="Execução" value={dna.executionDiscipline} />
+        <DnaPillar label="Foco" value={dna.focusLeverage} />
         <DnaPillar label="Consistência" value={dna.strategicConsistency} />
       </section>
 
@@ -156,14 +156,14 @@ export default function StrategicDNAPage() {
         {/* Risk Tendencies */}
         <section className="space-y-6">
           <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-zinc-500 uppercase tracking-widest">Padrões de Risco de Decisão</h2>
+            <h2 className="text-zinc-500 uppercase tracking-widest">Seu Perfil de Risco</h2>
             <div className="h-px flex-1 bg-zinc-800"></div>
           </div>
           
           <div className="card-standard space-y-6">
             <div className="flex justify-between items-end">
               <div>
-                <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Pontuação Média de Risco</div>
+                <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Score Médio de Risco</div>
                 <div className="text-3xl font-bold text-white">7.2<span className="text-zinc-600 text-lg font-normal">/10</span></div>
               </div>
               <div className="text-right">
@@ -188,15 +188,15 @@ export default function StrategicDNAPage() {
         {/* Execution Profile */}
         <section className="space-y-6">
           <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-zinc-500 uppercase tracking-widest">Comportamento de Execução</h2>
+            <h2 className="text-zinc-500 uppercase tracking-widest">Como Você Executa</h2>
             <div className="h-px flex-1 bg-zinc-800"></div>
           </div>
 
           <div className="card-standard space-y-6">
              <div className="space-y-4">
-               <ExecutionMetric label="Tarefas de Alto Impacto Priorizadas" value="82%" />
-               <ExecutionMetric label="Trabalho Profundo vs Multitarefa" value="65/35" />
-               <ExecutionMetric label="Tarefas Eliminadas (Semanal)" value="12 média" />
+               <ExecutionMetric label="Priorização de Alto Impacto" value="82%" />
+               <ExecutionMetric label="Foco vs Multitarefa" value="65/35" />
+               <ExecutionMetric label="Tarefas Eliminadas (Semana)" value="12 média" />
              </div>
           </div>
         </section>
@@ -206,7 +206,7 @@ export default function StrategicDNAPage() {
       <section className="space-y-8">
         <div className="flex items-center gap-3 mb-8">
           <div className="h-px flex-1 bg-zinc-800"></div>
-          <h2 className="text-zinc-500 uppercase tracking-widest">Evolução Estratégica</h2>
+          <h2 className="text-zinc-500 uppercase tracking-widest">Sua Evolução</h2>
           <div className="h-px flex-1 bg-zinc-800"></div>
         </div>
 
@@ -214,19 +214,19 @@ export default function StrategicDNAPage() {
           <EvolutionItem 
             date="Atual"
             title="Foco na Execução"
-            description="Mudou de exploração ampla para execução direcionada em canais de alta alavancagem."
+            description="De exploração ampla para execução direcionada em canais de alta alavancagem."
             active={true}
           />
           <EvolutionItem 
             date="Mês Passado"
-            title="Aumento da Consciência de Risco"
-            description="Começou a quantificar riscos negativos nos registros de decisão de forma consistente."
+            title="Maior Consciência de Risco"
+            description="Começou a quantificar riscos de forma consistente nas decisões."
             active={false}
           />
           <EvolutionItem 
             date="2 Meses Atrás"
-            title="Clareza de Decisão Melhorada"
-            description="Passou de decisões baseadas em instinto para validação baseada em frameworks."
+            title="Decisões Mais Claras"
+            description="De decisões baseadas em instinto para validação estruturada."
             active={false}
           />
         </div>

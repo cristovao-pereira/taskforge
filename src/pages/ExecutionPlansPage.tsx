@@ -158,12 +158,12 @@ export default function ExecutionPlansPage() {
             <div className="card-standard space-y-6 sticky top-8">
               <div className="flex items-center gap-2 mb-2">
                 <Icons.Brain className="w-5 h-5 text-blue-500" />
-                <h3 className="text-zinc-300 uppercase tracking-widest">Inteligência Estratégica</h3>
+                <h3 className="text-zinc-300 uppercase tracking-widest">Visão do Plano</h3>
               </div>
 
               {selectedPlan.intelligence?.rationale && (
                 <div className="space-y-2">
-                  <h4 className="text-zinc-500 uppercase tracking-wider">Racional Estratégico</h4>
+                  <h4 className="text-zinc-500 uppercase tracking-wider">Por que este plano?</h4>
                   <p className="text-xs text-zinc-400 leading-relaxed border-l-2 border-blue-500/30 pl-3">
                     {selectedPlan.intelligence.rationale}
                   </p>
@@ -173,7 +173,7 @@ export default function ExecutionPlansPage() {
               <div className="space-y-4 pt-4 border-t border-zinc-800">
                 <div className="space-y-2">
                   <h4 className="text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                    <Icons.Target className="w-3 h-3" /> Nível de Confiança
+                    <Icons.Target className="w-3 h-3" /> Confiança
                   </h4>
                   <div className="flex items-center gap-3">
                     <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
@@ -213,7 +213,7 @@ export default function ExecutionPlansPage() {
 
                 <div className="space-y-2">
                   <h4 className="text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                    <Icons.TrendingUp className="w-3 h-3" /> Impacto Estimado
+                    <Icons.TrendingUp className="w-3 h-3" /> Impacto Esperado
                   </h4>
                   <p className="text-xs text-zinc-300 font-medium bg-zinc-800/50 p-2 rounded border border-zinc-800">
                     {selectedPlan.intelligence?.impact || 'Não avaliado'}
@@ -234,9 +234,9 @@ export default function ExecutionPlansPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-8 border-b border-zinc-800 pb-8">
         <div className="space-y-2">
           <h1>Planos de Execução</h1>
-          <p className="text-xl text-zinc-400 font-light">Onde estratégia se transforma em execução.</p>
+          <p className="text-xl text-zinc-400 font-light">Transforme estratégia em ação.</p>
           <p className="text-sm text-zinc-500 max-w-lg leading-relaxed">
-            Planos de ação estruturados gerados a partir das suas Strategic Sessions.
+            Planos de ação estruturados gerados a partir das suas sessões estratégicas.
           </p>
         </div>
         <button className="btn-primary px-6">

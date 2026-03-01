@@ -20,9 +20,9 @@ export const STRATEGIC_RULES: Record<StrategicMode, StrategicRule> = {
     blockerWeight: 0.20,
     executionParallelism: 2,
     alertSensitivity: 'high',
-    description: 'Foco em proteção de caixa e mitigação de riscos. Priorize estabilidade.',
-    executionSuggestion: 'Reduzir escopo, mitigar riscos e validar antes de escalar.',
-    riskFocus: 'Ameaça à estabilidade e previsibilidade.'
+    description: 'Controle de caixa e mitigação de riscos. Priorize estabilidade.',
+    executionSuggestion: 'Reduza escopo, mitigue riscos e valide antes de escalar.',
+    riskFocus: 'Ameaças à estabilidade operacional.'
   },
   equilibrado: {
     riskWeight: 0.25,
@@ -31,9 +31,9 @@ export const STRATEGIC_RULES: Record<StrategicMode, StrategicRule> = {
     blockerWeight: 0.20,
     executionParallelism: 3,
     alertSensitivity: 'medium',
-    description: 'Equilíbrio entre crescimento e segurança. Mantenha o ritmo sustentável.',
-    executionSuggestion: 'Manter consistência e ritmo sustentável de entregas.',
-    riskFocus: 'Impacto no equilíbrio operacional.'
+    description: 'Equilíbrio entre crescimento e segurança. Ritmo sustentável.',
+    executionSuggestion: 'Mantenha consistência e ritmo sustentável nas entregas.',
+    riskFocus: 'Impactos no equilíbrio operacional.'
   },
   expansao: {
     riskWeight: 0.15,
@@ -42,9 +42,9 @@ export const STRATEGIC_RULES: Record<StrategicMode, StrategicRule> = {
     blockerWeight: 0.20,
     executionParallelism: 5,
     alertSensitivity: 'low',
-    description: 'Foco total em crescimento e velocidade. Aceite riscos calculados.',
-    executionSuggestion: 'Aumentar cadência, antecipar tarefas de impacto e aceitar trade-offs.',
-    riskFocus: 'Bloqueio de crescimento no curto prazo.'
+    description: 'Crescimento e velocidade em primeiro lugar. Aceite riscos calculados.',
+    executionSuggestion: 'Aumente cadência, antecipe tarefas de impacto e aceite trade-offs.',
+    riskFocus: 'Bloqueios ao crescimento no curto prazo.'
   }
 };
 

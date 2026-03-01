@@ -27,7 +27,7 @@ export function DecisionEditModal({ suggestion, onClose, onSave }: DecisionEditM
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg p-6 space-y-6">
                 <div className="flex justify-between items-start">
-                    <h3 className="text-xl font-bold text-white">Revisar Decisão Sugerida</h3>
+                    <h3 className="text-xl font-bold text-white">Revisar Sugestão</h3>
                     <button onClick={onClose} className="text-zinc-500 hover:text-white"><Icons.X className="w-5 h-5" /></button>
                 </div>
 
@@ -43,7 +43,7 @@ export function DecisionEditModal({ suggestion, onClose, onSave }: DecisionEditM
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">Contexto Estratégico</label>
+                        <label className="text-sm font-medium text-zinc-400">Contexto</label>
                         <textarea 
                             value={formData.description}
                             onChange={e => setFormData({...formData, description: e.target.value})}
@@ -75,7 +75,7 @@ export function DecisionEditModal({ suggestion, onClose, onSave }: DecisionEditM
                     </div>
 
                     <div className="p-3 bg-zinc-950 rounded-lg border border-zinc-800 flex justify-between items-center">
-                        <span className="text-sm text-zinc-400">Confiança do Sistema</span>
+                        <span className="text-sm text-zinc-400">Confiança</span>
                         <span className="text-sm font-bold text-emerald-500">{suggestion.confidenceScore}%</span>
                     </div>
                 </div>
@@ -85,7 +85,7 @@ export function DecisionEditModal({ suggestion, onClose, onSave }: DecisionEditM
                         Cancelar
                     </button>
                     <button onClick={() => onSave(formData)} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition-colors">
-                        Salvar e Criar Decisão
+                        Criar Decisão
                     </button>
                 </div>
             </div>

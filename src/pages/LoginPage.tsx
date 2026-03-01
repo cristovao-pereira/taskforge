@@ -16,11 +16,11 @@ export default function LoginPage() {
       setLoading(true);
       await loginWithGoogle();
       await syncUserWithBackend();
-      toast.success('Login successful!');
+      toast.success('✅ Login realizado com sucesso!');
       navigate('/app/dashboard');
     } catch (error: any) {
       console.error('Google login error:', error);
-      toast.error(error.message || 'Failed to login with Google');
+      toast.error(error.message || 'Falha ao fazer login com Google');
     } finally {
       setLoading(false);
     }
@@ -31,11 +31,11 @@ export default function LoginPage() {
       setLoading(true);
       await loginWithGithub();
       await syncUserWithBackend();
-      toast.success('Login successful!');
+      toast.success('✅ Login realizado com sucesso!');
       navigate('/app/dashboard');
     } catch (error: any) {
       console.error('GitHub login error:', error);
-      toast.error(error.message || 'Failed to login with GitHub');
+      toast.error(error.message || 'Falha ao fazer login com GitHub');
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export default function LoginPage() {
   const handleEmailLogin = async (e: FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error('Please enter email and password');
+      toast.error('Por favor, insira email e senha');
       return;
     }
 
@@ -52,11 +52,11 @@ export default function LoginPage() {
       setLoading(true);
       await loginWithEmail(email, password);
       await syncUserWithBackend();
-      toast.success('Login successful!');
+      toast.success('✅ Login realizado com sucesso!');
       navigate('/app/dashboard');
     } catch (error: any) {
       console.error('Email login error:', error);
-      toast.error(error.message || 'Failed to login');
+      toast.error(error.message || 'Falha ao fazer login');
     } finally {
       setLoading(false);
     }

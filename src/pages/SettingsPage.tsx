@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from '../components/Icons';
 import { useStrategicMode } from '../contexts/StrategicContext';
+import { toast } from 'sonner';
 
 // Custom Dropdown Component
 const CustomDropdown = ({ value, onChange, options, icon: Icon }: any) => {
@@ -119,11 +120,10 @@ export default function SettingsPage() {
             // Update context if mode changed
             setMode(profile.strategicMode as any);
             
-            // Show success feedback (could be a toast, using alert for MVP simplicity)
-            alert('Configurações salvas com sucesso!');
+            toast.success('⚙️ Configurações salvas!');
         } catch (error) {
             console.error("Error saving settings:", error);
-            alert('Erro ao salvar configurações.');
+            toast.error('Erro ao salvar configurações.');
         } finally {
             setSaving(false);
         }

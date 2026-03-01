@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStrategicMode } from '../contexts/StrategicContext';
+import { toast } from 'sonner';
 
 // Types
 interface AnalysisResult {
@@ -64,6 +65,7 @@ export default function DecisionForgePage() {
 
   const handleAnalyze = () => {
     setIsAnalyzing(true);
+    toast.info('🔍 Analisando...');
     // Simulate sending strategicMode to backend
     console.log('Analyzing with mode:', mode);
     
@@ -85,6 +87,7 @@ export default function DecisionForgePage() {
         confidence: 85
       });
       setIsAnalyzing(false);
+      toast.success('✨ Análise concluída!');
     }, 2000);
   };
 
@@ -109,9 +112,9 @@ export default function DecisionForgePage() {
                 Modo: {getModeLabel()}
               </div>
             </div>
-            <p className="text-xl text-zinc-400 font-light">Análise estratégica estruturada para decisões críticas.</p>
+            <p className="text-xl text-zinc-400 font-light">Análise estruturada para decisões críticas.</p>
             <p className="text-sm text-zinc-500 max-w-xl leading-relaxed">
-              Transforme decisões complexas em análises claras, com avaliação de risco, impacto e coerência estratégica.
+              Transforme decisões complexas em análises claras, com avaliação de risco e impacto.
             </p>
           </div>
           
@@ -181,7 +184,7 @@ export default function DecisionForgePage() {
                     </div>
                     <h3>Sessão Estratégica</h3>
                   </div>
-                  <p className="text-sm text-zinc-500">Desconstrução completa, cenários e trade-offs para decisões críticas.</p>
+                  <p className="text-sm text-zinc-500">Análise completa com cenários e trade-offs para decisões complexas.</p>
                 </div>
               </div>
 
@@ -287,7 +290,7 @@ export default function DecisionForgePage() {
                   <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-8">
                     <h3 className="text-white uppercase tracking-wider mb-3 flex items-center gap-2">
                       <Icons.Lightbulb className="w-4 h-4 text-yellow-500" />
-                      Recomendação Estratégica
+                      Recomendação
                     </h3>
                     <p className="text-zinc-300 leading-relaxed border-l-2 border-yellow-500/50 pl-4">
                       {result.recommendation}

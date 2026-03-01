@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { useEvent } from '../contexts/EventContext';
 import { DecisionEditModal } from '../components/DecisionEditModal';
+import { toast } from 'sonner';
 
 // Types
 interface Document {
@@ -54,7 +55,7 @@ export default function DocumentsPage() {
       });
 
       socket.on('document:insights_extracted', (data: any) => {
-          // Optional: Show toast notification
+          toast.success(`✅ Análise pronta: ${data.title}`);
           console.log('Insights ready for:', data.title);
       });
 
@@ -87,8 +88,9 @@ export default function DocumentsPage() {
             // const newDoc = await res.json();
             // setDocuments([newDoc, ...documents]);
             emitEvent('document.uploaded', 'document', 'temp-id', { title: file.name });
+            toast.success('📄 Documento enviado!');
         } else {
-            alert('Erro ao fazer upload do arquivo.');
+            toast.error('Erro ao fazer upload do arquivo.');
         }
     } catch (error) {
         console.error('Upload failed:', error);
@@ -126,13 +128,13 @@ export default function DocumentsPage() {
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-8 border-b border-zinc-800 pb-8 mb-12">
             <div className="space-y-2">
                 <h1>Central de Documentos</h1>
-                <p className="text-xl text-zinc-400 font-light">Memória estratégica estruturada.</p>
-                <p className="text-sm text-zinc-500">Armazene, analise e conecte documentos ao seu sistema de decisões e execução.</p>
+                <p className="text-xl text-zinc-400 font-light">Memória estratégica organizada.</p>
+                <p className="text-sm text-zinc-500">Armazene, analise e conecte documentos ao seu sistema de decisões.</p>
             </div>
             
             <div className="flex items-center gap-6">
                  <div className="text-right">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold mb-1">Document Intelligence Score</p>
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold mb-1">Score de Uso</p>
                     <div className="text-3xl font-bold text-emerald-500">{score}<span className="text-zinc-600 text-lg font-normal">/100</span></div>
                 </div>
                 <button 
@@ -321,6 +323,7 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
             decisionSuggestions: prev.decisionSuggestions.map((s: any) => s.id === id ? { ...s, status: 'accepted' } : s)
         }));
         setEditingDecision(null);
+        toast.success('👍 Decisão adicionada!');
     };
 
     const handleDismissDecision = async (id: string) => {
@@ -329,6 +332,7 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
             ...prev,
             decisionSuggestions: prev.decisionSuggestions.map((s: any) => s.id === id ? { ...s, status: 'dismissed' } : s)
         }));
+        toast.info('🗑️ Descartada');
     };
 
     const handleEditPlan = (id: string) => {
@@ -341,6 +345,7 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
             ...prev,
             planSuggestions: prev.planSuggestions.map((s: any) => s.id === id ? { ...s, status: 'dismissed' } : s)
         }));
+        toast.info('🗑️ Descartada');
     };
     
     return (

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useEvent } from './EventContext';
+import { toast } from 'sonner';
 
 export type StrategicMode = 'conservador' | 'equilibrado' | 'expansao';
 
@@ -46,6 +47,10 @@ export function StrategicProvider({ children }: { children: ReactNode }) {
         newMode,
         timestamp: new Date().toISOString()
       });
+
+      // Show toast notification
+      const modeLabel = newMode === 'conservador' ? 'Conservador' : newMode === 'equilibrado' ? 'Equilibrado' : 'Expansão';
+      toast.info(`🎯 Modo alterado: ${modeLabel}`);
     }
   };
 

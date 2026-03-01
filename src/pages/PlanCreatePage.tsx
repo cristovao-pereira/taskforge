@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
+import { toast } from 'sonner';
 
 export default function PlanCreatePage() {
     const [searchParams] = useSearchParams();
@@ -53,13 +54,14 @@ export default function PlanCreatePage() {
             });
 
             if (res.ok) {
+                toast.success('✅ Plano criado!');
                 navigate('/app/plans');
             } else {
-                alert('Erro ao criar plano.');
+                toast.error('Erro ao criar plano.');
             }
         } catch (error) {
             console.error(error);
-            alert('Erro ao conectar com o servidor.');
+            toast.error('Erro ao conectar com o servidor.');
         } finally {
             setLoading(false);
         }

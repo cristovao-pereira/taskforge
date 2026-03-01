@@ -41,10 +41,10 @@ export default function ClarityForgePage() {
             </div>
             
             <p className="text-2xl text-zinc-300 font-light max-w-2xl">
-              "Transforme informação dispersa em estrutura estratégica."
+              "Organize informação dispersa em estrutura estratégica."
             </p>
             <p className="text-base text-zinc-500 max-w-lg leading-relaxed">
-              Organize brainstorms, reuniões e documentos complexos em estruturas claras e acionáveis.
+              Transforme brainstorms, reuniões e documentos em estruturas claras e acionáveis.
             </p>
             
             <div className="flex items-center gap-4 pt-2">
