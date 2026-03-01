@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Icons } from '../components/Icons';
+import { AnimatedPage } from '../components/AnimatedPage';
+import { cardHover } from '../lib/motion';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { getStrategicRules } from '../utils/strategicRules';
 import { useApp } from '../contexts/AppContext';
@@ -228,7 +230,7 @@ export default function ExecutionPlansPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto section-spacing pb-20 animate-in fade-in duration-700">
+     <AnimatedPage className="max-w-5xl mx-auto section-spacing pb-20">
       
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-8 border-b border-zinc-800 pb-8">
@@ -382,6 +384,6 @@ export default function ExecutionPlansPage() {
         </button>
       </footer>
 
-    </div>
+      </AnimatedPage>
   );
 }

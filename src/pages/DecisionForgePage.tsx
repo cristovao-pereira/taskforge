@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { motion, AnimatePresence } from 'motion/react';
+import { AnimatedPage } from '../components/AnimatedPage';
+import { cardHover, buttonPrimary } from '../lib/motion';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { useUpgrade } from '../contexts/UpgradeContext';
 import { toast } from 'sonner';
@@ -97,7 +99,7 @@ export default function DecisionForgePage() {
   const selectedNode = decisionNodes.find(n => n.id === selectedNodeId);
 
   return (
-    <div className="max-w-6xl mx-auto section-spacing pb-20 animate-in fade-in duration-700">
+     <AnimatedPage className="max-w-6xl mx-auto section-spacing pb-20">
       
       {/* Header */}
       <header className="space-y-6 pt-8 px-4 md:px-0">
@@ -125,9 +127,11 @@ export default function DecisionForgePage() {
             to="/app/map" 
             className="btn-primary"
           >
-            <Icons.Map className="w-4 h-4" />
+            <motion.div {...buttonPrimary} className="flex items-center gap-2">
+              <Icons.Map className="w-4 h-4 " />
             Ver Mapa de Decisões
-          </Link>
+            </motion.div>
+            </Link>
         </div>
 
         {/* Tabs */}
@@ -598,7 +602,7 @@ export default function DecisionForgePage() {
 
         </AnimatePresence>
       </div>
-    </div>
+      </AnimatedPage>
   );
 }
 

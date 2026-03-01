@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
+import { motion, AnimatePresence } from 'motion/react';
+import { modalMotion, modalBackdrop, buttonPrimary } from '../lib/motion';
 
 interface DecisionEditModalProps {
     suggestion: {
@@ -24,8 +26,16 @@ export function DecisionEditModal({ suggestion, onClose, onSave }: DecisionEditM
     });
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg p-6 space-y-6">
+            <motion.div 
+                {...modalBackdrop}
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+                onClick={onClose}
+            >
+                <motion.div 
+                    {...modalMotion}
+                    className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg p-6 space-y-6"
+                    onClick={(e) => e.stopPropagation()}
+                >
                 <div className="flex justify-between items-start">
                     <h3 className="text-xl font-bold text-white">Revisar Sugestão</h3>
                     <button onClick={onClose} className="text-zinc-500 hover:text-white"><Icons.X className="w-5 h-5" /></button>
@@ -81,14 +91,22 @@ export function DecisionEditModal({ suggestion, onClose, onSave }: DecisionEditM
                 </div>
 
                 <div className="flex gap-3 pt-4 border-t border-zinc-800">
-                    <button onClick={onClose} className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors">
+                        <motion.button 
+                            {...buttonPrimary}
+                            onClick={onClose} 
+                            className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium"
+                        >
                         Cancelar
-                    </button>
-                    <button onClick={() => onSave(formData)} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition-colors">
+                        </motion.button>
+                        <motion.button 
+                            {...buttonPrimary}
+                            onClick={() => onSave(formData)} 
+                            className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold"
+                        >
                         Criar Decisão
-                    </button>
+                        </motion.button>
                 </div>
-            </div>
-        </div>
+                </motion.div>
+            </motion.div>
     );
 }

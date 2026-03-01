@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { Icons } from '../components/Icons';
+import { AnimatedPage } from '../components/AnimatedPage';
+import { cardHover } from '../lib/motion';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { getStrategicRules } from '../utils/strategicRules';
 import { useApp } from '../contexts/AppContext';
@@ -70,7 +72,7 @@ export default function RiskAlertsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto section-spacing pb-20 animate-in fade-in duration-700">
+     <AnimatedPage className="max-w-5xl mx-auto section-spacing pb-20">
       
       {/* Header */}
       <header className="space-y-6 pt-8">
@@ -200,7 +202,7 @@ export default function RiskAlertsPage() {
         </button>
       </footer>
 
-    </div>
+    </AnimatedPage>
   );
 }
 

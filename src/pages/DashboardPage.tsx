@@ -7,6 +7,9 @@ import { useUpgrade } from '../contexts/UpgradeContext';
 import { DecisionEditModal } from '../components/DecisionEditModal';
 import { OnboardingModal } from '../components/OnboardingModal';
 import { toast } from 'sonner';
+import { motion } from 'motion/react';
+import { AnimatedPage } from '../components/AnimatedPage';
+import { staggerContainer, staggerChild, cardHover, buttonPrimary } from '../lib/motion';
 
 interface PriorityItem {
   id: string;
@@ -180,10 +183,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="section-spacing pb-12 animate-in fade-in duration-700 max-w-5xl mx-auto relative">
+      <AnimatedPage className="section-spacing pb-12 max-w-5xl mx-auto relative">
 
       {/* 1. FOCO ESTRATÉGICO (Dominante) */}
-      <section className="card-standard p-10 relative overflow-hidden shadow-2xl shadow-black/40 text-center group transition-all duration-500 bg-[#1e293b] border-zinc-800">
+        <motion.section 
+          {...staggerChild}
+          className="card-standard p-10 relative overflow-hidden shadow-2xl shadow-black/40 text-center group transition-all duration-500 bg-[#1e293b] border-zinc-800"
+        >
         <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none"></div>
         
         <div className="relative z-10 flex flex-col items-center animate-in slide-in-from-bottom-4 duration-500" key={mainItem.id}>
@@ -200,19 +206,31 @@ export default function DashboardPage() {
             {mainItem.description}
           </p>
 
-          <button className="btn-primary px-10">
+            <motion.button 
+              {...buttonPrimary}
+              className="btn-primary px-10"
+            >
             <Icons.Zap className="w-5 h-5" />
             {mainItem.actionLabel || 'Resolver Agora'}
-          </button>
+            </motion.button>
         </div>
-      </section>
+        </motion.section>
 
       {/* 2. PRÓXIMAS PRIORIDADES (Lista Minimalista) */}
-      <section className="space-y-4">
+        <motion.section 
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          className="space-y-4"
+        >
         <h3 className="text-zinc-500 uppercase tracking-widest px-2">A seguir</h3>
         <div className="card-standard divide-y divide-zinc-800/50">
             {nextItems.map((item, index) => (
-              <div key={item.id} className="p-5 flex items-center justify-between group hover:bg-zinc-900/50 transition-colors">
+                <motion.div 
+                  key={item.id} 
+                  {...cardHover}
+                  className="p-5 flex items-center justify-between group hover:bg-zinc-900/50 transition-colors"
+                >
                   <div className="flex items-center gap-4">
                       <span className="text-zinc-500 font-mono text-xs">0{index + 1}</span>
                       <span className="text-zinc-300 font-medium group-hover:text-blue-400 transition-colors">{item.title}</span>
@@ -225,15 +243,19 @@ export default function DashboardPage() {
                           <Icons.ArrowRight className="w-4 h-4" />
                       </Link>
                   </div>
-              </div>
+                  </motion.div>
             ))}
         </div>
-      </section>
+            </motion.section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* 3. MOMENTO ESTRATÉGICO (Visual Sofisticado) */}
-        <section className="card-standard flex flex-col justify-between">
+          <motion.section 
+            {...staggerChild}
+            {...cardHover}
+            className="card-standard flex flex-col justify-between"
+          >
             <div className="mb-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Icons.Activity className="w-4 h-4 text-emerald-500" />
@@ -257,10 +279,14 @@ export default function DashboardPage() {
                 </div>
                 <div className="px-3 py-1.5 bg-zinc-950 rounded border border-zinc-800 text-xs text-zinc-400">Execução Estável</div>
             </div>
-        </section>
+            </motion.section>
 
         {/* 4. MOVIMENTO DE EXECUÇÃO */}
-        <section className="card-standard">
+            <motion.section 
+             {...staggerChild}
+             {...cardHover}
+             className="card-standard"
+            >
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-2">
                     <Icons.Layers className="w-4 h-4 text-zinc-400" />
@@ -285,12 +311,15 @@ export default function DashboardPage() {
                     <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Marco</div>
                 </div>
             </div>
-        </section>
+            </motion.section>
 
       </div>
 
       {/* 5. ALERTAS SECUNDÁRIOS (Reduzidos/Silenciosos) */}
-      <section className="pt-8 border-t border-zinc-800/50">
+        <motion.section 
+          {...staggerChild}
+          className="pt-8 border-t border-zinc-800/50"
+        >
         <h3 className="text-zinc-600 uppercase tracking-widest mb-4 px-2">Outros Alertas</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {risks.slice(0, 3).map(risk => (
@@ -306,7 +335,7 @@ export default function DashboardPage() {
                 Ver todos os alertas
             </Link>
         </div>
-      </section>
+            </motion.section>
 
       {/* Decision Edit Modal */}
       {editingDecision && (
@@ -323,6 +352,6 @@ export default function DashboardPage() {
         onComplete={handleOnboardingComplete}
       />
 
-    </div>
+      </AnimatedPage>
   );
 }

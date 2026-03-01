@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icons } from '@/components/Icons';
+import { AnimatedPage } from '@/components/AnimatedPage';
 import { useStrategicMode } from '@/contexts/StrategicContext';
 
 export default function ClarityForgePage() {
@@ -21,7 +22,7 @@ export default function ClarityForgePage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto section-spacing pb-20 animate-in fade-in duration-700">
+     <AnimatedPage className="max-w-5xl mx-auto section-spacing pb-20">
       
       {/* Header */}
       <header className="space-y-6 pt-8 relative">
@@ -269,7 +270,7 @@ export default function ClarityForgePage() {
         </div>
       </footer>
 
-    </div>
+    </AnimatedPage>
   );
 }
 
