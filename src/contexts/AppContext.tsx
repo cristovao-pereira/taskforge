@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Decision, Risk, ExecutionPlan, StrategicSession } from '../types';
 import { mockService } from '../services/mockService';
+import { useAuth } from './AuthContext';
 
 interface AppContextType {
   user: User | null;
@@ -21,6 +22,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user: firebaseUser, getIdToken } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
@@ -32,15 +34,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [userData, decisionsData, risksData, plansData, sessionsData] = await Promise.all([
-        mockService.getUser(),
+      // Fetch user profile from backend if authenticated
+      if (firebaseUser) {
+        const token = await getIdToken();
+        if (token) {
+          const response = await fetch('/api/user/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            const profileData = await response.json();
+            setHasCompletedOnboarding(profileData.hasCompletedOnboarding || false);
+            
+            // Map backend profile to User type
+            const userData: User = {
+              id: profileData.id,
+              name: profileData.name || 'User',
+              email: profileData.email,
+              company: 'Company',
+              role: 'User',
+              objective: profileData.objective || '',
+              preferences: {
+                strategicMode: profileData.strategicMode || 'equilibrado',
+                deepMode: true,
+                alertSensitivity: 'normal',
+              },
+            };
+            setUser(userData);
+          }
+        }
+      }
+
+      // Fetch mock data for decisions, risks, plans, sessions
+      const [decisionsData, risksData, plansData, sessionsData] = await Promise.all([
         mockService.getDecisions(),
         mockService.getRisks(),
         mockService.getPlans(),
         mockService.getSessions(),
       ]);
 
-      setUser(userData);
       setDecisions(decisionsData);
       setRisks(risksData);
       setPlans(plansData);
@@ -53,15 +86,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => {
-    refreshData();
-  }, []);
+    if (firebaseUser) {
+      refreshData();
+    } else {
+      setIsLoading(false);
+      setHasCompletedOnboarding(false);
+      setUser(null);
+    }
+  }, [firebaseUser]);
 
   const updateUser = async (updatedUser: Partial<User>) => {
     try {
-      const newUser = await mockService.updateUser(updatedUser);
-      setUser(newUser);
+      if (!firebaseUser) {
+        throw new Error('User not authenticated');
+      }
+
+      const token = await getIdToken();
+      if (!token) {
+        throw new Error('Failed to get authentication token');
+      }
+
+      // Map User partial to backend format
+      const updateData: any = {};
+      if (updatedUser.name) updateData.name = updatedUser.name;
+      if (updatedUser.objective) updateData.objective = updatedUser.objective;
+      if (updatedUser.preferences?.strategicMode) updateData.strategicMode = updatedUser.preferences.strategicMode;
+
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user');
+      }
+
+      const profileData = await response.json();
+      
+      // Update local state
+      if (user) {
+        setUser({
+          ...user,
+          name: profileData.name || user.name,
+          objective: profileData.objective || user.objective,
+          preferences: {
+            ...user.preferences,
+            strategicMode: profileData.strategicMode || user.preferences.strategicMode,
+          },
+        });
+      }
     } catch (error) {
       console.error('Failed to update user:', error);
+      throw error;
     }
   };
 
@@ -87,24 +167,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       console.log('[AppContext] Iniciando completeOnboarding:', { objective, mode });
       
-      // Update user with objective
-      const updatedUser = await mockService.updateUser({ objective });
-      setUser(updatedUser);
-      console.log('[AppContext] Usuário atualizado:', updatedUser);
-      
-      // Save mode to backend (will be persisted via StrategicContext)
-      await fetch('/api/user/mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode })
-      }).catch(() => {
-        // Fail silently if no backend endpoint
-        console.log('Mode will be saved locally');
+      if (!firebaseUser) {
+        throw new Error('User not authenticated');
+      }
+
+      const token = await getIdToken();
+      if (!token) {
+        throw new Error('Failed to get authentication token');
+      }
+
+      // Update user profile in backend
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          hasCompletedOnboarding: true,
+          objective,
+          strategicMode: mode,
+        }),
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to update user profile');
+      }
+
+      const updatedProfile = await response.json();
+      console.log('[AppContext] Perfil atualizado:', updatedProfile);
+
+      // Update local state
       setHasCompletedOnboarding(true);
-      localStorage.setItem('onboarding_completed', 'true');
-      console.log('[AppContext] Onboarding completado e salvo no localStorage');
+      if (user) {
+        setUser({
+          ...user,
+          objective: updatedProfile.objective,
+          preferences: {
+            ...user.preferences,
+            strategicMode: updatedProfile.strategicMode,
+          },
+        });
+      }
+
+      console.log('[AppContext] Onboarding completado com sucesso');
     } catch (error) {
       console.error('[AppContext] Erro ao completar onboarding:', error);
       throw error;
@@ -112,10 +218,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => {
-    // Check if onboarding was already completed
-    const completed = localStorage.getItem('onboarding_completed') === 'true';
-    setHasCompletedOnboarding(completed);
-  }, []);
+    if (firebaseUser) {
+      refreshData();
+    } else {
+      setIsLoading(false);
+      setHasCompletedOnboarding(false);
+      setUser(null);
+    }
+  }, [firebaseUser]);
 
   return (
     <AppContext.Provider value={{

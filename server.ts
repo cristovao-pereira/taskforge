@@ -52,6 +52,72 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// User Profile Endpoints
+app.get('/api/user/profile', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.userId!;
+    let user = await prisma.user.findUnique({ where: { id: userId } });
+    
+    if (!user && req.user) {
+      // Create user if doesn't exist
+      user = await prisma.user.create({
+        data: {
+          id: userId,
+          email: req.user.email || `${userId}@unknown.com`,
+          name: req.user.name || 'User',
+        },
+      });
+    }
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
+      objective: user.objective,
+      strategicMode: user.strategicMode,
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.patch('/api/user/profile', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const { hasCompletedOnboarding, objective, strategicMode, name } = req.body;
+
+    const updateData: any = {};
+    if (hasCompletedOnboarding !== undefined) updateData.hasCompletedOnboarding = hasCompletedOnboarding;
+    if (objective !== undefined) updateData.objective = objective;
+    if (strategicMode !== undefined) updateData.strategicMode = strategicMode;
+    if (name !== undefined) updateData.name = name;
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
+      objective: user.objective,
+      strategicMode: user.strategicMode,
+    });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Events Endpoint - Requires Authentication
 app.post('/api/events', authenticateUser, async (req, res) => {
   try {
