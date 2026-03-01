@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Core Entities ---
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  decisions           Decision[]
+  plans               Plan[]
+  risks               Risk[]
+  sessions            Session[]
+  documents           Document[]
+  eventLogs           EventLog[]
+  strategicDna        StrategicDNA?
+  systemHealth        SystemHealth?
+  strategicMode       String   @default("equilibrado") // conservador, equilibrado, expansao
+  decisionSuggestions DecisionSuggestion[]
+  planSuggestions     PlanSuggestion[]
+}
+
+model Decision {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      String   @default("draft") // draft, active, completed, archived
+  impact      String   @default("medium") // low, medium, high, critical
+  confidence  Int      @default(0)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  plans       Plan[]
+  documents   Document[]
+}
+
+model Plan {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      String   @default("planning") // planning, active, completed, blocked
+  priority    String   @default("medium") // low, medium, high, critical
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  decisionId  String?
+  decision    Decision? @relation(fields: [decisionId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tasks       Task[]
+  documents   Document[]
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  status      String   @default("todo") // todo, in_progress, done, blocked
+  dueDate     DateTime?
+  planId      String
+  plan        Plan     @relation(fields: [planId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Risk {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  severity    String   @default("medium") // low, medium, high, critical
+  status      String   @default("active") // active, mitigated, resolved, dismissed
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  documents   Document[]
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  title       String
+  type        String   // PDF, DOCX, TXT
+  size        Int      @default(0)
+  storageUrl  String?
+  status      String   @default("uploaded") // uploaded, processing, processed, error
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  processedAt DateTime?
+
+  // Relations
+  insights            DocumentInsights?
+  linkedDecisions     Decision[]
+  linkedPlans         Plan[]
+  linkedRisks         Risk[]
+  decisionSuggestions DecisionSuggestion[]
+  planSuggestions     PlanSuggestion[]
+}
+
+model DocumentInsights {
+  id                String   @id @default(uuid())
+  documentId        String   @unique
+  document          Document @relation(fields: [documentId], references: [id])
+  summary           String?
+  decisionsJson     String? // JSON
+  risksJson         String? // JSON
+  opportunitiesJson String? // JSON
+  suggestedPlanJson String? // JSON
+  confidenceScore   Float    @default(0)
+  createdAt         DateTime @default(now())
+}
+
+model DecisionSuggestion {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  documentId      String
+  document        Document @relation(fields: [documentId], references: [id])
+  title           String
+  description     String?
+  impactScore     Int      @default(0) // 0-100
+  riskScore       Int      @default(0) // 0-100
+  confidenceScore Int      @default(0) // 0-100
+  status          String   @default("pending") // pending, accepted, dismissed
+  createdAt       DateTime @default(now())
+}
+
+model PlanSuggestion {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  documentId      String
+  document        Document @relation(fields: [documentId], references: [id])
+  title           String
+  objective       String?
+  phasesJson      String? // JSON
+  tasksJson       String? // JSON
+  timelineEstimate String?
+  confidenceScore Int      @default(0) // 0-100
+  status          String   @default("pending") // pending, accepted, dismissed
+  createdAt       DateTime @default(now())
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  title       String
+  type        String   // strategy, review, planning
+  status      String   @default("scheduled") // scheduled, active, completed
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- Event Engine & Audit ---
+
+model EventLog {
+  id          String   @id @default(uuid())
+  eventType   String
+  entityType  String
+  entityId    String?
+  metadata    String?  // JSON string
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+
+  // Relations
+  explanation ExplanationLog?
+}
+
+model ExplanationLog {
+  id             String   @id @default(uuid())
+  title          String
+  whatChanged    String
+  whyChanged     String
+  impact         String
+  recommendation String
+  deltas         String?  // JSON string
+  relatedEventId String   @unique
+  event          EventLog @relation(fields: [relatedEventId], references: [id])
+  createdAt      DateTime @default(now())
+}
+
+// --- Metrics ---
+
+model StrategicDNA {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  decisionQuality      Int      @default(75)
+  riskDiscipline       Int      @default(60)
+  executionDiscipline  Int      @default(80)
+  focusLeverage        Int      @default(70)
+  strategicConsistency Int      @default(65)
+  overallScore         Int      @default(71)
+  lastUpdated          DateTime @default(now())
+}
+
+model SystemHealth {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id])
+  activeRisksSeverity Int      @default(85)
+  executionStability  Int      @default(70)
+  alignment           Int      @default(90)
+  momentum            Int      @default(60)
+  overallScore        Int      @default(78)
+  lastUpdated         DateTime @default(now())
+}

@@ -1,0 +1,107 @@
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User, Decision, Risk, ExecutionPlan, StrategicSession } from '../types';
+import { mockService } from '../services/mockService';
+
+interface AppContextType {
+  user: User | null;
+  decisions: Decision[];
+  risks: Risk[];
+  plans: ExecutionPlan[];
+  sessions: StrategicSession[];
+  isLoading: boolean;
+  refreshData: () => Promise<void>;
+  updateUser: (user: Partial<User>) => Promise<void>;
+  addDecision: (decision: Omit<Decision, 'id' | 'date'>) => Promise<void>;
+  resolveRisk: (id: string) => Promise<void>;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+  const [risks, setRisks] = useState<Risk[]>([]);
+  const [plans, setPlans] = useState<ExecutionPlan[]>([]);
+  const [sessions, setSessions] = useState<StrategicSession[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refreshData = async () => {
+    setIsLoading(true);
+    try {
+      const [userData, decisionsData, risksData, plansData, sessionsData] = await Promise.all([
+        mockService.getUser(),
+        mockService.getDecisions(),
+        mockService.getRisks(),
+        mockService.getPlans(),
+        mockService.getSessions(),
+      ]);
+
+      setUser(userData);
+      setDecisions(decisionsData);
+      setRisks(risksData);
+      setPlans(plansData);
+      setSessions(sessionsData);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshData();
+  }, []);
+
+  const updateUser = async (updatedUser: Partial<User>) => {
+    try {
+      const newUser = await mockService.updateUser(updatedUser);
+      setUser(newUser);
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
+  };
+
+  const addDecision = async (decision: Omit<Decision, 'id' | 'date'>) => {
+    try {
+      const newDecision = await mockService.createDecision(decision);
+      setDecisions(prev => [newDecision, ...prev]);
+    } catch (error) {
+      console.error('Failed to add decision:', error);
+    }
+  };
+
+  const resolveRisk = async (id: string) => {
+    try {
+      await mockService.resolveRisk(id);
+      setRisks(prev => prev.map(r => r.id === id ? { ...r, status: 'resolved' } : r));
+    } catch (error) {
+      console.error('Failed to resolve risk:', error);
+    }
+  };
+
+  return (
+    <AppContext.Provider value={{
+      user,
+      decisions,
+      risks,
+      plans,
+      sessions,
+      isLoading,
+      refreshData,
+      updateUser,
+      addDecision,
+      resolveRisk,
+    }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
+};

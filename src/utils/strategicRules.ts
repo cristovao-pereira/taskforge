@@ -1,0 +1,53 @@
+import { StrategicMode } from '../contexts/StrategicContext';
+
+interface StrategicRule {
+  riskWeight: number;
+  impactWeight: number;
+  urgencyWeight: number;
+  blockerWeight: number;
+  executionParallelism: number; // Recommended max parallel initiatives
+  alertSensitivity: 'high' | 'medium' | 'low';
+  description: string;
+  executionSuggestion: string;
+  riskFocus: string;
+}
+
+export const STRATEGIC_RULES: Record<StrategicMode, StrategicRule> = {
+  conservador: {
+    riskWeight: 0.35,
+    impactWeight: 0.25,
+    urgencyWeight: 0.20,
+    blockerWeight: 0.20,
+    executionParallelism: 2,
+    alertSensitivity: 'high',
+    description: 'Foco em proteção de caixa e mitigação de riscos. Priorize estabilidade.',
+    executionSuggestion: 'Reduzir escopo, mitigar riscos e validar antes de escalar.',
+    riskFocus: 'Ameaça à estabilidade e previsibilidade.'
+  },
+  equilibrado: {
+    riskWeight: 0.25,
+    impactWeight: 0.35,
+    urgencyWeight: 0.20,
+    blockerWeight: 0.20,
+    executionParallelism: 3,
+    alertSensitivity: 'medium',
+    description: 'Equilíbrio entre crescimento e segurança. Mantenha o ritmo sustentável.',
+    executionSuggestion: 'Manter consistência e ritmo sustentável de entregas.',
+    riskFocus: 'Impacto no equilíbrio operacional.'
+  },
+  expansao: {
+    riskWeight: 0.15,
+    impactWeight: 0.40,
+    urgencyWeight: 0.25,
+    blockerWeight: 0.20,
+    executionParallelism: 5,
+    alertSensitivity: 'low',
+    description: 'Foco total em crescimento e velocidade. Aceite riscos calculados.',
+    executionSuggestion: 'Aumentar cadência, antecipar tarefas de impacto e aceitar trade-offs.',
+    riskFocus: 'Bloqueio de crescimento no curto prazo.'
+  }
+};
+
+export function getStrategicRules(mode: StrategicMode): StrategicRule {
+  return STRATEGIC_RULES[mode];
+}
