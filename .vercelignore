@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+prisma/migrations
+
+# Development files
+.env*
+!.env.example
+*.log
+
+# Build artifacts
+dist
+build
+
+# Testing
+coverage
+
+# Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Server-only files (backend não vai para Vercel)
+server.ts
+prisma/
+services/metricsService.ts
+lib/prisma.ts
+check-env.ts
