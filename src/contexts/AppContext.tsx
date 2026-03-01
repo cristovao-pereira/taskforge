@@ -168,15 +168,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log('[AppContext] Iniciando completeOnboarding:', { objective, mode });
       
       if (!firebaseUser) {
+        console.error('[AppContext] Erro: usuário não autenticado');
         throw new Error('User not authenticated');
       }
+      console.log('[AppContext] Firebase user OK:', firebaseUser.uid);
 
+      console.log('[AppContext] Obtendo token...');
       const token = await getIdToken();
       if (!token) {
+        console.error('[AppContext] Erro: token não obtido');
         throw new Error('Failed to get authentication token');
       }
+      console.log('[AppContext] Token obtido com sucesso');
 
       // Update user profile in backend
+      console.log('[AppContext] Enviando PATCH para /api/user/profile...');
       const response = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: {
@@ -190,8 +196,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }),
       });
 
+      console.log('[AppContext] Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to update user profile');
+        const errorText = await response.text();
+        console.error('[AppContext] Response error:', errorText);
+        throw new Error(`Failed to update user profile: ${response.status} ${errorText}`);
       }
 
       const updatedProfile = await response.json();

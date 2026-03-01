@@ -24,6 +24,7 @@ export function StrategicProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchMode = async () => {
       if (!user) {
+        setModeState('equilibrado');
         return;
       }
 
@@ -41,6 +42,7 @@ export function StrategicProvider({ children }: { children: ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           if (data.mode) {
+            console.log('[StrategicContext] Mode loaded from backend:', data.mode);
             setModeState(data.mode as StrategicMode);
           }
         } else if (res.status !== 401) {
@@ -56,6 +58,7 @@ export function StrategicProvider({ children }: { children: ReactNode }) {
   const setMode = (newMode: StrategicMode) => {
     if (newMode !== mode) {
       const oldMode = mode;
+      console.log('[StrategicContext] Mode changed:', oldMode, '->', newMode);
       setModeState(newMode);
       
       // Emit event for audit log and backend persistence
@@ -65,9 +68,11 @@ export function StrategicProvider({ children }: { children: ReactNode }) {
         timestamp: new Date().toISOString()
       });
 
-      // Show toast notification
-      const modeLabel = newMode === 'conservador' ? 'Conservador' : newMode === 'equilibrado' ? 'Equilibrado' : 'Expansão';
-      toast.info(`🎯 Modo alterado: ${modeLabel}`);
+      // Show toast notification (skip if it's the initial load)
+      if (oldMode !== 'equilibrado' || newMode !== 'equilibrado') {
+        const modeLabel = newMode === 'conservador' ? 'Conservador' : newMode === 'equilibrado' ? 'Equilibrado' : 'Expansão';
+        toast.info(`🎯 Modo alterado: ${modeLabel}`);
+      }
     }
   };
 

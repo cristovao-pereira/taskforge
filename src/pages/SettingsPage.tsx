@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from '../components/Icons';
 import { useStrategicMode } from '../contexts/StrategicContext';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
 // Custom Dropdown Component
@@ -62,6 +63,7 @@ const CustomDropdown = ({ value, onChange, options, icon: Icon }: any) => {
 
 export default function SettingsPage() {
     const { setMode } = useStrategicMode();
+    const { getIdToken } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     
@@ -89,16 +91,47 @@ export default function SettingsPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                const token = await getIdToken();
+                if (!token) {
+                    console.error('No auth token available');
+                    setLoading(false);
+                    return;
+                }
+
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                };
+
                 const [profileRes, creditsRes] = await Promise.all([
-                    fetch('/api/user/profile'),
-                    fetch('/api/user/credits')
+                    fetch('/api/user/profile', { headers }),
+                    fetch('/api/user/credits', { headers })
                 ]);
                 
-                const profileData = await profileRes.json();
-                const creditsData = await creditsRes.json();
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    // Map backend profile to UI format
+                    setProfile({
+                        name: profileData.name || '',
+                        email: profileData.email || '',
+                        company: 'Company', // Not in backend yet
+                        role: 'User', // Not in backend yet
+                        objective: profileData.objective || '',
+                        strategicMode: profileData.strategicMode || 'equilibrado',
+                        deepMode: true,
+                        alertSensitivity: 'normal',
+                        notifications: {
+                            emailCritical: true,
+                            weeklyReport: true,
+                            sessionReminder: false,
+                            pendingSuggestions: true
+                        }
+                    });
+                }
 
-                setProfile(profileData);
-                setCredits(creditsData);
+                if (creditsRes.ok) {
+                    const creditsData = await creditsRes.json();
+                    setCredits(creditsData);
+                }
             } catch (error) {
                 console.error("Error loading settings:", error);
             } finally {
@@ -106,17 +139,34 @@ export default function SettingsPage() {
             }
         };
         fetchData();
-    }, []);
+    }, [getIdToken]);
 
     const handleSave = async () => {
         setSaving(true);
         try {
-            await fetch('/api/user/profile', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(profile)
+            const token = await getIdToken();
+            if (!token) {
+                toast.error('Não autenticado');
+                return;
+            }
+
+            const response = await fetch('/api/user/profile', {
+                method: 'PATCH',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: profile.name,
+                    objective: profile.objective,
+                    strategicMode: profile.strategicMode,
+                })
             });
             
+            if (!response.ok) {
+                throw new Error('Failed to save profile');
+            }
+
             // Update context if mode changed
             setMode(profile.strategicMode as any);
             

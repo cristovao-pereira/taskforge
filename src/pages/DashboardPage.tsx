@@ -30,7 +30,7 @@ interface PriorityItem {
 
 export default function DashboardPage() {
   const { mode, setMode } = useStrategicMode();
-  const { decisions, risks, plans, isLoading, hasCompletedOnboarding, completeOnboarding } = useApp();
+  const { user, decisions, risks, plans, isLoading, hasCompletedOnboarding, completeOnboarding } = useApp();
   const { checkUpgradeTriggers } = useUpgrade();
   const navigate = useNavigate();
   const [editingDecision, setEditingDecision] = useState<any>(null);
@@ -184,6 +184,28 @@ export default function DashboardPage() {
 
   return (
       <AnimatedPage className="section-spacing pb-12 max-w-5xl mx-auto relative">
+
+      {/* Strategic Objective Banner - if exists */}
+      {user?.objective && (
+        <motion.div
+          {...staggerChild}
+          className="mb-8 p-6 bg-gradient-to-r from-blue-950/30 via-blue-900/20 to-transparent border border-blue-500/20 rounded-2xl"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Icons.Target className="w-5 h-5 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-blue-300 uppercase tracking-wider mb-1">
+                Seu Objetivo Estratégico
+              </h3>
+              <p className="text-base text-zinc-300 leading-relaxed">
+                {user.objective}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* 1. FOCO ESTRATÉGICO (Dominante) */}
         <motion.section 
