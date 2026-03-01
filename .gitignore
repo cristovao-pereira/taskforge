@@ -6,3 +6,24 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Prisma
+prisma/migrations/*.db
+prisma/prisma/
