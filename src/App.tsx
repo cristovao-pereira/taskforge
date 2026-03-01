@@ -6,6 +6,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 import ChatPage from './pages/ChatPage';
 import SettingsPage from './pages/SettingsPage';
 import DashboardPage from './pages/DashboardPage';
@@ -26,19 +27,22 @@ import { StrategicProvider } from './contexts/StrategicContext';
 import { EventProvider } from './contexts/EventContext';
 import { MetricsProvider } from './contexts/MetricsContext';
 import { AppProvider } from './contexts/AppContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from 'sonner';
 
 export default function App() {
   return (
-    <EventProvider>
-      <StrategicProvider>
-        <MetricsProvider>
-          <AppProvider>
-            <BrowserRouter>
+    <AuthProvider>
+      <EventProvider>
+        <StrategicProvider>
+          <MetricsProvider>
+            <AppProvider>
+              <BrowserRouter>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
 
                 {/* Protected Routes (App) */}
                 <Route path="/app" element={<AppLayout><Navigate to="/app/dashboard" replace /></AppLayout>} />
@@ -71,5 +75,6 @@ export default function App() {
         </MetricsProvider>
       </StrategicProvider>
     </EventProvider>
+    </AuthProvider>
   );
 }

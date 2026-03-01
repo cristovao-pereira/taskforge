@@ -6,18 +6,27 @@ import { Server } from 'socket.io';
 import { createServer as createViteServer } from 'vite';
 import prisma from './lib/prisma';
 import { processEvent } from './services/metricsService';
+import { authenticateUser, optionalAuth } from './lib/firebaseAuth';
 import multer from 'multer';
 
 const app = express();
 const httpServer = createServer(app);
+
+// CORS configuration from environment
+const corsOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || ['http://localhost:5173'];
+
 const io = new Server(httpServer, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: corsOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
-app.use(cors());
+app.use(cors({
+  origin: corsOrigins,
+  credentials: true
+}));
 app.use(express.json());
 
 // Multer Setup
@@ -43,22 +52,28 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Events Endpoint
-app.post('/api/events', async (req, res) => {
+// Events Endpoint - Requires Authentication
+app.post('/api/events', authenticateUser, async (req, res) => {
   try {
-    const { eventType, entityType, entityId, metadata, userId } = req.body;
+    const { eventType, entityType, entityId, metadata } = req.body;
+    const firebaseUserId = req.userId!;
 
-    // 1. Log Event
-    // Ensure user exists for mock purposes
-    let user = await prisma.user.findUnique({ where: { id: userId || 'user-1' } });
+    // 1. Find or create user based on Firebase UID
+    let user = await prisma.user.findUnique({ where: { id: firebaseUserId } });
+    if (!user && req.user) {
+      // Create user from Firebase token
+      user = await prisma.user.create({
+        data: {
+          id: firebaseUserId,
+          email: req.user.email || `${firebaseUserId}@unknown.com`,
+          name: req.user.name || 'User',
+        },
+      });
+    }
+
     if (!user) {
-        user = await prisma.user.create({
-            data: {
-                id: userId || 'user-1',
-                email: 'user@example.com',
-                name: 'Demo User'
-            }
-        });
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
 
     const event = await prisma.eventLog.create({
@@ -116,10 +131,10 @@ app.post('/api/events', async (req, res) => {
   }
 });
 
-// Metrics Endpoints
-app.get('/api/metrics/dna', async (req, res) => {
+// Metrics Endpoints - Requires Authentication
+app.get('/api/metrics/dna', authenticateUser, async (req, res) => {
     try {
-        const userId = 'user-1'; 
+        const userId = req.userId!; 
         let dna = await prisma.strategicDNA.findUnique({ where: { userId } });
         
         if (!dna) {
@@ -146,9 +161,9 @@ app.get('/api/metrics/dna', async (req, res) => {
     }
 });
 
-app.get('/api/metrics/health', async (req, res) => {
+app.get('/api/metrics/health', authenticateUser, async (req, res) => {
     try {
-        const userId = 'user-1';
+        const userId = req.userId!;
         let health = await prisma.systemHealth.findUnique({ where: { userId } });
         
         if (!health) {
@@ -190,9 +205,9 @@ app.get('/api/explanations', async (req, res) => {
     }
 });
 
-// Document Routes
-app.get('/api/documents', async (req, res) => {
-    const userId = 'user-1';
+// Document Routes - Requires Authentication
+app.get('/api/documents', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
     const docs = await prisma.document.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -201,8 +216,8 @@ app.get('/api/documents', async (req, res) => {
     res.json(docs);
 });
 
-app.get('/api/documents/score', async (req, res) => {
-    const userId = 'user-1';
+app.get('/api/documents/score', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
     
     const totalDocs = await prisma.document.count({ where: { userId } });
     if (totalDocs === 0) return res.json({ score: 0 });
@@ -229,9 +244,9 @@ app.get('/api/documents/score', async (req, res) => {
     res.json({ score: Math.min(100, score) });
 });
 
-app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
+app.post('/api/documents/upload', authenticateUser, upload.single('file'), async (req, res) => {
     try {
-        const userId = 'user-1';
+        const userId = req.userId!;
         const file = req.file;
         
         if (!file) {
@@ -240,12 +255,12 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
 
         // Ensure user exists
         let user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) {
-             user = await prisma.user.create({
+        if (!user && req.user) {
+            user = await prisma.user.create({
                 data: {
                     id: userId,
-                    email: 'user@example.com',
-                    name: 'Demo User'
+                    email: req.user.email || `${userId}@unknown.com`,
+                    name: req.user.name || 'User'
                 }
             });
         }
@@ -458,12 +473,12 @@ async function processDocumentPipeline(docId: string, userId: string) {
     }, 5000); // 5 seconds simulated delay
 }
 
-app.post('/api/documents/:id/analyze', async (req, res) => {
+app.post('/api/documents/:id/analyze', authenticateUser, async (req, res) => {
     // Legacy endpoint kept for compatibility, but now redirects to pipeline logic if needed
     // For now, just return success as the pipeline handles it automatically on upload
     // Or we can trigger re-analysis here
     const { id } = req.params;
-    const userId = 'user-1';
+    const userId = req.userId!;
     
     // Trigger pipeline again
     processDocumentPipeline(id, userId);
@@ -484,8 +499,8 @@ app.get('/api/documents/:id/suggestions', async (req, res) => {
     res.json(suggestions);
 });
 
-app.get('/api/suggestions/pending', async (req, res) => {
-    const userId = 'user-1';
+app.get('/api/suggestions/pending', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
     
     // Fetch pending decision suggestions
     const decisionSuggestions = await prisma.decisionSuggestion.findMany({
@@ -527,10 +542,10 @@ app.get('/api/suggestions/pending', async (req, res) => {
     res.json(combined.slice(0, 3)); // Limit to 3
 });
 
-app.post('/api/suggestions/decision/:id/accept', async (req, res) => {
+app.post('/api/suggestions/decision/:id/accept', authenticateUser, async (req, res) => {
     const { id } = req.params;
     const { title, description, impactScore, riskScore } = req.body; // Accept edited fields
-    const userId = 'user-1';
+    const userId = req.userId!;
 
     const suggestion = await prisma.decisionSuggestion.findUnique({ where: { id } });
     if (!suggestion) return res.status(404).json({ error: 'Suggestion not found' });
@@ -601,9 +616,9 @@ app.post('/api/suggestions/decision/:id/dismiss', async (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/api/suggestions/plan/:id/accept', async (req, res) => {
+app.post('/api/suggestions/plan/:id/accept', authenticateUser, async (req, res) => {
     const { id } = req.params;
-    const userId = 'user-1';
+    const userId = req.userId!;
 
     const suggestion = await prisma.planSuggestion.findUnique({ where: { id } });
     if (!suggestion) return res.status(404).json({ error: 'Suggestion not found' });
@@ -638,9 +653,9 @@ app.post('/api/suggestions/plan/:id/dismiss', async (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/api/plans', async (req, res) => {
+app.post('/api/plans', authenticateUser, async (req, res) => {
     const { title, description, phases, tasks, suggestionId } = req.body;
-    const userId = 'user-1';
+    const userId = req.userId!;
 
     // Create Real Plan
     const plan = await prisma.plan.create({
@@ -699,16 +714,16 @@ let userProfileCache: any = {
     }
 };
 
-app.get('/api/user/profile', async (req, res) => {
-    const userId = 'user-1';
+app.get('/api/user/profile', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
     let user = await prisma.user.findUnique({ where: { id: userId } });
     
-    if (!user) {
+    if (!user && req.user) {
         user = await prisma.user.create({
             data: {
                 id: userId,
-                email: 'user@example.com',
-                name: 'Demo User',
+                email: req.user.email || `${userId}@unknown.com`,
+                name: req.user.name || 'User',
                 strategicMode: 'equilibrado'
             }
         });
@@ -722,8 +737,8 @@ app.get('/api/user/profile', async (req, res) => {
     });
 });
 
-app.put('/api/user/profile', async (req, res) => {
-    const userId = 'user-1';
+app.put('/api/user/profile', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
     const { name, strategicMode, company, role, objective, deepMode, alertSensitivity, notifications } = req.body;
     
     // Update Prisma fields
@@ -762,22 +777,22 @@ app.get('/api/user/credits', (req, res) => {
     });
 });
 
-app.get('/api/user/mode', async (req, res) => {
+app.get('/api/user/mode', authenticateUser, async (req, res) => {
     try {
-        const userId = 'user-1';
+        const userId = req.userId!;
         let user = await prisma.user.findUnique({ where: { id: userId } });
         
-        if (!user) {
+        if (!user && req.user) {
             user = await prisma.user.create({
                 data: {
                     id: userId,
-                    email: 'user@example.com',
-                    name: 'Demo User',
+                    email: req.user.email || `${userId}@unknown.com`,
+                    name: req.user.name || 'User',
                     strategicMode: 'equilibrado'
                 }
             });
         }
-        res.json({ mode: user.strategicMode || 'equilibrado' });
+        res.json({ mode: user?.strategicMode || 'equilibrado' });
     } catch (error) {
         console.error('Error fetching user mode:', error);
         res.status(500).json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : String(error) });
