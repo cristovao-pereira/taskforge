@@ -82,8 +82,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-50 bg-[#0f172a]/80 backdrop-blur-md border-b border-white/5 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="TaskForge" className="w-9 h-9 object-contain" />
-            <span className="font-bold text-xl text-white tracking-tight">TaskForge</span>
+            <img src="/logo.png" alt="TaskForge" className="w-12 h-12 object-contain" />
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
@@ -535,8 +534,7 @@ export default function LandingPage() {
       <footer className="py-12 bg-[#020617] border-t border-slate-800 text-slate-500 text-sm">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-2">
-               <img src="/logo.png" alt="TaskForge" className="w-7 h-7 object-contain" />
-               <span className="font-bold text-slate-300 text-lg tracking-tight">TaskForge</span>
+               <img src="/logo.png" alt="TaskForge" className="w-10 h-10 object-contain" />
             </div>
             
             <div className="flex gap-8">

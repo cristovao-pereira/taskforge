@@ -68,9 +68,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <img 
               src="/logo.png" 
               alt="TaskForge" 
-              className="w-8 h-8 object-contain"
+              className="w-10 h-10 object-contain"
             />
-            <span className="font-bold text-lg tracking-tight text-white">TaskForge</span>
           </Link>
         </div>
 
