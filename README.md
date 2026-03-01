@@ -7,12 +7,14 @@ TaskForge transforma pensamento complexo em estrutura executável, combinando:
 - Backend Express (API + Socket.io)
 - Prisma ORM (SQLite em desenvolvimento)
 - Autenticação Firebase (cliente + admin)
+- Motion System v1.1 (interações sofisticadas e controladas)
 
 ## Stack do Projeto
 
 - React 19 + TypeScript
 - Vite 6 (middleware no servidor Express)
 - Tailwind CSS 4
+- Framer Motion (`motion/react`)
 - Express 4 + Socket.io
 - Prisma 6 + SQLite (`prisma/dev.db`)
 - Firebase Auth + Firebase Admin
@@ -113,9 +115,23 @@ Se a porta estiver ocupada, o backend escolhe automaticamente a próxima dispon�
 - Em execução via Vite standalone (`:5173`), use proxy configurado no `vite.config.ts`
 - Recomendado: usar `npm run dev` (backend integrado) e abrir a porta do backend
 
+### `WebSocket server error: Port 24678 is already in use`
+- O app continua funcional, mas esse conflito pode afetar HMR
+- Feche processos antigos do Vite/Node e reinicie com `npm run dev`
+- Se necessário, reinicie o terminal/sessão do VS Code para limpar sockets órfãos
+
+## Motion System v1.1
+
+- Curva oficial: `EASE_STANDARD = [0.16, 1, 0.3, 1]`
+- Durações oficiais: micro `0.14`, hover `0.18`, card `0.24`, modal `0.3`, page `0.36`
+- Regras: sem bounce, sem overshoot, sem animações longas (> `0.4s`)
+- Performance: animar apenas `transform` e `opacity`
+- Componentes base: `AnimatedPage`, `MotionButton`, `CardWithHover`, `AnimatedCounter`, `AnimatedRiskAlert`, `AnimatedLogo`
+
 ## Documentação
 
 - [Guia Rápido](docs/QUICKSTART.md)
+- [Motion System v1.1](docs/motion-system.md)
 - [Brand Guidelines](docs/brand-guidelines.md)
 - [Estratégia de Banco](docs/database-strategy.md)
 - [Checklist Firebase Free Tier](docs/firebase-free-tier-checklist.md)
