@@ -357,13 +357,38 @@ function startCleanupWorker() {
   });
 }
 
-// --- Socket.io ---
+// --- Socket.io with Multi-tenant Authorization ---
 
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+io.on('connection', async (socket) => {
+  console.log('Client socket connected:', socket.id);
+  
+  // Authenticate socket via Firebase token
+  const token = socket.handshake.auth.token;
+  let userId: string | null = null;
+  
+  try {
+    if (token) {
+      const admin = getFirebaseAdmin();
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      userId = decodedToken.uid;
+      
+      // Join user-specific room
+      socket.join(userId);
+      socket.data.userId = userId;
+      console.log(`Socket ${socket.id} authenticated for userId ${userId}, joined room ${userId}`);
+    } else {
+      console.warn(`Socket ${socket.id} connected without token, disconnecting`);
+      socket.disconnect();
+      return;
+    }
+  } catch (error) {
+    console.error(`Socket ${socket.id} auth failed:`, error);
+    socket.disconnect();
+    return;
+  }
   
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    console.log(`Client socket disconnected: ${socket.id} (userId: ${userId})`);
   });
 });
 
@@ -474,8 +499,8 @@ app.post('/api/events', authenticateUser, async (req, res) => {
       }
     });
 
-    // Emit raw event
-    io.emit('event:new', { ...event, metadata: JSON.parse(event.metadata || '{}') });
+    // Emit raw event to user's room only
+    io.to(user.id).emit('event:new', { ...event, metadata: JSON.parse(event.metadata || '{}') });
 
     // 2. Process Metrics Logic via Service
     const updates = await processEvent(event.id);
@@ -494,20 +519,20 @@ app.post('/api/events', authenticateUser, async (req, res) => {
                 }
             });
             
-            // Emit explanation update
-            io.emit('explanation:new', { 
+            // Emit explanation update to user's room only
+            io.to(user.id).emit('explanation:new', { 
                 relatedEventId: event.id,
                 type: update.type,
                 ...update
             });
 
-            // Also emit updated metrics to refresh UI immediately
+            // Also emit updated metrics to refresh UI immediately (to user's room)
             if (update.type === 'dna_update') {
                  const dna = await prisma.strategicDNA.findUnique({ where: { userId: user.id } });
-                 io.emit('metrics:dna:update', dna);
+                 io.to(user.id).emit('metrics:dna:update', dna);
             } else if (update.type === 'health_update') {
                  const health = await prisma.systemHealth.findUnique({ where: { userId: user.id } });
-                 io.emit('metrics:health:update', health);
+                 io.to(user.id).emit('metrics:health:update', health);
             }
         }
     }
@@ -578,14 +603,32 @@ app.get('/api/metrics/health', authenticateUser, async (req, res) => {
     }
 });
 
-// Explanations Endpoint
-app.get('/api/explanations', async (req, res) => {
+// Explanations Endpoint - Now authenticated and per-user
+app.get('/api/explanations', authenticateUser, async (req, res) => {
     try {
+        const userId = req.userId!;
         const limit = parseInt(req.query.limit as string) || 20;
+        
+        // Only return explanations from events owned by this user
         const explanations = await prisma.explanationLog.findMany({
+            where: {
+                relatedEvent: {
+                    userId
+                }
+            },
             take: limit,
             orderBy: { createdAt: 'desc' }
         });
+        
+        await logDocumentAudit(
+            'N/A',
+            userId,
+            'view',
+            'User accessed explanations log',
+            { count: explanations.length },
+            req.ip
+        );
+        
         res.json(explanations);
     } catch (error) {
         console.error('Error fetching explanations:', error);
@@ -698,7 +741,7 @@ app.post('/api/documents/upload', authenticateUser, upload.single('file'), async
             checksum: persisted.checksum
         });
 
-        io.emit('document:uploaded', { id: updatedDoc.id, title: updatedDoc.title, status: updatedDoc.status });
+        io.to(userId).emit('document:uploaded', { id: updatedDoc.id, title: updatedDoc.title, status: updatedDoc.status });
         processDocumentIngestionQueue().catch(error => console.error('Failed to trigger immediate document processing:', error));
 
         res.json({ ...updatedDoc, ingestionJobId: job.id });
@@ -811,8 +854,8 @@ async function processDocumentPipeline(docId: string, userId: string) {
         include: { insights: true, decisionSuggestions: true, planSuggestions: true }
     });
 
-    io.emit('document:processed', updatedDoc);
-    io.emit('document:insights_extracted', { id: docId, title: updatedDoc.title });
+    io.to(userId).emit('document:processed', updatedDoc);
+    io.to(userId).emit('document:insights_extracted', { id: docId, title: updatedDoc.title });
 
     const risks = JSON.parse(insightsData.risksJson);
     const hasHighRisk = risks.some((risk: any) => risk.severity === 'high' || risk.severity === 'critical');
@@ -827,7 +870,7 @@ async function processDocumentPipeline(docId: string, userId: string) {
                 userId
             }
         });
-        io.emit('risk.detected', { title: updatedDoc.title, severity: 'high' });
+        io.to(userId).emit('risk.detected', { title: updatedDoc.title, severity: 'high' });
 
         await prisma.systemHealth.upsert({
             where: { userId },
@@ -872,8 +915,8 @@ async function processDocumentPipeline(docId: string, userId: string) {
 
     const dna = await prisma.strategicDNA.findUnique({ where: { userId } });
     const health = await prisma.systemHealth.findUnique({ where: { userId } });
-    io.emit('metrics:dna:update', dna);
-    io.emit('metrics:health:update', health);
+    io.to(userId).emit('metrics:dna:update', dna);
+    io.to(userId).emit('metrics:health:update', health);
 
     await prisma.eventLog.create({
         data: {
@@ -901,6 +944,80 @@ app.post('/api/documents/:id/analyze', authenticateUser, async (req, res) => {
     processDocumentIngestionQueue().catch(error => console.error('Failed to trigger manual document processing:', error));
 
     res.json({ success: true, message: "Analysis queued", ingestionJobId: job.id });
+});
+
+// Get specific document by ID with ownership validation
+app.get('/api/documents/:id', authenticateUser, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId!;
+
+        const document = await prisma.document.findFirst({
+            where: { id, userId },
+            include: { insights: true, linkedDecisions: true, linkedPlans: true, linkedRisks: true, decisionSuggestions: true, planSuggestions: true }
+        });
+
+        if (!document) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        // Log access
+        await logDocumentAudit(id, userId, 'view', 'User accessed document details', { uri: req.originalUrl }, req.ip);
+
+        res.json(document);
+    } catch (error) {
+        console.error('Error fetching document:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Delete document by ID with ownership validation
+app.delete('/api/documents/:id', authenticateUser, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.userId!;
+        const reason = req.body?.reason || 'User-initiated deletion';
+
+        const document = await prisma.document.findFirst({
+            where: { id, userId }
+        });
+
+        if (!document) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        // Log deletion audit
+        await logDocumentAudit(id, userId, 'delete', reason, { deletedAt: new Date() }, req.ip);
+
+        // Delete from Storage if applicable
+        if (document.storagePath?.startsWith('documents/')) {
+            try {
+                const admin = getFirebaseAdmin();
+                if (admin.apps.length) {
+                    const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
+                    const bucket = bucketName ? admin.storage().bucket(bucketName) : admin.storage().bucket();
+                    await bucket.file(document.storagePath).delete().catch(() => {
+                        // File may not exist, ignore error
+                    });
+                }
+            } catch (error) {
+                console.warn(`Failed to delete file ${document.storagePath}:`, error);
+            }
+        }
+
+        // Mark as deleted
+        await prisma.document.update({
+            where: { id },
+            data: { status: 'deleted', storageUrl: null, storagePath: null }
+        });
+
+        io.to(userId).emit('document:deleted', { id, title: document.title });
+
+        res.json({ success: true, message: 'Document deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
 // Suggestion Endpoints
@@ -1019,7 +1136,7 @@ app.post('/api/suggestions/decision/:id/accept', authenticateUser, async (req, r
         }
     });
 
-    io.emit('decision:created', decision);
+    io.to(userId).emit('decision:created', decision);
     res.json(decision);
 });
 
@@ -1092,7 +1209,7 @@ app.post('/api/suggestions/plan/:id/accept', authenticateUser, async (req, res) 
         }
     });
 
-    io.emit('plan:created', plan);
+    io.to(userId).emit('plan:created', plan);
     res.json(plan);
 });
 
@@ -1415,7 +1532,7 @@ app.post('/api/plans', authenticateUser, async (req, res) => {
         });
     }
 
-    io.emit('plan:created', plan);
+    io.to(userId).emit('plan:created', plan);
     res.json(plan);
 });
 

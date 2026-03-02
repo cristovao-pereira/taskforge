@@ -1,6 +1,33 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Users collection - only self access
+    match /users/{uid} {
+      allow read, write: if request.auth.uid == uid;
+      
+      // Nested collections under user
+      match /decisions/{docId} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      
+      match /plans/{docId} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      
+      match /risks/{docId} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      
+      match /documents/{docId} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      
+      match /sessions/{docId} {
+        allow read, write: if request.auth.uid == uid;
+      }
+    }
+    
+    // Deny all other access by default
     match /{document=**} {
       allow read, write: if false;
     }

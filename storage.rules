@@ -1,0 +1,20 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Documents path - per-user isolation
+    // Pattern: documents/{uid}/{docId}-{filename}
+    match /documents/{uid}/{docId} {
+      allow read, write: if request.auth.uid == uid;
+    }
+    
+    // Catch any nested paths under documents/{uid}
+    match /documents/{uid}/{allPaths=**} {
+      allow read, write: if request.auth.uid == uid;
+    }
+    
+    // Deny all other access by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
