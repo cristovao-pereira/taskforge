@@ -22,10 +22,7 @@ const Navbar = () => {
         <nav className="fixed top-0 w-full z-50 bg-[#0f172a]/80 backdrop-blur-md border-b border-white/5 shadow-sm transition-all duration-200">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-                <Layers className="text-white w-5 h-5" />
-                </div>
-                <span className="font-bold text-xl text-white tracking-tight">TaskForge</span>
+                <img src="/logo.png" alt="TaskForge" className="h-12 w-auto object-contain" />
             </div>
             
             <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">

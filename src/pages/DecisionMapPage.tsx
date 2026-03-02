@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Icons } from '../components/Icons';
 import { useApp } from '../contexts/AppContext';
 import { Decision } from '../types';
@@ -266,10 +266,11 @@ function MetricCard({ label, value, icon: Icon, alert = false }: any) {
 }
 
 function FilterButton({ label }: { label: string }) {
+  const [open, setOpen] = useState(false);
    return (
-      <button className="px-3 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg hover:text-white hover:border-zinc-700 transition-colors flex items-center gap-1.5">
+    <button onClick={() => setOpen(!open)} className="px-3 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg hover:text-white hover:border-zinc-700 transition-colors flex items-center gap-1.5">
          {label}
-         <Icons.ChevronDown className="w-3 h-3 opacity-50" />
+      <Icons.ChevronDown className={`w-3 h-3 opacity-50 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
    )
 }

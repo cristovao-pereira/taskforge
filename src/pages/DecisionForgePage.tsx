@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { motion, AnimatePresence } from 'motion/react';
 import { AnimatedPage } from '../components/AnimatedPage';
@@ -42,6 +42,7 @@ interface RecentDecision {
 }
 
 export default function DecisionForgePage() {
+  const navigate = useNavigate();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const { metrics, checkUpgradeTriggers } = useUpgrade();
   const [activeTab, setActiveTab] = useState<'analysis' | 'map' | 'history'>('analysis');
@@ -51,6 +52,8 @@ export default function DecisionForgePage() {
   const [deepMode, setDeepMode] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [historyRiskFilter, setHistoryRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [historySort, setHistorySort] = useState<'date_desc' | 'impact_desc'>('date_desc');
 
   // Mock Data
   const recentDecisions: RecentDecision[] = [
@@ -97,6 +100,41 @@ export default function DecisionForgePage() {
   };
 
   const selectedNode = decisionNodes.find(n => n.id === selectedNodeId);
+
+  const filteredHistory = useMemo(() => {
+    const mapped = [...recentDecisions].filter((decision) => {
+      if (historyRiskFilter === 'all') return true;
+      if (historyRiskFilter === 'high') return decision.riskLevel === 'Alto';
+      if (historyRiskFilter === 'medium') return decision.riskLevel === 'Médio';
+      return decision.riskLevel === 'Baixo';
+    });
+
+    if (historySort === 'impact_desc') {
+      mapped.sort((a, b) => b.impactScore - a.impactScore);
+    } else {
+      mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
+
+    return mapped;
+  }, [recentDecisions, historyRiskFilter, historySort]);
+
+  const openDecisionInMap = (decisionId: string) => {
+    setSelectedNodeId(decisionId);
+    setActiveTab('map');
+  };
+
+  const cycleHistoryFilter = () => {
+    setHistoryRiskFilter((current) => {
+      if (current === 'all') return 'high';
+      if (current === 'high') return 'medium';
+      if (current === 'medium') return 'low';
+      return 'all';
+    });
+  };
+
+  const toggleHistorySort = () => {
+    setHistorySort((current) => (current === 'date_desc' ? 'impact_desc' : 'date_desc'));
+  };
 
   return (
      <AnimatedPage className="max-w-6xl mx-auto section-spacing pb-20">
@@ -173,7 +211,13 @@ export default function DecisionForgePage() {
             >
               {/* Actions */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="card-standard group cursor-pointer">
+                <div
+                  className="card-standard group cursor-pointer"
+                  onClick={() => {
+                    setDeepMode(false);
+                    toast.info('Modo de análise rápida ativado.');
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2 bg-zinc-800 rounded-lg group-hover:bg-zinc-700 transition-colors">
                       <Icons.Zap className="w-5 h-5 text-blue-500" />
@@ -183,7 +227,17 @@ export default function DecisionForgePage() {
                   <p className="text-sm text-zinc-500">Avaliação rápida de viabilidade e risco para decisões táticas.</p>
                 </div>
 
-                <div className="card-standard group cursor-pointer relative overflow-hidden">
+                <div
+                  className="card-standard group cursor-pointer relative overflow-hidden"
+                  onClick={() => {
+                    if (metrics.plan === 'free') {
+                      checkUpgradeTriggers('attempt_deep_mode');
+                      return;
+                    }
+                    setDeepMode(true);
+                    toast.success('Deep Mode ativado.');
+                  }}
+                >
                   <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-bl-full -mr-10 -mt-10 transition-all group-hover:bg-blue-500/10"></div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2 bg-zinc-800 rounded-lg group-hover:bg-blue-500/20 transition-colors">
@@ -338,7 +392,11 @@ export default function DecisionForgePage() {
                 <h2 className="text-zinc-500 uppercase tracking-widest px-1">Decisões Recentes</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {recentDecisions.slice(0, 3).map((decision) => (
-                    <div key={decision.id} className="card-standard group cursor-pointer">
+                    <div
+                      key={decision.id}
+                      className="card-standard group cursor-pointer"
+                      onClick={() => openDecisionInMap(decision.id)}
+                    >
                       <div className="flex justify-between items-start mb-3">
                         <div className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md ${
                           decision.riskLevel === 'Alto' ? 'bg-orange-500/10 text-orange-400' :
@@ -505,11 +563,20 @@ export default function DecisionForgePage() {
                     </div>
 
                     <div className="mt-auto space-y-3 pt-6 border-t border-zinc-800">
-                      <button className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                      <button
+                        className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        onClick={() => navigate('/app/map')}
+                      >
                         <Icons.FileText className="w-4 h-4" />
                         Ver Análise Completa
                       </button>
-                      <button className="w-full py-2 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-lg text-sm font-medium transition-colors border border-zinc-800">
+                      <button
+                        className="w-full py-2 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-lg text-sm font-medium transition-colors border border-zinc-800"
+                        onClick={() => {
+                          const title = selectedNode ? selectedNode.label : 'Nova decisão';
+                          navigate(`/app/plans/create?source=decisionforge&title=${encodeURIComponent(title)}`);
+                        }}
+                      >
                         Conectar a Execution Plan
                       </button>
                     </div>
@@ -539,11 +606,17 @@ export default function DecisionForgePage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-white">Histórico de Decisões</h2>
                 <div className="flex gap-2">
-                  <button className="px-3 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg hover:text-white transition-colors flex items-center gap-2">
-                    <Icons.Filter className="w-3 h-3" /> Filtrar
+                  <button
+                    className="px-3 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg hover:text-white transition-colors flex items-center gap-2"
+                    onClick={cycleHistoryFilter}
+                  >
+                    <Icons.Filter className="w-3 h-3" /> Filtrar: {historyRiskFilter === 'all' ? 'Todos' : historyRiskFilter === 'high' ? 'Alto' : historyRiskFilter === 'medium' ? 'Médio' : 'Baixo'}
                   </button>
-                  <button className="px-3 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg hover:text-white transition-colors flex items-center gap-2">
-                    <Icons.SortDesc className="w-3 h-3" /> Ordenar
+                  <button
+                    className="px-3 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg hover:text-white transition-colors flex items-center gap-2"
+                    onClick={toggleHistorySort}
+                  >
+                    <Icons.SortDesc className="w-3 h-3" /> Ordenar: {historySort === 'date_desc' ? 'Data' : 'Impacto'}
                   </button>
                 </div>
               </div>
@@ -561,7 +634,7 @@ export default function DecisionForgePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
-                    {recentDecisions.map((decision) => (
+                    {filteredHistory.map((decision) => (
                       <tr key={decision.id} className="hover:bg-zinc-800/30 transition-colors group">
                         <td className="px-6 py-4 font-medium text-white">{decision.title}</td>
                         <td className="px-6 py-4 text-zinc-400">{decision.date}</td>
@@ -588,7 +661,10 @@ export default function DecisionForgePage() {
                         </td>
                         <td className="px-6 py-4 text-zinc-300 font-mono">{decision.impactScore}</td>
                         <td className="px-6 py-4 text-right">
-                          <button className="text-zinc-500 hover:text-white transition-colors">
+                          <button
+                            className="text-zinc-500 hover:text-white transition-colors"
+                            onClick={() => openDecisionInMap(decision.id)}
+                          >
                             <Icons.MoreVertical className="w-4 h-4 ml-auto" />
                           </button>
                         </td>

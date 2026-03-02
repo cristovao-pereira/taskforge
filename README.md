@@ -51,6 +51,11 @@ VITE_FIREBASE_APP_ID=""
 FIREBASE_SERVICE_ACCOUNT_JSON=""
 # ou
 FIREBASE_SERVICE_ACCOUNT_PATH=""
+# bucket para persistência de documentos no backend
+FIREBASE_STORAGE_BUCKET=""
+
+# Retenção de documentos (padrão: 90 dias)
+DOCUMENT_RETENTION_DAYS=90
 
 # CORS (opcional em dev)
 CORS_ORIGIN="http://localhost:5000,http://localhost:5173"

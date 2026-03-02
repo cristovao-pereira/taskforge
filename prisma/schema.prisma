@@ -16,6 +16,9 @@ model User {
   id                      String   @id @default(uuid())
   email                   String   @unique
   name                    String?
+  firebaseUid             String?  @unique
+  stripeCustomerId        String?  @unique
+  credits                 Int      @default(0)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
   hasCompletedOnboarding  Boolean  @default(false)
@@ -27,12 +30,15 @@ model User {
   risks               Risk[]
   sessions            Session[]
   documents           Document[]
+  ingestionJobs       DocumentIngestionJob[]
   eventLogs           EventLog[]
   strategicDna        StrategicDNA?
   systemHealth        SystemHealth?
   strategicMode       String   @default("equilibrado") // conservador, equilibrado, expansao
   decisionSuggestions DecisionSuggestion[]
   planSuggestions     PlanSuggestion[]
+  suggestionFeedbacks SuggestionFeedback[]
+  documentAuditLogs   DocumentAuditLog[]
 }
 
 model Decision {
@@ -102,12 +108,17 @@ model Document {
   type        String   // PDF, DOCX, TXT
   size        Int      @default(0)
   storageUrl  String?
+  storagePath String?
+  mimeType    String?
+  checksum    String?
   status      String   @default("uploaded") // uploaded, processing, processed, error
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   processedAt DateTime?
+  isConfidential Boolean @default(false)
+  retentionExpiresAt DateTime? // When document should be auto-deleted
 
   // Relations
   insights            DocumentInsights?
@@ -116,6 +127,11 @@ model Document {
   linkedRisks         Risk[]
   decisionSuggestions DecisionSuggestion[]
   planSuggestions     PlanSuggestion[]
+  ingestionJobs       DocumentIngestionJob[]
+  auditLogs           DocumentAuditLog[]
+
+  @@index([userId, retentionExpiresAt])
+  @@index([userId, createdAt])
 }
 
 model DocumentInsights {
@@ -128,7 +144,9 @@ model DocumentInsights {
   opportunitiesJson String? // JSON
   suggestedPlanJson String? // JSON
   confidenceScore   Float    @default(0)
+  processingTimeMs  Int      @default(0) // milliseconds from ingestion to completion
   createdAt         DateTime @default(now())
+  processedAt       DateTime? // When analysis completed
 }
 
 model DecisionSuggestion {
@@ -160,6 +178,59 @@ model PlanSuggestion {
   confidenceScore Int      @default(0) // 0-100
   status          String   @default("pending") // pending, accepted, dismissed
   createdAt       DateTime @default(now())
+}
+
+model DocumentAuditLog {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  action      String   // upload, view, share, delete, export, mark_confidential
+  reason      String?  // Why action was taken
+  metadata    String?  // JSON string with additional details
+  ipAddress   String?  // IP address from request
+  createdAt   DateTime @default(now())
+
+  @@index([documentId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+model SuggestionFeedback {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+  suggestionId        String   // ID of the suggestion being fed  back on
+  suggestionType      String   // "decision" or "plan"
+  action              String   // "accepted" or "dismissed"
+  usefulnessScore     Int?     // 1-5 optional rating if provided
+  comment             String?  // Optional user comment
+  createdAt           DateTime @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([suggestionType, action])
+}
+
+model DocumentIngestionJob {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  status      String   @default("queued") // queued, processing, completed, failed
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  lastError   String?
+  payloadJson String?
+  nextRetryAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, nextRetryAt])
+  @@index([documentId, createdAt])
 }
 
 model Session {

@@ -70,7 +70,7 @@ export default function LoginPage() {
       {/* Nav */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center absolute top-0 left-0 z-50">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="TaskForge" className="w-10 h-10 object-contain" />
+          <img src="/logo.png" alt="TaskForge" className="h-12 w-auto object-contain" />
         </Link>
         <div className="hidden md:block">
           <span className="text-sm text-zinc-400">Não tem uma conta? <Link to="/signup" className="text-orange-500 hover:text-orange-400 ml-1 font-medium">Criar conta</Link></span>
@@ -136,7 +136,7 @@ export default function LoginPage() {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-sm font-medium text-zinc-300" htmlFor="password">Senha</label>
-                <a href="#" className="text-xs font-medium text-orange-500 hover:text-orange-400">Esqueceu sua senha?</a>
+                <button type="button" onClick={() => toast.info('Recuperação de senha disponível em breve.')} className="text-xs font-medium text-orange-500 hover:text-orange-400">Esqueceu sua senha?</button>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -169,9 +169,9 @@ export default function LoginPage() {
       <footer className="w-full py-6 text-center z-10">
         <p className="text-xs text-zinc-600">© 2024 Super Agentes. Todos os direitos reservados.</p>
         <div className="mt-2 flex justify-center gap-4 text-xs text-zinc-600">
-          <a href="#" className="hover:text-zinc-400 transition-colors">Termos</a>
-          <a href="#" className="hover:text-zinc-400 transition-colors">Privacidade</a>
-          <a href="#" className="hover:text-zinc-400 transition-colors">Ajuda</a>
+          <Link to="/como-funciona" className="hover:text-zinc-400 transition-colors">Termos</Link>
+          <Link to="/precos" className="hover:text-zinc-400 transition-colors">Privacidade</Link>
+          <Link to="/como-funciona" className="hover:text-zinc-400 transition-colors">Ajuda</Link>
         </div>
       </footer>
     </div>

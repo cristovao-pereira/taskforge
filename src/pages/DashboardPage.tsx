@@ -36,6 +36,12 @@ export default function DashboardPage() {
   const [editingDecision, setEditingDecision] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding);
 
+  const getItemRoute = (type: PriorityItem['type']) => {
+    if (type === 'decision') return '/app/agent/decision';
+    if (type === 'plan') return '/app/plans';
+    return '/app/risks';
+  };
+
   useEffect(() => {
     checkUpgradeTriggers();
   }, []);
@@ -231,6 +237,7 @@ export default function DashboardPage() {
             <motion.button 
               {...buttonPrimary}
               className="btn-primary px-10"
+              onClick={() => navigate(getItemRoute(mainItem.type))}
             >
             <Icons.Zap className="w-5 h-5" />
             {mainItem.actionLabel || 'Resolver Agora'}
@@ -261,7 +268,7 @@ export default function DashboardPage() {
                       <span className={`text-xs font-medium px-2 py-1 rounded border ${item.priorityColor || 'text-zinc-500 bg-zinc-800/50 border-zinc-700/50'}`}>
                         {item.priorityLabel || 'Normal'}
                       </span>
-                      <Link to="#" className="text-zinc-600 hover:text-blue-400 transition-colors">
+                        <Link to={getItemRoute(item.type)} className="text-zinc-600 hover:text-blue-400 transition-colors">
                           <Icons.ArrowRight className="w-4 h-4" />
                       </Link>
                   </div>

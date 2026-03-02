@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { useEvent } from '../contexts/EventContext';
+import { useAuth } from '../contexts/AuthContext';
 import { DecisionEditModal } from '../components/DecisionEditModal';
 import { toast } from 'sonner';
 
@@ -23,22 +24,63 @@ interface Document {
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
+    const [docFilter, setDocFilter] = useState<'Todos' | 'PDF' | 'Processando' | 'Riscos'>('Todos');
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [score, setScore] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { emitEvent, socket } = useEvent();
+    const { user, getIdToken } = useAuth();
+
+    const authenticatedFetch = async (url: string, init?: RequestInit) => {
+        const token = await getIdToken();
+        const headers = new Headers(init?.headers || {});
+        if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+        }
+        return fetch(url, {
+            ...init,
+            headers,
+        });
+    };
 
   // Fetch Documents & Score
   useEffect(() => {
-    fetch('/api/documents')
-      .then(res => res.json())
-      .then(data => setDocuments(data));
-      
-    fetch('/api/documents/score')
-      .then(res => res.json())
-      .then(data => setScore(data.score));
-  }, []);
+        const fetchData = async () => {
+            if (!user) {
+                setDocuments([]);
+                setScore(0);
+                return;
+            }
+
+            try {
+                const [docsRes, scoreRes] = await Promise.all([
+                    authenticatedFetch('/api/documents'),
+                    authenticatedFetch('/api/documents/score')
+                ]);
+
+                if (docsRes.ok) {
+                    const docsData = await docsRes.json();
+                    setDocuments(Array.isArray(docsData) ? docsData : []);
+                } else {
+                    setDocuments([]);
+                }
+
+                if (scoreRes.ok) {
+                    const scoreData = await scoreRes.json();
+                    setScore(typeof scoreData?.score === 'number' ? scoreData.score : 0);
+                } else {
+                    setScore(0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch documents data:', error);
+                setDocuments([]);
+                setScore(0);
+            }
+        };
+
+        fetchData();
+    }, [user]);
 
   // Listen for Real-time Updates
   useEffect(() => {
@@ -51,7 +93,10 @@ export default function DocumentsPage() {
       socket.on('document:processed', (updatedDoc: Document) => {
           setDocuments(prev => prev.map(d => d.id === updatedDoc.id ? updatedDoc : d));
           // Refresh score
-          fetch('/api/documents/score').then(res => res.json()).then(data => setScore(data.score));
+                    authenticatedFetch('/api/documents/score')
+                        .then(res => res.ok ? res.json() : { score: 0 })
+                        .then(data => setScore(typeof data?.score === 'number' ? data.score : 0))
+                        .catch(() => setScore(0));
       });
 
       socket.on('document:insights_extracted', (data: any) => {
@@ -64,7 +109,7 @@ export default function DocumentsPage() {
           socket.off('document:processed');
           socket.off('document:insights_extracted');
       };
-  }, [socket]);
+    }, [socket]);
 
   const handleAddDocumentClick = () => {
       fileInputRef.current?.click();
@@ -78,7 +123,7 @@ export default function DocumentsPage() {
     formData.append('file', file);
 
     try {
-        const res = await fetch('/api/documents/upload', {
+        const res = await authenticatedFetch('/api/documents/upload', {
             method: 'POST',
             body: formData
         });
@@ -109,10 +154,18 @@ export default function DocumentsPage() {
 
     setIsAnalyzing(true);
     // Trigger re-analysis
-    await fetch(`/api/documents/${doc.id}/analyze`, { method: 'POST' });
+        await authenticatedFetch(`/api/documents/${doc.id}/analyze`, { method: 'POST' });
     // UI update will come via socket
     setIsAnalyzing(false);
   };
+
+    const filteredDocuments = documents.filter((doc) => {
+        if (docFilter === 'Todos') return true;
+        if (docFilter === 'PDF') return doc.type.toUpperCase() === 'PDF';
+        if (docFilter === 'Processando') return doc.status === 'processing';
+        if (docFilter === 'Riscos') return doc.status === 'risk_detected';
+        return true;
+    });
 
   return (
     <div className="max-w-7xl mx-auto section-spacing pb-20 animate-in fade-in duration-700">
@@ -157,7 +210,7 @@ export default function DocumentsPage() {
                 {/* Filters Mock */}
                 <div className="flex gap-2">
                     {['Todos', 'PDF', 'Processando', 'Riscos'].map(f => (
-                        <button key={f} className="px-3 py-1 rounded-full text-xs font-medium border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600 transition-colors">
+                        <button key={f} onClick={() => setDocFilter(f as any)} className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${docFilter === f ? 'border-blue-500/40 text-blue-400 bg-blue-500/10' : 'border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600'}`}>
                             {f}
                         </button>
                     ))}
@@ -165,7 +218,7 @@ export default function DocumentsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {documents.map(doc => (
+                {filteredDocuments.map(doc => (
                     <DocumentCard 
                         key={doc.id} 
                         doc={doc} 
@@ -209,7 +262,7 @@ export default function DocumentsPage() {
                                 <p className="text-xs text-zinc-500">Vinculado a <span className="text-orange-400">Risco Crítico</span></p>
                             </div>
                         </div>
-                        <button className="text-xs text-zinc-400 hover:text-white">Ver Detalhes</button>
+                        <button onClick={() => setSelectedDoc(doc)} className="text-xs text-zinc-400 hover:text-white">Ver Detalhes</button>
                      </div>
                  ))}
                  {documents.filter(d => d.status === 'linked' || d.status === 'risk_detected').length === 0 && (
@@ -285,6 +338,29 @@ function DocumentCard({ doc, onAnalyze, onOpen }: any) {
 }
 
 function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
+    const { getIdToken } = useAuth();
+
+    const authenticatedFetch = async (url: string, init?: RequestInit) => {
+        const token = await getIdToken();
+        const headers = new Headers(init?.headers || {});
+        if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+        }
+        return fetch(url, {
+            ...init,
+            headers,
+        });
+    };
+
+    const safeParseJson = (value?: string) => {
+        if (!value) return [];
+        try {
+            return JSON.parse(value);
+        } catch {
+            return [];
+        }
+    };
+
     if (isAnalyzing) {
         return (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -299,21 +375,22 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
     // Handle both old (flat) and new (nested insights) structure for compatibility
     const insights = doc.insights || {};
     const summary = insights.summary || doc.summary;
-    const decisions = insights.decisionsJson ? JSON.parse(insights.decisionsJson) : (doc.decisions ? JSON.parse(doc.decisions) : []);
-    const risks = insights.risksJson ? JSON.parse(insights.risksJson) : (doc.risks ? JSON.parse(doc.risks) : []);
+    const decisions = insights.decisionsJson ? safeParseJson(insights.decisionsJson) : safeParseJson(doc.decisions);
+    const risks = insights.risksJson ? safeParseJson(insights.risksJson) : safeParseJson(doc.risks);
     
     const navigate = useNavigate();
     const [suggestions, setSuggestions] = useState<any>(null);
     const [editingDecision, setEditingDecision] = useState<any>(null);
 
     useEffect(() => {
-        fetch(`/api/documents/${doc.id}/suggestions`)
-            .then(res => res.json())
-            .then(data => setSuggestions(data));
+        authenticatedFetch(`/api/documents/${doc.id}/suggestions`)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => setSuggestions(data))
+            .catch(() => setSuggestions(null));
     }, [doc.id]);
 
     const handleAcceptDecision = async (id: string, data?: any) => {
-        await fetch(`/api/suggestions/decision/${id}/accept`, { 
+        await authenticatedFetch(`/api/suggestions/decision/${id}/accept`, { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data || {})
@@ -327,7 +404,7 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
     };
 
     const handleDismissDecision = async (id: string) => {
-        await fetch(`/api/suggestions/decision/${id}/dismiss`, { method: 'POST' });
+        await authenticatedFetch(`/api/suggestions/decision/${id}/dismiss`, { method: 'POST' });
         setSuggestions((prev: any) => ({
             ...prev,
             decisionSuggestions: prev.decisionSuggestions.map((s: any) => s.id === id ? { ...s, status: 'dismissed' } : s)
@@ -340,7 +417,7 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
     };
 
     const handleDismissPlan = async (id: string) => {
-        await fetch(`/api/suggestions/plan/${id}/dismiss`, { method: 'POST' });
+        await authenticatedFetch(`/api/suggestions/plan/${id}/dismiss`, { method: 'POST' });
         setSuggestions((prev: any) => ({
             ...prev,
             planSuggestions: prev.planSuggestions.map((s: any) => s.id === id ? { ...s, status: 'dismissed' } : s)
@@ -445,7 +522,7 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
                                         </div>
                                     ))}
                                 </div>
-                                <button className="btn-secondary w-full py-2">
+                                <button onClick={() => navigate('/app/agent/decision')} className="btn-secondary w-full py-2">
                                     <Icons.Plus className="w-4 h-4" /> Gerar no DecisionForge
                                 </button>
                             </section>
@@ -465,7 +542,7 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
                                         </div>
                                     ))}
                                 </div>
-                                <button className="w-full py-2 text-sm text-orange-400 hover:text-orange-300 border border-orange-500/20 hover:border-orange-500/40 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <button onClick={() => navigate('/app/agent/leverage')} className="w-full py-2 text-sm text-orange-400 hover:text-orange-300 border border-orange-500/20 hover:border-orange-500/40 rounded-lg transition-colors flex items-center justify-center gap-2">
                                     <Icons.ShieldAlert className="w-4 h-4" /> Enviar para LeverageForge
                                 </button>
                             </section>
@@ -473,11 +550,11 @@ function AnalysisPanel({ doc, onClose, isAnalyzing }: any) {
 
                         {/* Actions */}
                         <div className="grid grid-cols-2 gap-4 pt-8 border-t border-zinc-800">
-                            <button className="btn-secondary p-4 flex flex-col items-center gap-2 group">
+                            <button onClick={() => navigate('/app/agent/clarity')} className="btn-secondary p-4 flex flex-col items-center gap-2 group">
                                 <Icons.Layout className="w-6 h-6 text-zinc-500 group-hover:text-blue-500" />
                                 <span className="text-sm font-medium text-zinc-400 group-hover:text-white">Organizar com ClarityForge</span>
                             </button>
-                            <button className="btn-secondary p-4 flex flex-col items-center gap-2 group">
+                            <button onClick={() => navigate('/app/plans/create?source=documents')} className="btn-secondary p-4 flex flex-col items-center gap-2 group">
                                 <Icons.Target className="w-6 h-6 text-zinc-500 group-hover:text-blue-500" />
                                 <span className="text-sm font-medium text-zinc-400 group-hover:text-white">Gerar Execution Plan</span>
                             </button>

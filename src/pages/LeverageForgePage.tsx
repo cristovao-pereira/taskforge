@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { useStrategicMode } from '../contexts/StrategicContext';
 
 export default function LeverageForgePage() {
+  const navigate = useNavigate();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -47,11 +49,11 @@ export default function LeverageForgePage() {
             </p>
             
             <div className="flex items-center gap-4 pt-2">
-              <button className="btn-primary px-6">
+              <button className="btn-primary px-6" onClick={handleAnalyze}>
                 <Icons.Zap className="w-4 h-4" />
                 Análise Rápida de Alavancagem
               </button>
-              <button className="btn-secondary px-6">
+              <button className="btn-secondary px-6" onClick={handleAnalyze}>
                 <Icons.Layers className="w-4 h-4" />
                 Deep Strategic Leverage
               </button>
@@ -99,11 +101,11 @@ export default function LeverageForgePage() {
           
           <div className="flex items-center justify-between p-4 border-t border-zinc-800/50 bg-zinc-900/30 rounded-b-xl">
             <div className="flex gap-3">
-                <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors">
+                <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors" onClick={() => navigate('/app/documents')}>
                 <Icons.Folder className="w-4 h-4" />
                 Usar Documento do Document Center
                 </button>
-                <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors">
+                <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors" onClick={() => navigate('/app/plans')}>
                 <Icons.BarChart3 className="w-4 h-4" />
                 Analisar Execution Plans ativos
                 </button>
@@ -218,10 +220,10 @@ export default function LeverageForgePage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 justify-center pt-8 border-t border-zinc-800">
-            <ActionButton icon={Icons.ListTodo} label="Reorganizar Execution Plan" />
-            <ActionButton icon={Icons.Plus} label="Gerar Novo Plano Otimizado" />
-            <ActionButton icon={Icons.GitFork} label="Enviar decisão para DecisionForge" />
-            <ActionButton icon={Icons.Save} label="Salvar como Strategic Session" variant="outline" />
+            <ActionButton icon={Icons.ListTodo} label="Reorganizar Execution Plan" onClick={() => navigate('/app/plans')} />
+            <ActionButton icon={Icons.Plus} label="Gerar Novo Plano Otimizado" onClick={() => navigate('/app/plans/create?source=leverageforge')} />
+            <ActionButton icon={Icons.GitFork} label="Enviar decisão para DecisionForge" onClick={() => navigate('/app/agent/decision')} />
+            <ActionButton icon={Icons.Save} label="Salvar como Strategic Session" variant="outline" onClick={() => navigate('/app/sessions')} />
           </div>
         </section>
       )}
@@ -242,18 +244,21 @@ export default function LeverageForgePage() {
             date="25 Out, 14:20" 
             score="7.8"
             impact="Médio"
+            onOpen={() => navigate('/app/plans')}
           />
           <HistoryItem 
             title="Reestruturação do Time de Produto" 
             date="10 Out, 09:00" 
             score="9.2"
             impact="Alto"
+            onOpen={() => navigate('/app/plans')}
           />
           <HistoryItem 
             title="Análise de Expansão LatAm" 
             date="01 Out, 16:45" 
             score="6.5"
             impact="Baixo"
+            onOpen={() => navigate('/app/plans')}
           />
         </div>
       </section>
@@ -300,9 +305,9 @@ function ResultBlock({ title, icon: Icon, children, color = "text-zinc-400" }: a
   );
 }
 
-function ActionButton({ icon: Icon, label, variant = 'primary' }: any) {
+function ActionButton({ icon: Icon, label, variant = 'primary', onClick }: any) {
   return (
-    <button className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+    <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
       variant === 'primary' 
         ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700' 
         : 'bg-transparent text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700'
@@ -313,7 +318,7 @@ function ActionButton({ icon: Icon, label, variant = 'primary' }: any) {
   );
 }
 
-function HistoryItem({ title, date, score, impact }: any) {
+function HistoryItem({ title, date, score, impact, onOpen }: any) {
   return (
     <div className="p-4 flex items-center justify-between hover:bg-zinc-900/50 transition-colors group">
       <div className="flex items-center gap-4">
@@ -330,7 +335,7 @@ function HistoryItem({ title, date, score, impact }: any) {
           </div>
         </div>
       </div>
-      <button className="text-xs font-medium text-zinc-500 hover:text-blue-400 flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100">
+      <button onClick={onOpen} className="text-xs font-medium text-zinc-500 hover:text-blue-400 flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100">
         Ver análise completa
         <Icons.ArrowRight className="w-3 h-3" />
       </button>

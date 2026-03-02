@@ -1,12 +1,34 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { useApp } from '../contexts/AppContext';
 
 export default function StrategicSessionsPage() {
+  const navigate = useNavigate();
+  const [moduleFilter, setModuleFilter] = useState<'all' | 'DecisionForge' | 'ClarityForge' | 'LeverageForge'>('all');
+  const [modeFilter, setModeFilter] = useState<'all' | 'deep' | 'quick'>('all');
+  const [sortMode, setSortMode] = useState<'recent' | 'risk' | 'deep' | 'module'>('recent');
   const { sessions, isLoading } = useApp();
 
   const activeSession = useMemo(() => sessions.find(s => s.status === 'active'), [sessions]);
-  const completedSessions = useMemo(() => sessions.filter(s => s.status === 'completed'), [sessions]);
+  const completedSessions = useMemo(() => {
+    const filtered = sessions.filter((session) => session.status === 'completed')
+      .filter((session) => moduleFilter === 'all' ? true : session.module === moduleFilter)
+      .filter((session) => {
+        if (modeFilter === 'all') return true;
+        return modeFilter === 'deep' ? session.mode === 'deep' : session.mode !== 'deep';
+      });
+
+    if (sortMode === 'module') {
+      filtered.sort((a, b) => String(a.module).localeCompare(String(b.module)));
+    }
+
+    if (sortMode === 'deep') {
+      filtered.sort((a, b) => (b.mode === 'deep' ? 1 : 0) - (a.mode === 'deep' ? 1 : 0));
+    }
+
+    return filtered;
+  }, [sessions, moduleFilter, modeFilter, sortMode]);
 
   if (isLoading) {
     return (
@@ -44,7 +66,7 @@ export default function StrategicSessionsPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="btn-primary">
+            <button className="btn-primary" onClick={() => navigate('/app/agent/decision')}>
               <Icons.Plus className="w-4 h-4" />
               Nova Sessão
             </button>
@@ -55,35 +77,35 @@ export default function StrategicSessionsPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-zinc-800 pb-6">
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-          <FilterButton label="Todos os Módulos" active />
-          <FilterButton label="DecisionForge" />
-          <FilterButton label="ClarityForge" />
-          <FilterButton label="LeverageForge" />
+          <FilterButton label="Todos os Módulos" active={moduleFilter === 'all'} onClick={() => setModuleFilter('all')} />
+          <FilterButton label="DecisionForge" active={moduleFilter === 'DecisionForge'} onClick={() => setModuleFilter('DecisionForge')} />
+          <FilterButton label="ClarityForge" active={moduleFilter === 'ClarityForge'} onClick={() => setModuleFilter('ClarityForge')} />
+          <FilterButton label="LeverageForge" active={moduleFilter === 'LeverageForge'} onClick={() => setModuleFilter('LeverageForge')} />
           <div className="w-px h-6 bg-zinc-800 mx-2 hidden sm:block"></div>
-          <FilterButton label="Modo Profundo" />
-          <FilterButton label="Modo Rápido" />
+          <FilterButton label="Modo Profundo" active={modeFilter === 'deep'} onClick={() => setModeFilter('deep')} />
+          <FilterButton label="Modo Rápido" active={modeFilter === 'quick'} onClick={() => setModeFilter('quick')} />
         </div>
 
         <div className="relative group">
-          <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all border border-transparent hover:border-zinc-800">
+          <button onClick={() => setSortMode((current) => current === 'recent' ? 'module' : 'recent')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all border border-transparent hover:border-zinc-800">
             <Icons.SortDesc className="w-3.5 h-3.5" />
-            <span>Ordenar por: Mais Recentes</span>
+            <span>Ordenar por: {sortMode === 'recent' ? 'Mais Recentes' : sortMode === 'risk' ? 'Maior Risco' : sortMode === 'deep' ? 'Sessões Profundas' : 'Nome do Módulo'}</span>
             <Icons.ChevronDown className="w-3 h-3 opacity-50" />
           </button>
           
           <div className="absolute right-0 top-full mt-2 w-40 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
             <div className="py-1">
-              <button className="w-full text-left px-4 py-2 text-xs text-orange-500 bg-orange-500/5 font-medium flex items-center justify-between">
+              <button onClick={() => setSortMode('recent')} className="w-full text-left px-4 py-2 text-xs text-orange-500 bg-orange-500/5 font-medium flex items-center justify-between">
                 Mais Recentes
-                <Icons.Check className="w-3 h-3" />
+                {sortMode === 'recent' && <Icons.Check className="w-3 h-3" />}
               </button>
-              <button className="w-full text-left px-4 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+              <button onClick={() => setSortMode('risk')} className="w-full text-left px-4 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
                 Maior Risco
               </button>
-              <button className="w-full text-left px-4 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+              <button onClick={() => setSortMode('deep')} className="w-full text-left px-4 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
                 Sessões Profundas
               </button>
-              <button className="w-full text-left px-4 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+              <button onClick={() => setSortMode('module')} className="w-full text-left px-4 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
                 Nome do Módulo
               </button>
             </div>
@@ -127,7 +149,7 @@ export default function StrategicSessionsPage() {
                     <div className="h-full bg-orange-500 rounded-full" style={{ width: `${activeSession.progress || 0}%` }}></div>
                   </div>
                 </div>
-                <button className="btn-primary w-full md:w-auto">
+                <button className="btn-primary w-full md:w-auto" onClick={() => navigate('/app/chat')}>
                   <Icons.Play className="w-4 h-4 fill-current" />
                   Continuar Sessão
                 </button>
@@ -147,7 +169,7 @@ export default function StrategicSessionsPage() {
             </div>
           ) : (
             completedSessions.map((session) => (
-              <SessionCard key={session.id} session={session} />
+              <SessionCard key={session.id} session={session} onOpen={() => navigate('/app/chat')} />
             ))
           )}
         </div>
@@ -206,7 +228,7 @@ export default function StrategicSessionsPage() {
         
         <div className="space-y-3">
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-widest">Comece a pensar intencionalmente</p>
-          <button className="btn-primary mx-auto px-8">
+          <button className="btn-primary mx-auto px-8" onClick={() => navigate('/app/agent/decision')}>
             Iniciar Nova Sessão Estratégica
             <Icons.ArrowRight className="w-5 h-5" />
           </button>
@@ -217,9 +239,9 @@ export default function StrategicSessionsPage() {
   );
 }
 
-function FilterButton({ label, active }: { label: string, active?: boolean }) {
+function FilterButton({ label, active, onClick }: { label: string, active?: boolean, onClick?: () => void }) {
   return (
-    <button className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+    <button onClick={onClick} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
       active 
         ? 'bg-zinc-100 text-zinc-900 border-zinc-100' 
         : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300'
@@ -229,7 +251,7 @@ function FilterButton({ label, active }: { label: string, active?: boolean }) {
   );
 }
 
-const SessionCard: React.FC<{ session: any }> = ({ session }) => {
+const SessionCard: React.FC<{ session: any, onOpen?: () => void }> = ({ session, onOpen }) => {
   const getModuleColor = (module: string) => {
     switch (module) {
       case 'DecisionForge': return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
@@ -264,7 +286,7 @@ const SessionCard: React.FC<{ session: any }> = ({ session }) => {
       </p>
 
       <div className="flex items-center gap-3 pt-4 border-t border-zinc-800/50">
-        <button className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-2 transition-colors">
+        <button onClick={onOpen} className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-2 transition-colors">
           <Icons.Eye className="w-4 h-4" />
           Ver Análise Completa
         </button>

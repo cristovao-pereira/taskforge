@@ -1,14 +1,81 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icons } from '@/components/Icons';
 import { AnimatedPage } from '@/components/AnimatedPage';
 import { useStrategicMode } from '@/contexts/StrategicContext';
 
 export default function ClarityForgePage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const [activeMode, setActiveMode] = useState<'simple' | 'strategic' | 'executive'>('strategic');
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResult, setShowResult] = useState(false);
+
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    if (modeParam === 'simple' || modeParam === 'strategic' || modeParam === 'executive') {
+      setActiveMode(modeParam);
+    }
+  }, [searchParams]);
+
+  const navigateWithMode = (nextMode: 'simple' | 'strategic' | 'executive') => {
+    setActiveMode(nextMode);
+    setSearchParams({ mode: nextMode });
+  };
+
+  const historyItems = [
+    {
+      id: 'h1',
+      title: 'Planejamento Q3 Marketing',
+      type: 'Reunião',
+      date: 'Hoje, 10:30',
+      seedText: 'Reunião de planejamento de marketing para Q3 com foco em canais de aquisição, budget e metas por squad.'
+    },
+    {
+      id: 'h2',
+      title: 'Ideias para Nova Feature de IA',
+      type: 'Brainstorm',
+      date: 'Ontem, 16:45',
+      seedText: 'Brainstorm sobre nova feature de IA para priorização automática de backlog e recomendação de decisões.'
+    },
+    {
+      id: 'h3',
+      title: 'Análise de Concorrentes - Relatório Anual',
+      type: 'Documento',
+      date: '24 Out, 09:15',
+      seedText: 'Resumo do relatório anual de concorrentes com posicionamento, preços, diferenciais e riscos de mercado.'
+    },
+  ] as const;
+
+  const handleOpenHistory = (seedText: string) => {
+    setInputText(seedText);
+    setShowResult(true);
+    setActiveMode('strategic');
+  };
+
+  const handleExport = () => {
+    const content = [
+      '=== ESTRUTURA CLARITYFORGE ===',
+      `Modo: ${activeMode}`,
+      '',
+      'INPUT:',
+      inputText || 'Sem conteúdo informado.',
+      '',
+      'Resultado: Estruturação gerada com sucesso.'
+    ].join('\n');
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'clarityforge-estrutura.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const handleAnalyze = () => {
     if (!inputText.trim()) return;
@@ -49,11 +116,11 @@ export default function ClarityForgePage() {
             </p>
             
             <div className="flex items-center gap-4 pt-2">
-              <button className="btn-primary px-6">
+              <button className="btn-primary px-6" onClick={() => navigateWithMode('simple')}>
                 <Icons.Zap className="w-4 h-4" />
                 Estrutura Rápida
               </button>
-              <button className="btn-secondary px-6">
+              <button className="btn-secondary px-6" onClick={() => navigateWithMode('executive')}>
                 <Icons.Search className="w-4 h-4" />
                 Análise Profunda
               </button>
@@ -100,17 +167,17 @@ export default function ClarityForgePage() {
           <div className="flex items-center gap-1 p-2 border-b border-zinc-800/50 mb-2">
             <ModeButton 
               active={activeMode === 'simple'} 
-              onClick={() => setActiveMode('simple')}
+              onClick={() => navigateWithMode('simple')}
               label="Estrutura Simples"
             />
             <ModeButton 
               active={activeMode === 'strategic'} 
-              onClick={() => setActiveMode('strategic')}
+              onClick={() => navigateWithMode('strategic')}
               label="Estrutura Estratégica"
             />
             <ModeButton 
               active={activeMode === 'executive'} 
-              onClick={() => setActiveMode('executive')}
+              onClick={() => navigateWithMode('executive')}
               label="Estrutura Executiva"
             />
           </div>
@@ -123,7 +190,10 @@ export default function ClarityForgePage() {
           />
           
           <div className="flex items-center justify-between p-4 border-t border-zinc-800/50 bg-zinc-900/30 rounded-b-xl">
-            <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors">
+            <button
+              className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors"
+              onClick={() => navigate('/app/documents')}
+            >
               <Icons.Folder className="w-4 h-4" />
               Usar Documento do Document Center
             </button>
@@ -226,10 +296,10 @@ export default function ClarityForgePage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 justify-center pt-8 border-t border-zinc-800">
-            <ActionButton icon={Icons.GitFork} label="Enviar para DecisionForge" />
-            <ActionButton icon={Icons.ListTodo} label="Gerar Execution Plan" />
-            <ActionButton icon={Icons.Brain} label="Salvar como Strategic Session" />
-            <ActionButton icon={Icons.Download} label="Exportar Estrutura" variant="outline" />
+            <ActionButton icon={Icons.GitFork} label="Enviar para DecisionForge" onClick={() => navigate('/app/agent/decision')} />
+            <ActionButton icon={Icons.ListTodo} label="Gerar Execution Plan" onClick={() => navigate('/app/plans/create?source=clarityforge')} />
+            <ActionButton icon={Icons.Brain} label="Salvar como Strategic Session" onClick={() => navigate('/app/sessions')} />
+            <ActionButton icon={Icons.Download} label="Exportar Estrutura" variant="outline" onClick={handleExport} />
           </div>
         </section>
       )}
@@ -246,16 +316,19 @@ export default function ClarityForgePage() {
 
         <div className="card-standard overflow-hidden divide-y divide-zinc-800/50">
           <HistoryItem 
+            onOpen={() => handleOpenHistory(historyItems[0].seedText)}
             title="Planejamento Q3 Marketing" 
             type="Reunião" 
             date="Hoje, 10:30" 
           />
           <HistoryItem 
+            onOpen={() => handleOpenHistory(historyItems[1].seedText)}
             title="Ideias para Nova Feature de IA" 
             type="Brainstorm" 
             date="Ontem, 16:45" 
           />
           <HistoryItem 
+            onOpen={() => handleOpenHistory(historyItems[2].seedText)}
             title="Análise de Concorrentes - Relatório Anual" 
             type="Documento" 
             date="24 Out, 09:15" 
@@ -320,9 +393,9 @@ function ResultBlock({ title, icon: Icon, children, color = "text-blue-500" }: a
   );
 }
 
-function ActionButton({ icon: Icon, label, variant = 'primary' }: any) {
+function ActionButton({ icon: Icon, label, variant = 'primary', onClick }: any) {
   return (
-    <button className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+    <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
       variant === 'primary' 
         ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700' 
         : 'bg-transparent text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700'
@@ -333,7 +406,7 @@ function ActionButton({ icon: Icon, label, variant = 'primary' }: any) {
   );
 }
 
-function HistoryItem({ title, type, date }: any) {
+function HistoryItem({ title, type, date, onOpen }: any) {
   return (
     <div className="p-4 flex items-center justify-between hover:bg-zinc-900/50 transition-colors group">
       <div className="flex items-center gap-4">
@@ -355,7 +428,10 @@ function HistoryItem({ title, type, date }: any) {
           </div>
         </div>
       </div>
-      <button className="text-xs font-medium text-zinc-500 hover:text-purple-400 flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100">
+      <button
+        onClick={onOpen}
+        className="text-xs font-medium text-zinc-500 hover:text-purple-400 flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100"
+      >
         Ver estrutura completa
         <Icons.ArrowRight className="w-3 h-3" />
       </button>

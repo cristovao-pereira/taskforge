@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -62,8 +63,9 @@ const CustomDropdown = ({ value, onChange, options, icon: Icon }: any) => {
 };
 
 export default function SettingsPage() {
+    const navigate = useNavigate();
     const { setMode } = useStrategicMode();
-    const { getIdToken } = useAuth();
+    const { getIdToken, logout } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     
@@ -343,7 +345,7 @@ export default function SettingsPage() {
                     <section className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-zinc-800 rounded-3xl p-6 shadow-xl shadow-black/20">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Saldo de Créditos</h2>
-                            <button className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1">
+                            <button onClick={() => navigate('/app/billing')} className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1">
                                 Gerenciar <Icons.ArrowRight className="w-3 h-3" />
                             </button>
                         </div>
@@ -427,10 +429,19 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-3">
-                            <button className="w-full py-3 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                            <button
+                                onClick={() => toast.info('Use o fluxo de recuperação de senha na tela de login.')}
+                                className="w-full py-3 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                            >
                                 <Icons.Key className="w-4 h-4" /> Alterar Senha
                             </button>
-                            <button className="w-full py-3 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 rounded-xl text-red-400 text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                            <button
+                                onClick={async () => {
+                                    await logout();
+                                    navigate('/login');
+                                }}
+                                className="w-full py-3 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 rounded-xl text-red-400 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                            >
                                 <Icons.LogOut className="w-4 h-4" /> Sair de todos os dispositivos
                             </button>
                         </div>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { AnimatedPage } from '../components/AnimatedPage';
 import { cardHover } from '../lib/motion';
@@ -8,6 +9,7 @@ import { useApp } from '../contexts/AppContext';
 import { ExecutionPlan } from '../types';
 
 export default function ExecutionPlansPage() {
+  const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<ExecutionPlan | null>(null);
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const rules = getStrategicRules(mode);
@@ -34,6 +36,23 @@ export default function ExecutionPlansPage() {
       case 'critical': return 'Crítica';
       default: return priority;
     }
+  };
+
+  const toggleTask = (phaseIndex: number, taskId: string) => {
+    if (!selectedPlan) return;
+
+    const updatedPhases = (selectedPlan.phases || []).map((phase, currentPhaseIndex) => {
+      if (currentPhaseIndex !== phaseIndex) return phase;
+      return {
+        ...phase,
+        tasks: phase.tasks.map((task) => task.id === taskId ? { ...task, completed: !task.completed } : task)
+      };
+    });
+
+    setSelectedPlan({
+      ...selectedPlan,
+      phases: updatedPhases
+    });
   };
 
   if (isLoading) {
@@ -127,7 +146,7 @@ export default function ExecutionPlansPage() {
                   <div className="space-y-2">
                     {phase.tasks.map((task) => (
                       <div key={task.id} className="group flex items-start gap-3 p-3 rounded-lg hover:bg-zinc-900/50 border border-transparent hover:border-zinc-800 transition-all">
-                        <button className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                        <button onClick={() => toggleTask(index, task.id)} className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors ${
                           task.completed 
                             ? 'bg-blue-500 border-blue-500 text-white' 
                             : 'border-zinc-700 hover:border-blue-500/50'
@@ -241,7 +260,7 @@ export default function ExecutionPlansPage() {
             Planos de ação estruturados gerados a partir das suas sessões estratégicas.
           </p>
         </div>
-        <button className="btn-primary px-6">
+        <button className="btn-primary px-6" onClick={() => navigate('/app/plans/create')}>
           <Icons.Plus className="w-5 h-5" />
           Criar Plano de Execução
         </button>
@@ -378,7 +397,7 @@ export default function ExecutionPlansPage() {
           <p className="text-xl font-serif italic text-zinc-300">"Execução potencializa clareza."</p>
         </div>
         
-        <button className="btn-primary mx-auto px-6">
+        <button className="btn-primary mx-auto px-6" onClick={() => navigate('/app/plans/create?source=session')}>
           <Icons.Sparkles className="w-4 h-4" />
           Gerar Plano a partir de Strategic Session
         </button>

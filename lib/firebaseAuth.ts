@@ -8,16 +8,19 @@ if (!admin.apps.length) {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
   } else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
     const serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
   } else if (process.env.FIREBASE_PROJECT_ID) {
     // Use application default credentials (works in Cloud Run, Cloud Functions, etc.)
     admin.initializeApp({
       projectId: process.env.FIREBASE_PROJECT_ID,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
   } else {
     console.warn('⚠️  Firebase Admin SDK not initialized - authentication will fail');

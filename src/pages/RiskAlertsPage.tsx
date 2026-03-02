@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { AnimatedPage } from '../components/AnimatedPage';
 import { cardHover } from '../lib/motion';
@@ -22,11 +23,17 @@ interface HistoryItem {
 }
 
 export default function RiskAlertsPage() {
+  const navigate = useNavigate();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const rules = getStrategicRules(mode);
   const { risks, resolveRisk, isLoading } = useApp();
+  const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
   const activeRisks = useMemo(() => risks.filter(r => r.status === 'active' || r.status === 'monitoring'), [risks]);
+  const visibleRisks = useMemo(() => {
+    if (riskFilter === 'all') return activeRisks;
+    return activeRisks.filter((risk) => risk.level === riskFilter);
+  }, [activeRisks, riskFilter]);
   const criticalRisks = useMemo(() => activeRisks.filter(r => r.level === 'high'), [activeRisks]);
   
   const handleResolve = async (id: string) => {
@@ -126,20 +133,29 @@ export default function RiskAlertsPage() {
               <Icons.Bell className="w-4 h-4" />
               Alertas Ativos
             </h2>
-            <button className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 transition-colors">
-              <Icons.Filter className="w-3 h-3" /> Filtrar
+            <button
+              onClick={() => setRiskFilter((current) => current === 'all' ? 'high' : current === 'high' ? 'medium' : current === 'medium' ? 'low' : 'all')}
+              className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 transition-colors"
+            >
+              <Icons.Filter className="w-3 h-3" /> Filtrar: {riskFilter === 'all' ? 'Todos' : riskFilter === 'high' ? 'Alto' : riskFilter === 'medium' ? 'Médio' : 'Baixo'}
             </button>
           </div>
 
           <div className="space-y-4">
-            {activeRisks.length === 0 ? (
+            {visibleRisks.length === 0 ? (
                <div className="p-8 text-center border border-zinc-800 rounded-xl bg-zinc-900/30">
                  <Icons.CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
                  <p className="text-zinc-400">Nenhum risco ativo detectado.</p>
                </div>
             ) : (
-              activeRisks.map((risk) => (
-                <RiskCard key={risk.id} risk={risk} onResolve={() => handleResolve(risk.id)} />
+              visibleRisks.map((risk) => (
+                <RiskCard
+                  key={risk.id}
+                  risk={risk}
+                  onResolve={() => handleResolve(risk.id)}
+                  onViewPlan={() => navigate('/app/plans')}
+                  onAdjust={() => navigate('/app/agent/decision')}
+                />
               ))
             )}
           </div>
@@ -196,7 +212,7 @@ export default function RiskAlertsPage() {
           <p className="text-xl font-serif italic text-zinc-300">"Risco identificado cedo é vantagem competitiva."</p>
         </div>
         
-        <button className="btn-primary mx-auto px-6">
+        <button className="btn-primary mx-auto px-6" onClick={() => navigate('/app/sessions')}>
           <Icons.Brain className="w-4 h-4" />
           Iniciar Nova Strategic Session
         </button>
@@ -216,7 +232,7 @@ function OverviewCard({ label, value, icon: Icon, color }: any) {
   )
 }
 
-const RiskCard: React.FC<{ risk: any, onResolve: () => void }> = ({ risk, onResolve }) => {
+const RiskCard: React.FC<{ risk: any, onResolve: () => void, onViewPlan: () => void, onAdjust: () => void }> = ({ risk, onResolve, onViewPlan, onAdjust }) => {
   const isCritical = risk.level === 'high';
 
   return (
@@ -260,11 +276,11 @@ const RiskCard: React.FC<{ risk: any, onResolve: () => void }> = ({ risk, onReso
       </div>
 
       <div className="flex items-center gap-2 pt-4 border-t border-zinc-800/50">
-        <button className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800">
+        <button onClick={onViewPlan} className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800">
           <Icons.Eye className="w-3.5 h-3.5" />
           Ver Plano
         </button>
-        <button className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800">
+        <button onClick={onAdjust} className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800">
           <Icons.Edit2 className="w-3.5 h-3.5" />
           Ajustar
         </button>

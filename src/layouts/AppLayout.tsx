@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { UpgradeBanner, UpgradeModal } from '../components/UpgradeComponents';
+import { NotificationBell } from '../components/NotificationBell';
+import { UserMenu } from '../components/UserMenu';
 import { useAuth } from '../contexts/AuthContext';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { useMetrics } from '../contexts/MetricsContext';
@@ -68,7 +70,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <img 
               src="/logo.png" 
               alt="TaskForge" 
-              className="w-10 h-10 object-contain"
+              className="h-12 w-auto object-contain"
             />
           </Link>
         </div>
@@ -148,13 +150,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <div className={`w-2 h-2 rounded-full animate-pulse ${health.overallScore >= 75 ? 'bg-emerald-500' : health.overallScore >= 55 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
               <span className="text-xs font-medium text-zinc-300">Saúde: {health.overallScore}%</span>
             </Link>
-            <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors relative">
-              <Icons.Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full border-2 border-zinc-900"></span>
-            </button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-600 border border-zinc-500 flex items-center justify-center text-xs font-bold text-white">
-              JD
-            </div>
+            <NotificationBell />
+            <UserMenu />
           </div>
         </header>
 

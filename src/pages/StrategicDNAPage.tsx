@@ -1,8 +1,10 @@
 import { Icons } from '../components/Icons';
+import { useNavigate } from 'react-router-dom';
 import { useEvent } from '../contexts/EventContext';
 import { useMetrics } from '../contexts/MetricsContext';
 
 export default function StrategicDNAPage() {
+  const navigate = useNavigate();
   const { getExplanationsByEntity } = useEvent();
   const { dna } = useMetrics();
   const dnaChanges = getExplanationsByEntity('system', 3);
@@ -241,7 +243,7 @@ export default function StrategicDNAPage() {
           <p className="text-2xl font-serif italic text-zinc-300">"Estratégia não é talento. É pensamento treinado."</p>
         </div>
         
-        <button className="btn-primary mx-auto px-8">
+        <button className="btn-primary mx-auto px-8" onClick={() => navigate('/app/sessions')}>
           Iniciar Nova Sessão Estratégica
           <Icons.ArrowRight className="w-5 h-5" />
         </button>

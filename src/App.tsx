@@ -27,6 +27,7 @@ import PlanCreatePage from './pages/PlanCreatePage';
 import AppLayout from './layouts/AppLayout';
 import { StrategicProvider } from './contexts/StrategicContext';
 import { EventProvider } from './contexts/EventContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { MetricsProvider } from './contexts/MetricsContext';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -38,9 +39,10 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <EventProvider>
-          <StrategicProvider>
-            <MetricsProvider>
-              <UpgradeProvider>
+          <NotificationProvider>
+            <StrategicProvider>
+              <MetricsProvider>
+                <UpgradeProvider>
                 <AppProvider>
                 <Routes>
                 {/* Public Routes */}
@@ -93,6 +95,7 @@ export default function App() {
               </UpgradeProvider>
             </MetricsProvider>
           </StrategicProvider>
+          </NotificationProvider>
         </EventProvider>
       </BrowserRouter>
     </AuthProvider>

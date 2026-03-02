@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import React from 'react';
 import { Icons } from '../components/Icons';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -175,7 +176,7 @@ export default function ChatPage() {
               <div className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-1">Créditos</div>
               <div className="text-sm font-mono text-zinc-300">840 / 1000</div>
             </div>
-            <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors">
+            <button onClick={() => toast.info('Mais opções em breve.')} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors">
               <Icons.MoreVertical className="w-5 h-5" />
             </button>
           </div>
@@ -239,10 +240,10 @@ export default function ChatPage() {
                 ></textarea>
                 <div className="bg-zinc-900/50 px-4 py-3 flex justify-between items-center border-t border-zinc-800/50">
                   <div className="flex gap-2">
-                    <button className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
+                    <button onClick={() => toast.info('Upload de arquivo em breve.')} className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
                       <Icons.Paperclip className="w-4 h-4" />
                     </button>
-                    <button className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
+                    <button onClick={() => toast.info('Entrada por voz em breve.')} className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
                       <Icons.Mic className="w-4 h-4" />
                     </button>
                   </div>
