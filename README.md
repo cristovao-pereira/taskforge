@@ -176,6 +176,33 @@ Sistema de pagamentos com suporte a:
 
 Para documentação completa: [Stripe Integration](docs/stripe-integration.md)
 
+## 🔐 Multi-tenant Segurança
+
+Cada usuário está completamente isolado com:
+- **Autenticação Firebase**: Token JWT verificado em todo endpoint
+- **Isolamento Socket.io**: Eventos por room de usuário (não global)
+- **Firebase Rules**: Acesso restrito por `request.auth.uid` (Firestore + Storage)
+- **Banco de Dados**: Todas queries filtram por `userId`
+- **Auditoria Completa**: Trilha de: upload, view, retrieve, delete de documentos
+- **Retenção Automática**: 90 dias + direito de esquecimento
+
+Para detalhes técnicos e verificação: [Política de Privacidade e Segurança](docs/PRIVACY_AND_SECURITY.md)
+
+## 🤖 Agentes Especialistas (MVP)
+
+Três agentes trabalham em harmonia para decisão estruturada:
+- **DecisionForge**: Análise de risco e impacto estratégico (endpoints: `/api/agents/decision`)
+- **ClarityForge**: Estruturação de pensamento complexo (endpoints: `/api/agents/clarity`)
+- **LeverageForge**: Execução com foco em alto impacto (endpoints: `/api/agents/leverage`)
+
+Todos os agentes:
+- Consultam documentos do usuário via `/api/agents/retrieve`
+- Respeitam modo estratégico (conservador/equilibrado/expansão)
+- Emitem eventos isolados por Socket.io (só o dono vê)
+- Registram auditoria de consultas
+
+**Próximos passos**: Integração com Gemini 2.5 Flash para análise real (atual: MVP pronto para Gemini).
+
 ## Documentação
 
 - [Guia Rápido](docs/QUICKSTART.md)
@@ -183,6 +210,7 @@ Para documentação completa: [Stripe Integration](docs/stripe-integration.md)
 - [Brand Guidelines](docs/brand-guidelines.md)
 - [Estratégia de Banco](docs/database-strategy.md)
 - [Stripe Integration](docs/stripe-integration.md)
+- [Privacidade e Segurança (Multi-tenant)](docs/PRIVACY_AND_SECURITY.md)
 - [Checklist Firebase Free Tier](docs/firebase-free-tier-checklist.md)
 - [Relatório de Implementação Fase 1](docs/implementation-report-phase1.md)
 
