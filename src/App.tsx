@@ -3,27 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import HowItWorksPage from './pages/HowItWorksPage';
-import PricingPage from './pages/PricingPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import ChatPage from './pages/ChatPage';
-import SettingsPage from './pages/SettingsPage';
-import DashboardPage from './pages/DashboardPage';
-import StrategicDNAPage from './pages/StrategicDNAPage';
-import DecisionMapPage from './pages/DecisionMapPage';
-import StrategicSessionsPage from './pages/StrategicSessionsPage';
-import ExecutionPlansPage from './pages/ExecutionPlansPage';
-import RiskAlertsPage from './pages/RiskAlertsPage';
-import DecisionForgePage from './pages/DecisionForgePage';
-import ClarityForgePage from './pages/ClarityForgePage';
-import LeverageForgePage from './pages/LeverageForgePage';
-import BillingPage from './pages/BillingPage';
-import SystemStatusPage from './pages/SystemStatusPage';
-import DocumentsPage from './pages/DocumentsPage';
-import PlanCreatePage from './pages/PlanCreatePage';
 import AppLayout from './layouts/AppLayout';
 import { StrategicProvider } from './contexts/StrategicContext';
 import { EventProvider } from './contexts/EventContext';
@@ -33,6 +14,27 @@ import { AppProvider } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { UpgradeProvider } from './contexts/UpgradeContext';
 import { Toaster } from 'sonner';
+
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const StrategicDNAPage = lazy(() => import('./pages/StrategicDNAPage'));
+const DecisionMapPage = lazy(() => import('./pages/DecisionMapPage'));
+const StrategicSessionsPage = lazy(() => import('./pages/StrategicSessionsPage'));
+const ExecutionPlansPage = lazy(() => import('./pages/ExecutionPlansPage'));
+const RiskAlertsPage = lazy(() => import('./pages/RiskAlertsPage'));
+const DecisionForgePage = lazy(() => import('./pages/DecisionForgePage'));
+const ClarityForgePage = lazy(() => import('./pages/ClarityForgePage'));
+const LeverageForgePage = lazy(() => import('./pages/LeverageForgePage'));
+const BillingPage = lazy(() => import('./pages/BillingPage'));
+const SystemStatusPage = lazy(() => import('./pages/SystemStatusPage'));
+const DocumentsPage = lazy(() => import('./pages/DocumentsPage'));
+const PlanCreatePage = lazy(() => import('./pages/PlanCreatePage'));
 
 export default function App() {
   return (
@@ -44,6 +46,7 @@ export default function App() {
               <MetricsProvider>
                 <UpgradeProvider>
                 <AppProvider>
+                <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
                 <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
@@ -77,6 +80,7 @@ export default function App() {
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
+              </Suspense>
               <Toaster 
                 position="top-right" 
                 theme="dark"
