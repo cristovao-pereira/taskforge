@@ -27,3 +27,6 @@ Thumbs.db
 # Prisma
 prisma/migrations/*.db
 prisma/prisma/
+
+.vercel
+.env*.local
