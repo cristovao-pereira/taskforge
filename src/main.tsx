@@ -2,10 +2,21 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import {toApiUrl} from './lib/runtimeConfig';
+import {isApiConfigured, toApiUrl} from './lib/runtimeConfig';
 
 const nativeFetch = window.fetch.bind(window);
 window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+  const isLikelyProductionHost =
+    window.location.hostname.includes('vercel.app') || !window.location.hostname.includes('localhost');
+
+  if (isLikelyProductionHost && !isApiConfigured()) {
+    if (typeof input === 'string' && input.startsWith('/api/')) {
+      return Promise.reject(
+        new Error('API não configurada em produção. Defina VITE_API_URL (ou VITE_API_TARGET) na Vercel.'),
+      );
+    }
+  }
+
   if (typeof input === 'string' && input.startsWith('/api/')) {
     return nativeFetch(toApiUrl(input), init);
   }

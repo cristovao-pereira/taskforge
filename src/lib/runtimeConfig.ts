@@ -6,6 +6,8 @@ const normalizeBaseUrl = (value?: string) => {
 export const getApiBaseUrl = () =>
   normalizeBaseUrl(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_TARGET || '');
 
+export const isApiConfigured = () => Boolean(getApiBaseUrl());
+
 export const toApiUrl = (path: string) => {
   const baseUrl = getApiBaseUrl();
   if (!path.startsWith('/')) return path;
