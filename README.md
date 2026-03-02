@@ -138,17 +138,22 @@ Se a porta estiver ocupada, o backend escolhe automaticamente a próxima dispon�
 
 ### Produção
 
-**Status:** ✅ Deploy ativo
+**Status:** ✅ Totalmente operacional
 
-- **Frontend (Vercel):** https://taskforge-lime.vercel.app
-- **Backend (Render):** https://taskforge-api-j84h.onrender.com
-- **Database (Neon):** PostgreSQL com replicação automática
+#### Infraestrutura:
+- **Frontend (Vercel):** https://taskforge-lime.vercel.app (✅ Ativo)
+- **Backend Express (Render):** https://taskforge-api-j84h.onrender.com (✅ Ativo)
+  - API REST respondendo (HTTP 200)
+  - Socket.io configurado para comunicação real-time
+  - Health check: `/api/health` retorna `{"status":"ok","timestamp":"..."}`
+- **Database (Neon):** PostgreSQL com replicação automática (✅ Sincronizado)
 
-**Configuração:**
-- Variáveis de ambiente configuradas em Vercel e Render
-- Firebase domains autorizados
-- Stripe webhooks integrados (8 eventos)
-- CORS configurado para produção
+#### Configuração:
+- ✅ Variáveis de ambiente configuradas em Vercel e Render
+- ✅ Firebase domains autorizados para produção
+- ✅ Stripe webhooks integrados (8 eventos configurados)
+- ✅ CORS configurado para comunicação frontend-backend
+- ✅ Express + Socket.io rodando no Render com suporte a WebSockets
 
 Para detalhes completos, veja:
 - [Vercel Setup](VERCEL_SETUP.md)
