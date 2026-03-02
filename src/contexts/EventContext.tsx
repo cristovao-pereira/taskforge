@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { getSocketBaseUrl } from '../lib/runtimeConfig';
 
 // --- Types ---
 
@@ -87,7 +88,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
 
   // Initialize Socket.io
   useEffect(() => {
-    const newSocket = io(window.location.origin, {
+    const newSocket = io(getSocketBaseUrl(), {
       path: '/socket.io',
     });
     setSocket(newSocket);
