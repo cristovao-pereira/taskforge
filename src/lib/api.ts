@@ -84,4 +84,34 @@ export const api = {
     apiRequest<T>(endpoint, { ...options, method: 'DELETE' }),
 };
 
+/**
+ * Agent-specific API helpers
+ * These maintain userId isolation and strategic context
+ */
+export const agentAPI = {
+  /**
+   * Retrieve documents relevant to agent analysis
+   */
+  retrieve: async (query: string, mode: string = 'equilibrado', documentIds: string[] = [], topK: number = 5) =>
+    api.post('/api/agents/retrieve', { query, mode, documentIds, topK }),
+
+  /**
+   * DecisionForge: Analyze decision with document context
+   */
+  analyzeDecision: async (decision: string, context: any = {}, documentIds: string[] = []) =>
+    api.post('/api/agents/decision', { decision, context, documentIds }),
+
+  /**
+   * ClarityForge: Structure thinking with document context
+   */
+  clarifyThinking: async (input: string, context: any = {}, documentIds: string[] = []) =>
+    api.post('/api/agents/clarity', { input, context, documentIds }),
+
+  /**
+   * LeverageForge: Identify high-impact actions
+   */
+  planExecution: async (objective: string, context: any = {}, documentIds: string[] = []) =>
+    api.post('/api/agents/leverage', { objective, context, documentIds }),
+};
+
 export default api;
