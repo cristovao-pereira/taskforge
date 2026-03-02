@@ -2028,4 +2028,272 @@ async function startServer() {
   });
 }
 
+// --- Agent Endpoints (Phases 6-7 of AI Agent Implementation) ---
+
+/**
+ * POST /api/agents/retrieve
+ * Retrieve relevant documents for agent consultation based on query
+ * Used by DecisionForge, ClarityForge, and LeverageForge
+ * Input: query (search), mode (strategic), documentIds (optional filter), topK (default 5)
+ * Output: chunks with metadata and citation info, userId-isolated
+ */
+app.post('/api/agents/retrieve', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.userId!;
+        const { query, mode = 'equilibrado', documentIds = [], topK = 5 } = req.body;
+
+        if (!query || query.trim().length === 0) {
+            return res.status(400).json({ error: 'Query is required' });
+        }
+
+        // Validate topK
+        const limit = Math.min(Math.max(topK, 1), 20); // Clamp between 1-20
+
+        // Build query filters
+        const docFilters: any = { userId };
+        if (documentIds.length > 0) {
+            docFilters.id = { in: documentIds };
+        }
+        docFilters.status = { in: ['processed', 'insights_ready', 'risk_detected'] };
+
+        // For now, return full documents sorted by relevance (mock)
+        // Future: implement embedding-based semantic search
+        const documents = await prisma.document.findMany({
+            where: docFilters,
+            orderBy: { processedAt: 'desc' },
+            take: limit,
+            include: { insights: true }
+        });
+
+        if (documents.length === 0) {
+            return res.json({
+                query,
+                mode,
+                topK: limit,
+                results: [],
+                message: 'No documents found for this query'
+            });
+        }
+
+        // Log retrieval audit
+        await logDocumentAudit(
+            'N/A',
+            userId,
+            'retrieve',
+            'Agent performed document retrieval',
+            { query, mode, documentCount: documents.length, topK: limit },
+            req.ip
+        );
+
+        // Format response with citation info
+        const results = documents.map(doc => ({
+            documentId: doc.id,
+            title: doc.title,
+            type: doc.type,
+            excerpt: doc.insights?.summary ? doc.insights.summary.substring(0, 200) : 'No summary available',
+            confidence: doc.insights?.confidenceScore || 0,
+            insights: {
+                decisions: doc.insights?.decisionsJson ? JSON.parse(doc.insights.decisionsJson) : [],
+                risks: doc.insights?.risksJson ? JSON.parse(doc.insights.risksJson) : [],
+                opportunities: doc.insights?.opportunitiesJson ? JSON.parse(doc.insights.opportunitiesJson) : [],
+            },
+            processedAt: doc.processedAt,
+            retentionExpiresAt: doc.retentionExpiresAt
+        }));
+
+        res.json({
+            query,
+            mode,
+            topK: limit,
+            results,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error in agent retrieval:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * POST /api/agents/decision
+ * DecisionForge agent endpoint - analyze decision with document context
+ * Validates risk, 2nd order impact, premises, strategic consistency
+ */
+app.post('/api/agents/decision', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.userId!;
+        const { decision, context = {}, documentIds = [] } = req.body;
+
+        if (!decision || decision.trim().length === 0) {
+            return res.status(400).json({ error: 'Decision statement is required' });
+        }
+
+        // Retrieve relevant documents
+        const documents = await prisma.document.findMany({
+            where: {
+                userId,
+                ...(documentIds.length > 0 && { id: { in: documentIds } }),
+                status: { in: ['processed', 'insights_ready', 'risk_detected'] }
+            },
+            include: { insights: true },
+            take: 5
+        });
+
+        // Log analysis request
+        await logDocumentAudit(
+            'N/A',
+            userId,
+            'agent_query',
+            'DecisionForge analysis initiated',
+            { decision: decision.substring(0, 100), documentCount: documents.length },
+            req.ip
+        );
+
+        // For MVP, return structured template
+        // Future: integrate with Gemini API for real analysis
+        const analysis = {
+            agentId: 'decision-forge-v1',
+            timestamp: new Date().toISOString(),
+            decision: decision.substring(0, 500),
+            mode: (context.mode || 'equilibrado') as string,
+            riskAssessment: {
+                primaryRisks: documents.flatMap(d => d.insights?.risksJson ? JSON.parse(d.insights.risksJson) : []).slice(0, 3),
+                secondOrderRisk: 'Requires Gemini analysis',
+                confidenceScore: 0
+            },
+            documentContext: documents.length,
+            readyForGemini: true,
+            metadata: {
+                documentIds: documents.map(d => d.id),
+                userStrategicMode: context.mode || 'equilibrado'
+            }
+        };
+
+        io.to(userId).emit('agent:decision_analysis_ready', analysis);
+
+        res.json(analysis);
+    } catch (error) {
+        console.error('Error in DecisionForge:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * POST /api/agents/clarity
+ * ClarityForge agent endpoint - structure thinking with document context
+ */
+app.post('/api/agents/clarity', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.userId!;
+        const { input, context = {}, documentIds = [] } = req.body;
+
+        if (!input || input.trim().length === 0) {
+            return res.status(400).json({ error: 'Input is required' });
+        }
+
+        const documents = await prisma.document.findMany({
+            where: {
+                userId,
+                ...(documentIds.length > 0 && { id: { in: documentIds } }),
+                status: { in: ['processed', 'insights_ready', 'risk_detected'] }
+            },
+            include: { insights: true },
+            take: 5
+        });
+
+        await logDocumentAudit(
+            'N/A',
+            userId,
+            'agent_query',
+            'ClarityForge structuring initiated',
+            { inputLength: input.length, documentCount: documents.length },
+            req.ip
+        );
+
+        const structure = {
+            agentId: 'clarity-forge-v1',
+            timestamp: new Date().toISOString(),
+            input: input.substring(0, 500),
+            mode: context.mode || 'equilibrado',
+            structure: {
+                mainTheme: 'Requires Gemini analysis',
+                subThemes: [],
+                contradictions: [],
+                clarityScore: 0
+            },
+            documentContext: documents.length,
+            readyForGemini: true,
+            metadata: {
+                documentIds: documents.map(d => d.id)
+            }
+        };
+
+        io.to(userId).emit('agent:clarity_structure_ready', structure);
+
+        res.json(structure);
+    } catch (error) {
+        console.error('Error in ClarityForge:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * POST /api/agents/leverage
+ * LeverageForge agent endpoint - identify high-impact actions with document context
+ */
+app.post('/api/agents/leverage', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.userId!;
+        const { objective, context = {}, documentIds = [] } = req.body;
+
+        if (!objective || objective.trim().length === 0) {
+            return res.status(400).json({ error: 'Objective is required' });
+        }
+
+        const documents = await prisma.document.findMany({
+            where: {
+                userId,
+                ...(documentIds.length > 0 && { id: { in: documentIds } }),
+                status: { in: ['processed', 'insights_ready', 'risk_detected'] }
+            },
+            include: { insights: true },
+            take: 5
+        });
+
+        await logDocumentAudit(
+            'N/A',
+            userId,
+            'agent_query',
+            'LeverageForge execution planning initiated',
+            { objectiveLength: objective.length, documentCount: documents.length },
+            req.ip
+        );
+
+        const leverage = {
+            agentId: 'leverage-forge-v1',
+            timestamp: new Date().toISOString(),
+            objective: objective.substring(0, 500),
+            mode: context.mode || 'equilibrado',
+            execution: {
+                highImpactActions: [],
+                dependencies: [],
+                priority: 'Requires Gemini analysis',
+                leverageScore: 0
+            },
+            documentContext: documents.length,
+            readyForGemini: true,
+            metadata: {
+                documentIds: documents.map(d => d.id)
+            }
+        };
+
+        io.to(userId).emit('agent:leverage_execution_ready', leverage);
+
+        res.json(leverage);
+    } catch (error) {
+        console.error('Error in LeverageForge:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 startServer();
