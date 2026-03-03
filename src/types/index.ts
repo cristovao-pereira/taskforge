@@ -6,6 +6,7 @@ export interface User {
   company: string;
   role: string;
   objective: string;
+  plan?: 'free' | 'builder' | 'strategic';
   preferences: {
     strategicMode: 'conservative' | 'balanced' | 'aggressive';
     deepMode: boolean;

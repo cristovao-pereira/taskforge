@@ -1561,15 +1561,20 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
                 id: userId,
                 email: req.user.email || `${userId}@unknown.com`,
                 name: req.user.name || 'User',
-                strategicMode: 'equilibrado'
+                strategicMode: 'equilibrado',
+                plan: 'free'
             }
         });
     }
     
     res.json({
-        name: user.name || 'Demo User',
-        email: user.email || 'user@example.com',
-        strategicMode: user.strategicMode || 'equilibrado',
+        id: user?.id,
+        name: user?.name || 'Demo User',
+        email: user?.email || 'user@example.com',
+        strategicMode: user?.strategicMode || 'equilibrado',
+        plan: user?.plan || 'free',
+        hasCompletedOnboarding: user?.hasCompletedOnboarding || false,
+        objective: user?.objective || '',
         ...userProfileCache
     });
 });
@@ -1974,6 +1979,24 @@ app.post('/api/simulate', authenticateUser, async (req, res) => {
     try {
         const userId = req.userId!;
         const { hypotheticalMode, actions } = req.body;
+
+        // 1. Validate plan
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({
+                error: 'USER_NOT_FOUND',
+                message: 'Usuário não encontrado.'
+            });
+        }
+
+        if (user.plan !== 'strategic') {
+            return res.status(403).json({
+                error: 'PLAN_REQUIRED',
+                requiredPlan: 'strategic',
+                userPlan: user.plan || 'free',
+                message: 'Simulação Estratégica está disponível apenas no plano Strategic.'
+            });
+        }
 
         if (!hypotheticalMode || !actions || !Array.isArray(actions)) {
             return res.status(400).json({

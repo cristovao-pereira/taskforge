@@ -125,7 +125,10 @@ export function SimulationDrawer({
                   <div className="p-2 bg-blue-500/10 rounded-lg">
                     <Lightbulb className="w-5 h-5 text-blue-400" />
                   </div>
-                  <h2 className="text-lg font-bold text-white">Simulação Estratégica</h2>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Simulação Estratégica</h2>
+                    <p className="text-xs text-blue-400 mt-1">Recurso do plano Strategic</p>
+                  </div>
                 </div>
                 <button
                   onClick={onClose}

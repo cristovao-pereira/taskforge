@@ -7,11 +7,12 @@ import { useUpgrade } from '../contexts/UpgradeContext';
 import { DecisionEditModal } from '../components/DecisionEditModal';
 import { OnboardingModal } from '../components/OnboardingModal';
 import { SimulationDrawer } from '../components/SimulationDrawer';
+import { UpgradeSimulationModal } from '../components/UpgradeSimulationModal';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import { AnimatedPage } from '../components/AnimatedPage';
 import { staggerContainer, staggerChild, cardHover, buttonPrimary } from '../lib/motion';
-import { Zap } from 'lucide-react';
+import { Zap, Lock } from 'lucide-react';
 
 interface PriorityItem {
   id: string;
@@ -38,6 +39,15 @@ export default function DashboardPage() {
   const [editingDecision, setEditingDecision] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding);
   const [showSimulation, setShowSimulation] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const handleSimulationClick = () => {
+    if (user?.plan === 'strategic') {
+      setShowSimulation(true);
+    } else {
+      setShowUpgradeModal(true);
+    }
+  };
 
   const getItemRoute = (type: PriorityItem['type']) => {
     if (type === 'decision') return '/app/agent/decision';
@@ -197,13 +207,21 @@ export default function DashboardPage() {
       {/* Floating Simulation Button */}
       <div className="fixed bottom-8 right-8 z-30">
         <motion.button
-          onClick={() => setShowSimulation(true)}
+          onClick={handleSimulationClick}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 rounded-full shadow-lg shadow-blue-500/50 text-white transition-all duration-300 flex items-center justify-center group"
-          title="Simular Cenário Estratégico"
+          className={`p-4 rounded-full text-white transition-all duration-300 flex items-center justify-center group shadow-lg ${
+            user?.plan === 'strategic'
+              ? 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 shadow-blue-500/50'
+              : 'bg-gradient-to-br from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 shadow-slate-500/50 cursor-not-allowed opacity-75'
+          }`}
+          title={user?.plan === 'strategic' ? 'Simular Cenário Estratégico' : 'Disponível no plano Strategic'}
         >
-          <Zap className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+          {user?.plan === 'strategic' ? (
+            <Zap className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+          ) : (
+            <Lock className="w-5 h-5" />
+          )}
         </motion.button>
       </div>
 
@@ -398,6 +416,12 @@ export default function DashboardPage() {
         risksList={risks.map(r => ({ id: r.id, title: r.title }))}
         tasksList={decisions.map(d => ({ id: d.id, title: d.title }))}
         plansList={plans.map(p => ({ id: p.id, title: p.title }))}
+      />
+
+      {/* Upgrade Simulation Modal */}
+      <UpgradeSimulationModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
       />
 
       {/* Onboarding Modal */}
