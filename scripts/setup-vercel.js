@@ -14,12 +14,17 @@ const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
 const TEAM_ID = 'team_weBeDDTJYJLjjOXPwSYb1Rjb';
 const PROJECT_NAME = 'taskforge';
 const GITHUB_REPO = 'cristovao-pereira/taskforge';
+const DATABASE_URL = process.env.DATABASE_URL;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+const VITE_FIREBASE_API_KEY = process.env.VITE_FIREBASE_API_KEY;
 
 // Variáveis de ambiente a serem configuradas
 const ENV_VARS = [
   {
     key: 'DATABASE_URL',
-    value: 'postgresql://neondb_owner:npg_yknQbS9e5Uum@ep-muddy-forest-aia765p4-pooler.c-4.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require',
+    value: DATABASE_URL || '',
     target: ['production', 'preview'],
     type: 'encrypted'
   },
@@ -31,7 +36,7 @@ const ENV_VARS = [
   },
   {
     key: 'GEMINI_API_KEY',
-    value: process.env.GEMINI_API_KEY || '',
+    value: GEMINI_API_KEY || '',
     target: ['production', 'preview'],
     type: 'encrypted'
   },
@@ -43,19 +48,19 @@ const ENV_VARS = [
   },
   {
     key: 'STRIPE_SECRET_KEY',
-    value: 'sk_test_51Sx9OGBNgnXewP8MJdheuXVkoELmZ1ppZUJ839FbspG6XzkYRy7yLfHt1cvS5i5ZvxDQCFO5SzjnSDUna56PdTA400FZKYA3pN',
+    value: STRIPE_SECRET_KEY || '',
     target: ['production', 'preview'],
     type: 'encrypted'
   },
   {
     key: 'STRIPE_WEBHOOK_SECRET',
-    value: 'whsec_feca7716f50a61b805cc3da5d17b7e5b665387d6fee3d87319d781f0be1551b1',
+    value: STRIPE_WEBHOOK_SECRET || '',
     target: ['production', 'preview'],
     type: 'encrypted'
   },
   {
     key: 'VITE_FIREBASE_API_KEY',
-    value: 'AIzaSyCuJXZRU5Ougfq0KJ1G9TIurk_V2O2IY6g',
+    value: VITE_FIREBASE_API_KEY || '',
     target: ['production', 'preview', 'development'],
     type: 'plain'
   },
@@ -135,6 +140,25 @@ if (!VERCEL_TOKEN) {
   console.log('2. Crie um novo token');
   console.log('3. Execute: set VERCEL_TOKEN=seu_token_aqui');
   console.log('4. Execute novamente este script\n');
+  process.exit(1);
+}
+
+const REQUIRED_ENV_VARS = [
+  'DATABASE_URL',
+  'GEMINI_API_KEY',
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_SECRET',
+  'VITE_FIREBASE_API_KEY'
+];
+
+const missingEnvVars = REQUIRED_ENV_VARS.filter((name) => !process.env[name]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Variáveis obrigatórias ausentes para configurar a Vercel:');
+  for (const envVar of missingEnvVars) {
+    console.error(` - ${envVar}`);
+  }
+  console.log('\nDefina essas variáveis no ambiente antes de executar o script.');
   process.exit(1);
 }
 
