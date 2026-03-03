@@ -6,10 +6,12 @@ import { useApp } from '../contexts/AppContext';
 import { useUpgrade } from '../contexts/UpgradeContext';
 import { DecisionEditModal } from '../components/DecisionEditModal';
 import { OnboardingModal } from '../components/OnboardingModal';
+import { SimulationDrawer } from '../components/SimulationDrawer';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import { AnimatedPage } from '../components/AnimatedPage';
 import { staggerContainer, staggerChild, cardHover, buttonPrimary } from '../lib/motion';
+import { Zap } from 'lucide-react';
 
 interface PriorityItem {
   id: string;
@@ -35,6 +37,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [editingDecision, setEditingDecision] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(!hasCompletedOnboarding);
+  const [showSimulation, setShowSimulation] = useState(false);
 
   const getItemRoute = (type: PriorityItem['type']) => {
     if (type === 'decision') return '/app/agent/decision';
@@ -190,6 +193,19 @@ export default function DashboardPage() {
 
   return (
       <AnimatedPage className="section-spacing pb-12 max-w-5xl mx-auto relative">
+
+      {/* Floating Simulation Button */}
+      <div className="fixed bottom-8 right-8 z-30">
+        <motion.button
+          onClick={() => setShowSimulation(true)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 rounded-full shadow-lg shadow-blue-500/50 text-white transition-all duration-300 flex items-center justify-center group"
+          title="Simular Cenário Estratégico"
+        >
+          <Zap className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+        </motion.button>
+      </div>
 
       {/* Strategic Objective Banner - if exists */}
       {user?.objective && (
@@ -374,6 +390,15 @@ export default function DashboardPage() {
               onSave={() => {}}
           />
       )}
+
+      {/* Simulation Drawer */}
+      <SimulationDrawer
+        isOpen={showSimulation}
+        onClose={() => setShowSimulation(false)}
+        risksList={risks.map(r => ({ id: r.id, title: r.title }))}
+        tasksList={decisions.map(d => ({ id: d.id, title: d.title }))}
+        plansList={plans.map(p => ({ id: p.id, title: p.title }))}
+      />
 
       {/* Onboarding Modal */}
       <OnboardingModal 

@@ -1968,6 +1968,40 @@ app.get('/api/billing/subscription', authenticateUser, async (req, res) => {
 });
 
 
+// --- Strategic Simulation Engine ---
+
+app.post('/api/simulate', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.userId!;
+        const { hypotheticalMode, actions } = req.body;
+
+        if (!hypotheticalMode || !actions || !Array.isArray(actions)) {
+            return res.status(400).json({
+                error: 'Invalid request',
+                message: 'hypotheticalMode e actions array são obrigatórios.'
+            });
+        }
+
+        // Import simulation engine
+        const { simulateScenario } = await import('./services/simulationEngine');
+
+        // Run simulation
+        const result = await simulateScenario({
+            userId,
+            hypotheticalMode,
+            actions
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error('Simulation error:', error);
+        res.status(500).json({
+            error: 'Simulation failed',
+            message: error instanceof Error ? error.message : String(error)
+        });
+    }
+});
+
 // --- Vite Middleware (Dev Mode) ---
 
 async function startServer() {
