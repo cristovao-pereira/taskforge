@@ -2022,6 +2022,131 @@ app.get('/api/billing/subscription', authenticateUser, async (req, res) => {
 });
 
 
+// --- Sync Plan with Stripe ---
+app.post('/api/billing/sync-plan', authenticateUser, async (req, res) => {
+    try {
+        if (!stripe) {
+            return res.status(503).json({
+                error: 'Stripe not configured',
+                message: 'Stripe não configurado.'
+            });
+        }
+
+        const userId = req.userId!;
+        const user = await prisma.user.findUnique({
+            where: { firebaseUid: userId },
+            select: {
+                id: true,
+                email: true,
+                plan: true,
+                stripeCustomerId: true,
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                error: 'USER_NOT_FOUND',
+                message: 'Usuário não encontrado.'
+            });
+        }
+
+        if (!user.stripeCustomerId) {
+            return res.json({
+                status: 'no-customer',
+                message: 'Usuário não tem Customer ID no Stripe',
+                currentPlan: user.plan || 'gratis'
+            });
+        }
+
+        // Fetch subscriptions from Stripe
+        const subscriptions = await stripe.subscriptions.list({
+            customer: user.stripeCustomerId,
+            status: 'all',
+            limit: 10,
+        });
+
+        // Helper to resolve plan from price
+        const resolvePlan = (priceId: string | undefined): 'gratis' | 'essencial' | 'profissional' | 'estrategico' => {
+            if (!priceId) return 'gratis';
+            
+            const planMap: Record<string, 'essencial' | 'profissional' | 'estrategico'> = {
+                'price_1T6O7HBNgnXewP8Me1hVETGA': 'essencial',
+                'price_1T6O6QBNgnXewP8Mude8pCy8': 'profissional',
+                'price_1T6O6XBNgnXewP8M5BxqsMGU': 'estrategico',
+                'price_1TAnnualBuilder': 'profissional',
+                'price_1TAnnualStrategic': 'estrategico',
+            };
+            
+            return planMap[priceId] || 'gratis';
+        };
+
+        // Find active subscription
+        const activeStatuses: Stripe.Subscription.Status[] = ['active', 'trialing', 'past_due'];
+        const activeSubscriptions = subscriptions.data.filter(sub =>
+            activeStatuses.includes(sub.status)
+        );
+
+        if (activeSubscriptions.length === 0) {
+            return res.json({
+                status: 'no-active-subscription',
+                message: 'Nenhuma subscription ativa encontrada',
+                currentPlan: user.plan || 'gratis'
+            });
+        }
+
+        // Get highest priority active subscription
+        const subscription = activeSubscriptions.sort((a, b) => {
+            const aPriority = (a.items.data[0]?.price?.id === 'price_1T6O6XBNgnXewP8M5BxqsMGU') ? 3 : 
+                             (a.items.data[0]?.price?.id === 'price_1T6O6QBNgnXewP8Mude8pCy8') ? 2 : 1;
+            const bPriority = (b.items.data[0]?.price?.id === 'price_1T6O6XBNgnXewP8M5BxqsMGU') ? 3 :
+                             (b.items.data[0]?.price?.id === 'price_1T6O6QBNgnXewP8Mude8pCy8') ? 2 : 1;
+            return bPriority - aPriority;
+        })[0];
+
+        const stripePlan = resolvePlan(subscription.items.data[0]?.price?.id);
+        const currentPlan = (user.plan || 'gratis').toLowerCase();
+
+        // Update if different
+        if (currentPlan !== stripePlan) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { plan: stripePlan }
+            });
+
+            return res.json({
+                status: 'updated',
+                message: `Plano atualizado com sucesso: ${currentPlan} → ${stripePlan}`,
+                previousPlan: currentPlan,
+                newPlan: stripePlan,
+                subscriptionId: subscription.id,
+                subscriptionStatus: subscription.status
+            });
+        }
+
+        res.json({
+            status: 'synchronized',
+            message: 'Plano já estava sincronizado',
+            currentPlan: stripePlan,
+            subscriptionId: subscription.id,
+            subscriptionStatus: subscription.status
+        });
+
+    } catch (error) {
+        console.error('Error syncing plan:', error);
+        if (error instanceof Stripe.errors.StripeError) {
+            return res.status(400).json({
+                error: 'STRIPE_ERROR',
+                message: error.message
+            });
+        }
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: error instanceof Error ? error.message : String(error)
+        });
+    }
+});
+
+
 // --- Strategic Simulation Engine ---
 
 app.post('/api/simulate', authenticateUser, async (req, res) => {

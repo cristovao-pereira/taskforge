@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Icons } from '../components/Icons';
+import { SyncPlanButton } from '../components/SyncPlanButton';
 import { toast } from 'sonner';
 import { getSubscriptionStatus, redirectToCheckout } from '../lib/checkout';
 import { useAuth } from '../contexts/AuthContext';
@@ -188,6 +189,7 @@ export default function BillingPage() {
             <button onClick={scrollToPlans} className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg font-medium transition-all border border-zinc-700 hover:border-zinc-600">
               Alterar Plano
             </button>
+            <SyncPlanButton />
           </div>
 
         </div>
