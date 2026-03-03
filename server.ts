@@ -1716,6 +1716,21 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 
     console.log('Stripe webhook event:', event.type);
 
+    // Helper function to resolve plan from price ID
+    const resolvePlan = (priceId: string | undefined): 'gratis' | 'essencial' | 'profissional' | 'estrategico' => {
+        if (!priceId) return 'gratis';
+        
+        const planMap: Record<string, 'essencial' | 'profissional' | 'estrategico'> = {
+            'price_1T6O7HBNgnXewP8Me1hVETGA': 'essencial',
+            'price_1T6O6QBNgnXewP8Mude8pCy8': 'profissional',
+            'price_1T6O6XBNgnXewP8M5BxqsMGU': 'estrategico',
+            'price_1TAnnualBuilder': 'profissional',
+            'price_1TAnnualStrategic': 'estrategico',
+        };
+        
+        return planMap[priceId] || 'gratis';
+    };
+
     try {
         switch (event.type) {
             case 'checkout.session.completed': {
@@ -1726,7 +1741,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                     break;
                 }
 
-                // Get line items to determine credits
+                // Get line items to determine credits and plan
                 const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
                 const priceId = lineItems.data[0]?.price?.id;
 
@@ -1743,17 +1758,19 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                 };
 
                 const credits = priceId ? (creditMap[priceId] || 0) : 0;
+                const plan = resolvePlan(priceId);
 
-                // Update user credits
+                // Update user credits and plan
                 await prisma.user.update({
                     where: { firebaseUid },
                     data: {
                         credits: {
                             increment: credits
-                        }
+                        },
+                        ...(plan !== 'gratis' && { plan })
                     }
                 });
-                console.log(`Added ${credits} credits to user ${firebaseUid}`);
+                console.log(`Checkout completed: Added ${credits} credits and set plan to ${plan} for user ${firebaseUid}`);
                 break;
             }
 
@@ -1786,6 +1803,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                     };
 
                     const credits = priceId ? (creditMap[priceId] || 0) : 0;
+                    const plan = resolvePlan(priceId);
 
                     if (credits > 0) {
                         await prisma.user.update({
@@ -1793,10 +1811,11 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                             data: {
                                 credits: {
                                     increment: credits
-                                }
+                                },
+                                ...(plan !== 'gratis' && { plan })
                             }
                         });
-                        console.log(`Renewed subscription: Added ${credits} credits to user ${user.id}`);
+                        console.log(`Renewed subscription: Added ${credits} credits and set plan to ${plan} for user ${user.id}`);
                     }
                 }
                 break;
@@ -1811,8 +1830,43 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                 });
 
                 if (user) {
-                    console.log(`Subscription canceled for user ${user.id}`);
-                    // You might want to update user status here
+                    // Reset plan to gratis when subscription is canceled
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: { plan: 'gratis' }
+                    });
+                    console.log(`Subscription canceled: Reset plan to gratis for user ${user.id}`);
+                }
+                break;
+            }
+
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated': {
+                const subscription = event.data.object as Stripe.Subscription;
+                const customerId = subscription.customer as string;
+
+                // Only process active subscriptions
+                const activeStatuses: Stripe.Subscription.Status[] = ['active', 'trialing'];
+                if (!activeStatuses.includes(subscription.status)) {
+                    console.log(`Subscription ${subscription.id} is ${subscription.status}, skipping plan update`);
+                    break;
+                }
+
+                const user = await prisma.user.findFirst({
+                    where: { stripeCustomerId: customerId }
+                });
+
+                if (user) {
+                    const priceId = subscription.items.data[0]?.price?.id;
+                    const plan = resolvePlan(priceId);
+
+                    if (plan !== 'gratis') {
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: { plan }
+                        });
+                        console.log(`Subscription ${event.type}: Updated plan to ${plan} for user ${user.id}`);
+                    }
                 }
                 break;
             }
