@@ -35,4 +35,3 @@ server.ts
 prisma/
 services/metricsService.ts
 lib/prisma.ts
-check-env.ts
