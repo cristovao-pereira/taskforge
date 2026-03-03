@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { 
   Check, 
   Zap, 
@@ -14,6 +15,22 @@ import {
   LineChart
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { redirectToCheckout } from '../lib/checkout';
+
+// Stripe Price IDs - Monthly & Annual
+const PRICING_CONFIG = {
+  free: { priceIdMonthly: null, priceIdAnnual: null, credits: 0 },
+  builder: {
+    priceIdMonthly: 'price_1T6O6QBNgnXewP8Mude8pCy8',
+    priceIdAnnual: 'price_1TAnnualBuilder', // Será substituído com ID real
+    credits: 120
+  },
+  strategic: {
+    priceIdMonthly: 'price_1T6O6XBNgnXewP8M5BxqsMGU',
+    priceIdAnnual: 'price_1TAnnualStrategic', // Será substituído com ID real
+    credits: 300
+  }
+};
 
 // Navbar Component
 const Navbar = () => {
@@ -57,10 +74,29 @@ const PricingCard = ({
     buttonText, 
     isPopular = false, 
     delay = 0,
+    priceIdMonthly,
+    priceIdAnnual,
+    onCheckout,
 }: any) => {
     const navigate = useNavigate();
     const isAnnual = billingPeriod === 'annual';
     const currentPrice = isAnnual ? Math.round(priceAnnual / 12) : priceMonthly;
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleClick = async () => {
+        if (priceIdMonthly === null && priceIdAnnual === null) {
+            // Free plan
+            navigate('/signup');
+            return;
+        }
+
+        const priceId = isAnnual ? priceIdAnnual : priceIdMonthly;
+        if (onCheckout) {
+            setIsLoading(true);
+            await onCheckout(priceId);
+            setIsLoading(false);
+        }
+    };
 
     return (
         <motion.div 
@@ -120,15 +156,16 @@ const PricingCard = ({
             </div>
 
             <button 
-                onClick={() => navigate('/signup')} 
-                className={`w-full py-4 rounded-xl font-bold transition-all shadow-lg text-sm flex items-center justify-center gap-2 ${
+                onClick={handleClick}
+                disabled={isLoading}
+                className={`w-full py-4 rounded-xl font-bold transition-all shadow-lg text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                     isPopular 
                     ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20 hover:shadow-orange-700/30 hover:-translate-y-0.5' 
                     : `bg-[#1e293b] text-slate-400 hover:text-white border border-slate-700 hover:bg-slate-800 hover:border-slate-500`
                 }`}
             >
-                {buttonText}
-                {isPopular && <ArrowRight className="w-4 h-4" />}
+                {isLoading ? 'Processando...' : buttonText}
+                {isPopular && !isLoading && <ArrowRight className="w-4 h-4" />}
             </button>
         </motion.div>
     );
@@ -174,10 +211,28 @@ const FaqItem = ({ question, answer }: any) => {
 export default function PricingPage() {
     const navigate = useNavigate();
     const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('annual');
+    const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    const handleCheckout = async (priceId: string) => {
+        setIsCheckoutLoading(true);
+        try {
+            if (!priceId) {
+                toast.error('Preço inválido');
+                return;
+            }
+            toast.loading('Redirecionando para pagamento...');
+            await redirectToCheckout(priceId, 'subscription');
+        } catch (error) {
+            console.error('Erro no checkout:', error);
+            toast.error('Erro ao iniciar pagamento. Tente novamente.');
+        } finally {
+            setIsCheckoutLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#0f172a] text-slate-200 selection:bg-orange-500/30 font-sans">
@@ -232,6 +287,9 @@ export default function PricingPage() {
                         priceMonthly={0}
                         priceAnnual={0}
                         billingPeriod={billingPeriod}
+                        priceIdMonthly={null}
+                        priceIdAnnual={null}
+                        onCheckout={null}
                         description="Para experimentar o sistema e estruturar suas primeiras decisões."
                         buttonText="Começar gratuitamente"
                         features={[
@@ -249,6 +307,9 @@ export default function PricingPage() {
                         priceMonthly={89}
                         priceAnnual={854}
                         billingPeriod={billingPeriod}
+                        priceIdMonthly={PRICING_CONFIG.builder.priceIdMonthly}
+                        priceIdAnnual={PRICING_CONFIG.builder.priceIdAnnual}
+                        onCheckout={handleCheckout}
                         description="Para quem decide com frequência e executa com foco."
                         features={[
                             "120 créditos por mês",
@@ -269,6 +330,9 @@ export default function PricingPage() {
                         priceMonthly={179}
                         priceAnnual={1718}
                         billingPeriod={billingPeriod}
+                        priceIdMonthly={PRICING_CONFIG.strategic.priceIdMonthly}
+                        priceIdAnnual={PRICING_CONFIG.strategic.priceIdAnnual}
+                        onCheckout={handleCheckout}
                         description="Para decisões críticas e profundidade estratégica contínua."
                         features={[
                             "300 créditos por mês",

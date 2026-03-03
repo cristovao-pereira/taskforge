@@ -8,19 +8,24 @@ const STRIPE_PLANS = {
   essencial: {
     productId: 'prod_U4X21x0lWIvsHW',
     priceId: 'price_1T6O7HBNgnXewP8Me1hVETGA',
+    priceIdAnnual: null,
     price: 'Gratuito',
     credits: 500
   },
   profissional: {
     productId: 'prod_U4X5DxJ5ZGRfab',
     priceId: 'price_1T6O6QBNgnXewP8Mude8pCy8',
+    priceIdAnnual: 'price_1TAnnualBuilder', // Será substituído com ID real
     price: 'R$ 199,90',
+    priceAnnual: 'R$ 1.999,00',
     credits: 2000
   },
   estrategico: {
     productId: 'prod_U4X2cEVz8fot8E',
     priceId: 'price_1T6O6XBNgnXewP8M5BxqsMGU',
+    priceIdAnnual: 'price_1TAnnualStrategic', // Será substituído com ID real
     price: 'R$ 499,90',
+    priceAnnual: 'R$ 4.999,00',
     credits: 5000
   }
 };

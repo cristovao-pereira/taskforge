@@ -1757,6 +1757,8 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                     'price_1T6O6bBNgnXewP8MulEJ7pza': 500,    // Pack 500
                     'price_1T6O5OBNgnXewP8MlJvNPkU6': 1000,   // Pack 1000
                     'price_1T6O5RBNgnXewP8MSKndCTN0': 5000,   // Pack 5000
+                    'price_1TAnnualBuilder': 2000,             // Builder Annual
+                    'price_1TAnnualStrategic': 5000,           // Strategic Annual
                 };
 
                 const credits = priceId ? (creditMap[priceId] || 0) : 0;
@@ -1798,6 +1800,8 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                         'price_1T6O7HBNgnXewP8Me1hVETGA': 500,
                         'price_1T6O6QBNgnXewP8Mude8pCy8': 2000,
                         'price_1T6O6XBNgnXewP8M5BxqsMGU': 5000,
+                        'price_1TAnnualBuilder': 2000,
+                        'price_1TAnnualStrategic': 5000,
                     };
 
                     const credits = priceId ? (creditMap[priceId] || 0) : 0;
