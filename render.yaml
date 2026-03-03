@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: taskforge-api
+    runtime: node
+    plan: standard
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        fromService:
+          name: taskforge-api
+          type: web
+          property: url
