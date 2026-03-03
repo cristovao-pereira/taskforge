@@ -207,11 +207,11 @@ export function SimulationDrawer({
                               e.target.value = '';
                             }
                           }}
-                          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700  rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
                         >
-                          <option value="">Selecione um risco...</option>
+                          <option value="" className="bg-slate-900 text-slate-300">Selecione um risco...</option>
                           {risksList.map(r => (
-                            <option key={r.id} value={r.id}>
+                            <option key={r.id} value={r.id} className="bg-slate-900 text-slate-300">
                               {r.title}
                             </option>
                           ))}
@@ -230,11 +230,11 @@ export function SimulationDrawer({
                               e.target.value = '';
                             }
                           }}
-                          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
                         >
-                          <option value="">Selecione uma tarefa...</option>
+                          <option value="" className="bg-slate-900 text-slate-300">Selecione uma tarefa...</option>
                           {tasksList.map(t => (
-                            <option key={t.id} value={t.id}>
+                            <option key={t.id} value={t.id} className="bg-slate-900 text-slate-300">
                               {t.title}
                             </option>
                           ))}
@@ -253,11 +253,11 @@ export function SimulationDrawer({
                               e.target.value = '';
                             }
                           }}
-                          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
                         >
-                          <option value="">Selecione um plano...</option>
+                          <option value="" className="bg-slate-900 text-slate-300">Selecione um plano...</option>
                           {plansList.map(p => (
-                            <option key={p.id} value={p.id}>
+                            <option key={p.id} value={p.id} className="bg-slate-900 text-slate-300">
                               {p.title}
                             </option>
                           ))}
