@@ -41,19 +41,19 @@ const rules: Rule[] = [
   },
   {
     key: 'VITE_FIREBASE_API_KEY',
-    required: true,
+    required: false,
     validate: value => value.startsWith('AIza') && value.length > 20,
     description: 'Firebase Web API key (prefixo AIza...)',
   },
   {
     key: 'VITE_FIREBASE_PROJECT_ID',
-    required: true,
+    required: false,
     validate: value => /^[a-z0-9-]{4,}$/.test(value),
     description: 'Firebase project id',
   },
   {
     key: 'VITE_FIREBASE_APP_ID',
-    required: true,
+    required: false,
     validate: value => /^\d+:\d+:web:[A-Za-z0-9]+$/.test(value),
     description: 'Firebase app id (formato x:x:web:...)',
   },
