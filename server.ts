@@ -2022,6 +2022,73 @@ app.get('/api/billing/subscription', authenticateUser, async (req, res) => {
 });
 
 
+// --- Debug endpoint to diagnose plan sync issues ---
+app.get('/api/billing/debug', authenticateUser, async (req, res) => {
+    try {
+        const firebaseUid = req.userId!;
+        const user = await prisma.user.findUnique({
+            where: { firebaseUid },
+            select: {
+                id: true,
+                firebaseUid: true,
+                email: true,
+                plan: true,
+                stripeCustomerId: true,
+            }
+        });
+
+        if (!user) {
+            return res.json({
+                error: 'User not found in database',
+                firebaseUid
+            });
+        }
+
+        // Try to fetch from Stripe
+        let stripeInfo = null;
+        if (user.stripeCustomerId && stripe) {
+            try {
+                const subscriptions = await stripe.subscriptions.list({
+                    customer: user.stripeCustomerId,
+                    status: 'all',
+                    limit: 3,
+                });
+
+                const activeStatuses: Stripe.Subscription.Status[] = ['active', 'trialing'];
+                const active = subscriptions.data.find(s => activeStatuses.includes(s.status));
+
+                if (active) {
+                    stripeInfo = {
+                        subscriptionId: active.id,
+                        status: active.status,
+                        priceId: active.items.data[0]?.price?.id,
+                    };
+                }
+            } catch (error) {
+                stripeInfo = { error: error instanceof Error ? error.message : 'Unknown error' };
+            }
+        }
+
+        res.json({
+            firebaseUid,
+            database: {
+                email: user.email,
+                plan: user.plan || 'gratis',
+                stripeCustomerId: user.stripeCustomerId,
+            },
+            stripe: stripeInfo,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error('Debug error:', error);
+        res.status(500).json({
+            error: 'Debug failed',
+            message: error instanceof Error ? error.message : String(error)
+        });
+    }
+});
+
+
 // --- Sync Plan with Stripe ---
 app.post('/api/billing/sync-plan', authenticateUser, async (req, res) => {
     try {

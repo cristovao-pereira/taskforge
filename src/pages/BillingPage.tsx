@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Icons } from '../components/Icons';
 import { SyncPlanButton } from '../components/SyncPlanButton';
+import { DebugPlanStatus } from '../components/DebugPlanStatus';
 import { toast } from 'sonner';
 import { getSubscriptionStatus, redirectToCheckout } from '../lib/checkout';
 import { useAuth } from '../contexts/AuthContext';
@@ -194,6 +195,9 @@ export default function BillingPage() {
 
         </div>
       </section>
+
+      {/* Debug Status */}
+      <DebugPlanStatus />
 
       {/* Section 2: Available Plans */}
       <section ref={plansSectionRef} className="space-y-8">
