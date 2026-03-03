@@ -55,7 +55,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               company: 'Company',
               role: 'User',
               objective: profileData.objective || '',
-              plan: profileData.plan || 'free',
+              plan: profileData.plan || 'gratis',
               preferences: {
                 strategicMode: profileData.strategicMode || 'equilibrado',
                 deepMode: true,

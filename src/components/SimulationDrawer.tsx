@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Zap, AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface SimulationResult {
   before: {
@@ -40,6 +41,7 @@ export function SimulationDrawer({
   tasksList = [],
   plansList = [],
 }: SimulationDrawerProps) {
+  const { getIdToken } = useAuth();
   const [mode, setMode] = useState<'conservador' | 'equilibrado' | 'expansao'>(
     'equilibrado'
   );
@@ -69,9 +71,18 @@ export function SimulationDrawer({
 
     setIsLoading(true);
     try {
+      const token = await getIdToken();
+      if (!token) {
+        toast.error('Erro de autenticação');
+        return;
+      }
+
       const response = await fetch('/api/simulate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           hypotheticalMode: mode,
           actions: actions.map(a => ({
@@ -81,6 +92,15 @@ export function SimulationDrawer({
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 403) {
+          toast.error(errorData.message || 'Plano Estratégico necessário');
+        } else {
+          throw new Error('Falha na simulação');
+        }
+        return;
+      }
       if (!response.ok) throw new Error('Falha na simulação');
       const data = await response.json();
       setResult(data);

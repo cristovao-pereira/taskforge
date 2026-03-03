@@ -446,6 +446,7 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
       hasCompletedOnboarding: user.hasCompletedOnboarding,
       objective: user.objective,
       strategicMode: user.strategicMode,
+      plan: user.plan?.toLowerCase() || 'gratis',
     });
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -1552,36 +1553,7 @@ let userProfileCache: any = {
     }
 };
 
-app.get('/api/user/profile', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
-    let user = await prisma.user.findUnique({ where: { id: userId } });
-    
-    if (!user && req.user) {
-        user = await prisma.user.create({
-            data: {
-                id: userId,
-                email: req.user.email || `${userId}@unknown.com`,
-                name: req.user.name || 'User',
-                strategicMode: 'equilibrado',
-                plan: 'gratis'
-            }
-        });
-    }
-    
-    // Retornar plan conforme salvo no banco (já em pt-BR)
-    const normalizedPlan = user?.plan?.toLowerCase() || 'gratis';
-    
-    res.json({
-        id: user?.id,
-        name: user?.name || 'Demo User',
-        email: user?.email || 'user@example.com',
-        strategicMode: user?.strategicMode || 'equilibrado',
-        plan: normalizedPlan,
-        hasCompletedOnboarding: user?.hasCompletedOnboarding || false,
-        objective: user?.objective || '',
-        ...userProfileCache
-    });
-});
+// Endpoint duplicado removido - usar o endpoint na linha ~421
 
 app.put('/api/user/profile', authenticateUser, async (req, res) => {
     const userId = req.userId!;
