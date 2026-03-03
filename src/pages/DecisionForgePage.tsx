@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { motion, AnimatePresence } from 'motion/react';
@@ -54,7 +54,23 @@ export default function DecisionForgePage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [historyRiskFilter, setHistoryRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [historySort, setHistorySort] = useState<'date_desc' | 'impact_desc'>('date_desc');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);  const menuRef = useRef<HTMLDivElement>(null);
 
+  // Fechar menu quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [openMenuId]);
   // Mock Data
   const recentDecisions: RecentDecision[] = [
     { id: '1', title: 'Enterprise Sales Pivot', date: 'Oct 24, 2025', riskLevel: 'Alto', impactScore: 92, type: 'Deep' },
@@ -660,13 +676,38 @@ export default function DecisionForgePage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-zinc-300 font-mono">{decision.impactScore}</td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right relative">
                           <button
                             className="text-zinc-500 hover:text-white transition-colors"
-                            onClick={() => openDecisionInMap(decision.id)}
+                            onClick={() => setOpenMenuId(openMenuId === decision.id ? null : decision.id)}
                           >
                             <Icons.MoreVertical className="w-4 h-4 ml-auto" />
                           </button>
+                          {openMenuId === decision.id && (
+                            <div ref={menuRef} className="absolute right-0 mt-1 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg z-10">
+                              <button
+                                onClick={() => {
+                                  setSelectedNodeId(decision.id);
+                                  setActiveTab('map');
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2 border-b border-zinc-800"
+                              >
+                                <Icons.Map className="w-4 h-4" />
+                                Ver no Mapa
+                              </button>
+                              <button
+                                onClick={() => {
+                                  toast.info('Editar decisão: ' + decision.title);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2"
+                              >
+                                <Icons.Edit2 className="w-4 h-4" />
+                                Editar
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
