@@ -12,11 +12,13 @@ if (fs.existsSync('.env.local')) {
 type Rule = {
   key: string;
   required: boolean;
+  requiredWhen?: () => boolean;
   validate?: (value: string) => boolean;
   description: string;
 };
 
 const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+const isVercel = process.env.VERCEL === '1';
 
 const rules: Rule[] = [
   {
@@ -63,7 +65,8 @@ const rules: Rule[] = [
   },
   {
     key: 'CORS_ORIGIN',
-    required: true,
+    required: false,
+    requiredWhen: () => !isVercel,
     validate: value => value.length > 0,
     description: 'Lista de origens CORS',
   },
@@ -89,13 +92,17 @@ console.log('🔎 Verificando variáveis sensíveis (sem exibir valores)...');
 for (const rule of rules) {
   const rawValue = process.env[rule.key];
   const value = rawValue?.trim();
+  const isRequired = rule.required || (rule.requiredWhen?.() ?? false);
 
   if (!value) {
-    if (rule.required) {
+    if (isRequired) {
       hasError = true;
       console.log(`❌ ${rule.key}: ausente (${rule.description})`);
     } else {
       console.log(`ℹ️  ${rule.key}: não definida (opcional)`);
+      if (rule.key === 'CORS_ORIGIN' && isVercel) {
+        warnings.push('CORS_ORIGIN ausente no Vercel; será usado fallback automático com VERCEL_URL no servidor.');
+      }
     }
     continue;
   }

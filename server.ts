@@ -31,7 +31,25 @@ const stripe = hasValidStripeSecretKey
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 
 // CORS configuration from environment
-const corsOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || ['http://localhost:5173'];
+const getCorsOrigins = () => {
+    const fromEnv = process.env.CORS_ORIGIN
+        ?.split(',')
+        .map(origin => origin.trim())
+        .filter(Boolean);
+
+    if (fromEnv && fromEnv.length > 0) {
+        return fromEnv;
+    }
+
+    const vercelUrl = process.env.VERCEL_URL?.trim();
+    if (vercelUrl) {
+        return [`https://${vercelUrl}`, 'http://localhost:5173'];
+    }
+
+    return ['http://localhost:5173'];
+};
+
+const corsOrigins = getCorsOrigins();
 
 const io = new Server(httpServer, {
   cors: {
