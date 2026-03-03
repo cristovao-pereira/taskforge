@@ -1,5 +1,5 @@
 import { motion, HTMLMotionProps } from 'motion/react';
-import { buttonPrimary } from '../lib/motion';
+import { presets } from '../lib/motion';
 import { forwardRef } from 'react';
 
 /**
@@ -8,7 +8,7 @@ import { forwardRef } from 'react';
  * Botão com animações do Motion System v1.1
  * 
  * Hover: scale 1.015
- * Active: scale 0.985
+ * Tap: scale 0.985
  * Duração: 0.18s
  * 
  * Uso:
@@ -25,7 +25,7 @@ export const MotionButton = forwardRef<HTMLButtonElement, MotionButtonProps>(
     return (
       <motion.button
         ref={ref}
-        {...buttonPrimary}
+        {...presets.buttonTap}
         className={className}
         {...props}
       >

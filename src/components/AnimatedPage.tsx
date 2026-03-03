@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { ReactNode } from 'react';
-import { pageTransition } from '../lib/motion';
+import { pageProps } from '../lib/motion';
 
 interface AnimatedPageProps {
   children: ReactNode;
@@ -26,13 +26,7 @@ interface AnimatedPageProps {
  */
 export function AnimatedPage({ children, className = '' }: AnimatedPageProps) {
   return (
-    <motion.div
-      initial={pageTransition.initial}
-      animate={pageTransition.animate}
-      exit={pageTransition.exit}
-      transition={pageTransition.transition}
-      className={className}
-    >
+    <motion.div {...pageProps} className={className}>
       {children}
     </motion.div>
   );

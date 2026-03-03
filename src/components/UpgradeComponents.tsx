@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Lock, Zap, TrendingUp, AlertCircle, ArrowRight } from 'lucide-react';
 import { useUpgrade, UpgradeTriggerType } from '../contexts/UpgradeContext';
 import { useNavigate } from 'react-router-dom';
