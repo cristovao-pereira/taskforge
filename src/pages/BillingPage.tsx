@@ -15,7 +15,7 @@ const STRIPE_PLANS = {
   profissional: {
     productId: 'prod_U4X5DxJ5ZGRfab',
     priceId: 'price_1T6O6QBNgnXewP8Mude8pCy8',
-    priceIdAnnual: 'price_1TAnnualBuilder', // Será substituído com ID real
+    priceIdAnnual: 'price_1T6ti6BNgnXewP8MHiXe6rWf',
     price: 'R$ 199,90',
     priceAnnual: 'R$ 1.999,00',
     credits: 2000
@@ -23,7 +23,7 @@ const STRIPE_PLANS = {
   estrategico: {
     productId: 'prod_U4X2cEVz8fot8E',
     priceId: 'price_1T6O6XBNgnXewP8M5BxqsMGU',
-    priceIdAnnual: 'price_1TAnnualStrategic', // Será substituído com ID real
+    priceIdAnnual: 'price_1T6ti6BNgnXewP8MoFcPDbUv',
     price: 'R$ 499,90',
     priceAnnual: 'R$ 4.999,00',
     credits: 5000

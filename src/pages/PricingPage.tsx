@@ -22,12 +22,12 @@ const PRICING_CONFIG = {
   free: { priceIdMonthly: null, priceIdAnnual: null, credits: 0 },
   builder: {
     priceIdMonthly: 'price_1T6O6QBNgnXewP8Mude8pCy8',
-    priceIdAnnual: 'price_1TAnnualBuilder', // Será substituído com ID real
+    priceIdAnnual: 'price_1T6ti6BNgnXewP8MHiXe6rWf',
     credits: 120
   },
   strategic: {
     priceIdMonthly: 'price_1T6O6XBNgnXewP8M5BxqsMGU',
-    priceIdAnnual: 'price_1TAnnualStrategic', // Será substituído com ID real
+    priceIdAnnual: 'price_1T6ti6BNgnXewP8MoFcPDbUv',
     credits: 300
   }
 };
