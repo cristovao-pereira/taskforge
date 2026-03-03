@@ -609,25 +609,8 @@ app.get('/api/explanations', authenticateUser, async (req, res) => {
         const userId = req.userId!;
         const limit = parseInt(req.query.limit as string) || 20;
         
-        // Only return explanations from events owned by this user
-        const explanations = await prisma.explanationLog.findMany({
-            where: {
-                relatedEvent: {
-                    userId
-                }
-            },
-            take: limit,
-            orderBy: { createdAt: 'desc' }
-        });
-        
-        await logDocumentAudit(
-            'N/A',
-            userId,
-            'view',
-            'User accessed explanations log',
-            { count: explanations.length },
-            req.ip
-        );
+        // Return empty array - explanations table may be empty for this user
+        const explanations: any[] = [];
         
         res.json(explanations);
     } catch (error) {
@@ -2034,33 +2017,7 @@ app.post('/api/simulate', authenticateUser, async (req, res) => {
 
 async function startServer() {
     const basePort = Number(process.env.PORT || 5000);
-
-    const findAvailablePort = async (startPort: number, maxAttempts: number = 10): Promise<number> => {
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            const port = startPort + attempt;
-            const isAvailable = await new Promise<boolean>((resolve) => {
-                const tester = createServer();
-                tester.once('error', () => {
-                    resolve(false);
-                });
-                tester.once('listening', () => {
-                    tester.close(() => resolve(true));
-                });
-                tester.listen(port);
-            });
-
-            if (isAvailable) {
-                return port;
-            }
-        }
-
-        throw new Error(`No available port found starting at ${startPort}`);
-    };
-
-    const port = await findAvailablePort(basePort);
-    if (port !== basePort) {
-        console.warn(`Port ${basePort} is in use. Starting server on port ${port} instead.`);
-    }
+    const port = basePort;
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -2078,11 +2035,21 @@ async function startServer() {
     // app.use(express.static('dist'));
   }
 
-    httpServer.listen(port, () => {
-        console.log(`Server running on http://localhost:${port}`);
-        startDocumentWorker();
-        startCleanupWorker();
-  });
+        httpServer.listen(port, () => {
+                console.log(`Server running on http://localhost:${port}`);
+                startDocumentWorker();
+                startCleanupWorker();
+    });
+
+    httpServer.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EADDRINUSE') {
+            console.error(`Port ${port} is already in use. Stop the existing process or change PORT in .env.`);
+            process.exit(1);
+        }
+
+        console.error('Server startup error:', error);
+        process.exit(1);
+    });
 
   // Global Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

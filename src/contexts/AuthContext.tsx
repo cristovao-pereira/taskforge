@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
 import { auth, onAuthChange, logout as firebaseLogout, type User } from '../lib/firebase'
 
 interface AuthContextType {
@@ -25,22 +25,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe()
   }, [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await firebaseLogout()
     setUser(null)
-  }
+  }, [])
 
-  const getIdToken = async () => {
+  const getIdToken = useCallback(async () => {
     if (!user) return null
     return await user.getIdToken()
-  }
+  }, [user])
 
-  const value = {
-    user,
-    loading,
-    logout,
-    getIdToken,
-  }
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      logout,
+      getIdToken,
+    }),
+    [user, loading, logout, getIdToken],
+  )
 
   return (
     <AuthContext.Provider value={value}>

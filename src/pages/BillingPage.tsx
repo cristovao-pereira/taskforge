@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Icons } from '../components/Icons';
 import { toast } from 'sonner';
 import { getSubscriptionStatus, redirectToCheckout } from '../lib/checkout';
+import { useAuth } from '../contexts/AuthContext';
 
 // Stripe Product & Price IDs
 const STRIPE_PLANS = {
@@ -52,6 +53,7 @@ const STRIPE_PACKS = {
 };
 
 export default function BillingPage() {
+  const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const [currentPlan, setCurrentPlan] = useState<'essencial' | 'profissional' | 'estrategico' | null>(null);
@@ -69,6 +71,17 @@ export default function BillingPage() {
   );
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!user) {
+      setCurrentPlan(null);
+      setCredits(0);
+      setIsLoadingSubscription(false);
+      return;
+    }
+
     const loadSubscription = async () => {
       try {
         setIsLoadingSubscription(true);
@@ -94,7 +107,7 @@ export default function BillingPage() {
     };
 
     loadSubscription();
-  }, [planByPriceId]);
+  }, [authLoading, user, planByPriceId]);
 
   const handleCheckout = async (priceId: string, mode: 'subscription' | 'payment', planName: string) => {
     if (isLoading) return;

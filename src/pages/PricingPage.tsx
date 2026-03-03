@@ -210,6 +210,7 @@ const FaqItem = ({ question, answer }: any) => {
 
 export default function PricingPage() {
     const navigate = useNavigate();
+    const { user, loading: authLoading } = useAuth();
     const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('annual');
     const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
@@ -218,6 +219,17 @@ export default function PricingPage() {
     }, []);
 
     const handleCheckout = async (priceId: string) => {
+        if (authLoading) {
+            toast.info('Aguarde, validando sua sessão...');
+            return;
+        }
+
+        if (!user) {
+            toast.info('Faça login para continuar com a assinatura.');
+            navigate('/login');
+            return;
+        }
+
         setIsCheckoutLoading(true);
         try {
             if (!priceId) {

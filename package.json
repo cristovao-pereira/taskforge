@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
+    "dev:clean": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$p = Get-CimInstance Win32_Process -Filter 'Name=\\\"node.exe\\\"' | Where-Object { $_.CommandLine -like '*server.ts*' }; if ($p) { $p | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; Write-Output 'stopped' } else { Write-Output 'not-running' }\"",
+    "dev:safe": "npm run dev:clean && npm run dev",
     "start": "tsx server.ts",
+    "secrets:check": "tsx check-env.ts",
+    "prebuild": "npm run secrets:check",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",

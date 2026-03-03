@@ -88,35 +88,82 @@ export function EventProvider({ children }: { children: ReactNode }) {
 
   // Initialize Socket.io
   useEffect(() => {
-    const newSocket = io(getSocketBaseUrl(), {
-      path: '/socket.io',
-    });
-    setSocket(newSocket);
+    let cancelled = false;
+    let activeSocket: Socket | null = null;
 
-    newSocket.on('connect', () => {
-      console.log('Connected to socket server');
-    });
+    if (!user) {
+      setSocket(prev => {
+        if (prev) prev.disconnect();
+        return null;
+      });
+      return;
+    }
 
-    // Listen for new events from backend
-    newSocket.on('event:new', (event: EventLog) => {
-      setEvents(prev => [event, ...prev]);
-    });
+    const initializeSocket = async () => {
+      try {
+        // Get Firebase auth token
+        const token = await getIdToken();
+        if (!token || cancelled) {
+          return;
+        }
 
-    // Listen for new explanations from backend
-    newSocket.on('explanation:new', (explanation: ExplanationLog) => {
-      setExplanations(prev => [explanation, ...prev]);
-    });
+        const newSocket = io(getSocketBaseUrl(), {
+          path: '/socket.io',
+          auth: { token },
+        });
+
+        if (cancelled) {
+          newSocket.disconnect();
+          return;
+        }
+
+        activeSocket = newSocket;
+
+        setSocket(prev => {
+          if (prev) prev.disconnect();
+          return newSocket;
+        });
+
+        newSocket.on('connect', () => {
+          console.log('Connected to socket server');
+        });
+
+        newSocket.on('connect_error', (error) => {
+          console.error('Socket connection error:', error.message);
+        });
+
+        // Listen for new events from backend
+        newSocket.on('event:new', (event: EventLog) => {
+          setEvents(prev => [event, ...prev]);
+        });
+
+        // Listen for new explanations from backend
+        newSocket.on('explanation:new', (explanation: ExplanationLog) => {
+          setExplanations(prev => [explanation, ...prev]);
+        });
+      } catch (error) {
+        console.error('Error initializing socket:', error);
+      }
+    };
+
+    initializeSocket();
 
     return () => {
-      newSocket.disconnect();
+      cancelled = true;
+      if (activeSocket) activeSocket.disconnect();
     };
-  }, []);
+  }, [user?.uid, getIdToken]);
 
   // Fetch initial explanations
   useEffect(() => {
     const fetchExplanations = async () => {
+      if (!user) return;
+      
       try {
-        const res = await fetch('/api/explanations?limit=20');
+        const token = await getIdToken();
+        const res = await fetch('/api/explanations?limit=20', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (res.ok) {
           const data = await res.json();
           setExplanations(data);
@@ -126,7 +173,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
       }
     };
     fetchExplanations();
-  }, []);
+  }, [user, getIdToken]);
 
   const emitEvent = async (eventType: EventType, entityType: EntityType, entityId?: string, metadata?: Record<string, any>) => {
     if (!user) {
