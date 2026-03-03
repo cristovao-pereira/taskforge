@@ -50,6 +50,9 @@ export function SimulationDrawer({
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [selectedRisk, setSelectedRisk] = useState('');
+  const [selectedTask, setSelectedTask] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState('');
 
   const addAction = (type: string, id: string) => {
     if (actions.length >= 3) {
@@ -115,6 +118,9 @@ export function SimulationDrawer({
   const handleClear = () => {
     setActions([]);
     setResult(null);
+    setSelectedRisk('');
+    setSelectedTask('');
+    setSelectedPlan('');
   };
 
   return (
@@ -201,10 +207,12 @@ export function SimulationDrawer({
                       <div className="mb-4">
                         <p className="text-xs text-slate-500 mb-2">Resolver Risco</p>
                         <select
+                          value={selectedRisk}
                           onChange={e => {
-                            if (e.target.value) {
-                              addAction('resolve_risk', e.target.value);
-                              e.target.value = '';
+                            const value = e.target.value;
+                            setSelectedRisk(value);
+                            if (value) {
+                              addAction('resolve_risk', value);
                             }
                           }}
                           className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
@@ -224,10 +232,12 @@ export function SimulationDrawer({
                       <div className="mb-4">
                         <p className="text-xs text-slate-500 mb-2">Concluir Tarefa</p>
                         <select
+                          value={selectedTask}
                           onChange={e => {
-                            if (e.target.value) {
-                              addAction('complete_task', e.target.value);
-                              e.target.value = '';
+                            const value = e.target.value;
+                            setSelectedTask(value);
+                            if (value) {
+                              addAction('complete_task', value);
                             }
                           }}
                           className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
@@ -247,10 +257,12 @@ export function SimulationDrawer({
                       <div className="mb-4">
                         <p className="text-xs text-slate-500 mb-2">Concluir Plano</p>
                         <select
+                          value={selectedPlan}
                           onChange={e => {
-                            if (e.target.value) {
-                              addAction('complete_plan', e.target.value);
-                              e.target.value = '';
+                            const value = e.target.value;
+                            setSelectedPlan(value);
+                            if (value) {
+                              addAction('complete_plan', value);
                             }
                           }}
                           className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
