@@ -1567,12 +1567,15 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
         });
     }
     
+    // Normalizar plan para lowercase (para consistência)
+    const normalizedPlan = user?.plan?.toLowerCase() === 'estrategico' ? 'strategic' : user?.plan?.toLowerCase() || 'free';
+    
     res.json({
         id: user?.id,
         name: user?.name || 'Demo User',
         email: user?.email || 'user@example.com',
         strategicMode: user?.strategicMode || 'equilibrado',
-        plan: user?.plan || 'free',
+        plan: normalizedPlan,
         hasCompletedOnboarding: user?.hasCompletedOnboarding || false,
         objective: user?.objective || '',
         ...userProfileCache
@@ -1989,7 +1992,9 @@ app.post('/api/simulate', authenticateUser, async (req, res) => {
             });
         }
 
-        if (user.plan !== 'strategic') {
+        // Verificação case-insensitive
+        const userPlanLower = user.plan?.toLowerCase().trim();
+        if (userPlanLower !== 'strategic' && userPlanLower !== 'estrategico') {
             return res.status(403).json({
                 error: 'PLAN_REQUIRED',
                 requiredPlan: 'strategic',

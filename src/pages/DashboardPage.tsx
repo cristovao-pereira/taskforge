@@ -42,7 +42,12 @@ export default function DashboardPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleSimulationClick = () => {
-    if (user?.plan === 'strategic') {
+    // Debug log
+    console.log('User plan:', user?.plan, 'Type:', typeof user?.plan);
+    
+    // Case-insensitive comparison
+    const userPlan = user?.plan?.toLowerCase().trim();
+    if (userPlan === 'strategic' || userPlan === 'estrategico') {
       setShowSimulation(true);
     } else {
       setShowUpgradeModal(true);
