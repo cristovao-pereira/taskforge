@@ -56,6 +56,7 @@ export default function BillingPage() {
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [currentPlan, setCurrentPlan] = useState<'essencial' | 'profissional' | 'estrategico' | null>(null);
   const [credits, setCredits] = useState(0);
   const plansSectionRef = useRef<HTMLElement | null>(null);
@@ -138,13 +139,13 @@ export default function BillingPage() {
     <div className="max-w-5xl mx-auto space-y-16 pb-20 animate-in fade-in duration-700">
       
       {/* Header */}
-      <header className="text-center space-y-4 pt-8">
+      <header className="text-left space-y-4 pt-8">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 mb-4 shadow-2xl shadow-orange-500/5">
           <Icons.CreditCard className="w-8 h-8 text-orange-500" />
         </div>
         <h1 className="text-4xl font-bold text-white tracking-tight">Faturamento</h1>
         <p className="text-xl text-zinc-400 font-light">Controle sua capacidade estratégica.</p>
-        <p className="text-sm text-zinc-500 max-w-lg mx-auto leading-relaxed">
+        <p className="text-sm text-zinc-500 max-w-lg leading-relaxed">
           Gerencie seus créditos, acompanhe seu consumo e ajuste seu plano conforme sua evolução.
         </p>
       </header>
@@ -202,6 +203,26 @@ export default function BillingPage() {
           <div className="h-px flex-1 bg-zinc-800"></div>
         </div>
 
+        <div className="flex justify-center mb-8">
+          <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-xl flex items-center">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${billingCycle === 'monthly' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-400'}`}
+            >
+              Mensal
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${billingCycle === 'yearly' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-400'}`}
+            >
+              Anual
+              <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
+                2 MESES OFF
+              </span>
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <PlanCard 
             title="Essencial" 
@@ -209,6 +230,7 @@ export default function BillingPage() {
             price={STRIPE_PLANS.essencial.price}
             priceId={STRIPE_PLANS.essencial.priceId}
             productId={STRIPE_PLANS.essencial.productId}
+            period="/mês"
             current={currentPlan === 'essencial'}
             isLoading={isLoading || isLoadingSubscription}
             onSelect={() => currentPlan === 'essencial' ? toast.info('Este já é seu plano atual.') : handleCheckout(STRIPE_PLANS.essencial.priceId, 'subscription', 'Essencial')}
@@ -221,12 +243,13 @@ export default function BillingPage() {
           <PlanCard 
             title="Profissional" 
             credits="2.000" 
-            price={STRIPE_PLANS.profissional.price}
-            priceId={STRIPE_PLANS.profissional.priceId}
+            price={billingCycle === 'monthly' ? STRIPE_PLANS.profissional.price : STRIPE_PLANS.profissional.priceAnnual}
+            priceId={billingCycle === 'monthly' ? STRIPE_PLANS.profissional.priceId : STRIPE_PLANS.profissional.priceIdAnnual}
             productId={STRIPE_PLANS.profissional.productId}
+            period={billingCycle === 'monthly' ? '/mês' : '/ano'}
             current={currentPlan === 'profissional'}
             isLoading={isLoading || isLoadingSubscription}
-            onSelect={() => currentPlan === 'profissional' ? toast.info('Este já é seu plano atual.') : handleCheckout(STRIPE_PLANS.profissional.priceId, 'subscription', 'Profissional')}
+            onSelect={() => currentPlan === 'profissional' ? toast.info('Este já é seu plano atual.') : handleCheckout(billingCycle === 'monthly' ? STRIPE_PLANS.profissional.priceId : STRIPE_PLANS.profissional.priceIdAnnual!, 'subscription', 'Profissional')}
             features={[
               "Acesso completo aos agentes",
               "Histórico ilimitado",
@@ -237,12 +260,13 @@ export default function BillingPage() {
           <PlanCard 
             title="Estratégico" 
             credits="5.000" 
-            price={STRIPE_PLANS.estrategico.price}
-            priceId={STRIPE_PLANS.estrategico.priceId}
+            price={billingCycle === 'monthly' ? STRIPE_PLANS.estrategico.price : STRIPE_PLANS.estrategico.priceAnnual}
+            priceId={billingCycle === 'monthly' ? STRIPE_PLANS.estrategico.priceId : STRIPE_PLANS.estrategico.priceIdAnnual}
             productId={STRIPE_PLANS.estrategico.productId}
+            period={billingCycle === 'monthly' ? '/mês' : '/ano'}
             current={currentPlan === 'estrategico'}
             isLoading={isLoading || isLoadingSubscription}
-            onSelect={() => currentPlan === 'estrategico' ? toast.info('Este já é seu plano atual.') : handleCheckout(STRIPE_PLANS.estrategico.priceId, 'subscription', 'Estratégico')}
+            onSelect={() => currentPlan === 'estrategico' ? toast.info('Este já é seu plano atual.') : handleCheckout(billingCycle === 'monthly' ? STRIPE_PLANS.estrategico.priceId : STRIPE_PLANS.estrategico.priceIdAnnual!, 'subscription', 'Estratégico')}
             features={[
               "Maior volume de créditos",
               "Prioridade de processamento",
@@ -394,7 +418,7 @@ export default function BillingPage() {
   );
 }
 
-function PlanCard({ title, credits, price, priceId, productId, features, current, isLoading, onSelect }: any) {
+function PlanCard({ title, credits, price, priceId, productId, features, current, isLoading, onSelect, period = '/mês' }: any) {
   return (
     <div className={`p-6 rounded-2xl border flex flex-col h-full transition-all ${
       current 
@@ -412,7 +436,7 @@ function PlanCard({ title, credits, price, priceId, productId, features, current
         {credits}
         <span className="text-sm font-normal text-zinc-500">créditos/mês</span>
       </div>
-      <div className="text-lg font-semibold text-orange-500 mb-4">{price}<span className="text-xs text-zinc-500">/mês</span></div>
+      <div className="text-lg font-semibold text-orange-500 mb-4">{price}<span className="text-xs text-zinc-500">{period}</span></div>
       
       <div className="h-px w-full bg-zinc-800 my-6"></div>
       
