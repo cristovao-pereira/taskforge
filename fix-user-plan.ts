@@ -1,16 +1,16 @@
 // Fix user plan - Run this script if your user is blocked
 // Usage: node fix-user-plan.js <userId> <planName>
-// Example: node fix-user-plan.js abc123 strategic
+// Example: node fix-user-plan.js abc123 estrategico
 
 import prisma from './lib/prisma';
 
 const userId = process.argv[2];
-const planName = process.argv[3]?.toLowerCase() || 'strategic';
+const planName = process.argv[3]?.toLowerCase() || 'estrategico';
 
 if (!userId) {
   console.error('❌ Erro: userId é obrigatório');
   console.error('Uso: node fix-user-plan.js <userId> [planName]');
-  console.error('Exemplo: node fix-user-plan.js abc123 strategic');
+  console.error('Exemplo: node fix-user-plan.js abc123 estrategico');
   process.exit(1);
 }
 
@@ -30,14 +30,9 @@ async function fixUserPlan() {
     console.log(`✅ Usuário encontrado: ${user.name} (${user.email})`);
     console.log(`📊 Plano atual: ${user.plan || 'null/undefined'}`);
 
-    // Normalizar planName
-    const validPlans = ['free', 'builder', 'strategic', 'estrategico'];
-    let normalizedPlan = planName;
-    
-    if (planName === 'estrategico') {
-      normalizedPlan = 'strategic';
-      console.log('📝 Normalizando: "estrategico" → "strategic"');
-    }
+    // Validar planName (valores em pt-BR)
+    const validPlans = ['gratis', 'construtor', 'estrategico'];
+    const normalizedPlan = planName;
 
     if (!validPlans.includes(planName)) {
       console.error(`❌ Plano inválido: ${planName}`);

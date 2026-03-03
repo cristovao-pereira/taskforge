@@ -511,7 +511,7 @@ app.post('/api/events', authenticateUser, async (req, res) => {
             await prisma.explanationLog.create({
                 data: {
                     relatedEventId: event.id,
-                    title: update.type === 'dna_update' ? 'Strategic DNA' : 'System Health',
+                    title: update.type === 'dna_update' ? 'DNA Estratégico' : 'System Health',
                     whatChanged: `Score alterado de ${update.scoreBefore} para ${update.scoreAfter}`,
                     whyChanged: update.reason,
                     impact: 'Impacto na priorização.',
@@ -1562,13 +1562,13 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
                 email: req.user.email || `${userId}@unknown.com`,
                 name: req.user.name || 'User',
                 strategicMode: 'equilibrado',
-                plan: 'free'
+                plan: 'gratis'
             }
         });
     }
     
-    // Normalizar plan para lowercase (para consistência)
-    const normalizedPlan = user?.plan?.toLowerCase() === 'estrategico' ? 'strategic' : user?.plan?.toLowerCase() || 'free';
+    // Retornar plan conforme salvo no banco (já em pt-BR)
+    const normalizedPlan = user?.plan?.toLowerCase() || 'gratis';
     
     res.json({
         id: user?.id,
@@ -1992,14 +1992,14 @@ app.post('/api/simulate', authenticateUser, async (req, res) => {
             });
         }
 
-        // Verificação case-insensitive
+        // Verificação case-insensitive (plano em português)
         const userPlanLower = user.plan?.toLowerCase().trim();
-        if (userPlanLower !== 'strategic' && userPlanLower !== 'estrategico') {
+        if (userPlanLower !== 'estrategico') {
             return res.status(403).json({
                 error: 'PLAN_REQUIRED',
-                requiredPlan: 'strategic',
-                userPlan: user.plan || 'free',
-                message: 'Simulação Estratégica está disponível apenas no plano Strategic.'
+                requiredPlan: 'estrategico',
+                userPlan: user.plan || 'gratis',
+                message: 'Simulação Estratégica está disponível apenas no plano Estratégico.'
             });
         }
 

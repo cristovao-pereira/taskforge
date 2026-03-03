@@ -23,7 +23,7 @@ model User {
   updatedAt               DateTime @updatedAt
   hasCompletedOnboarding  Boolean  @default(false)
   objective               String?
-  plan                    String   @default("free") // free, builder, strategic
+  plan                    String   @default("gratis") // gratis, construtor, estrategico
 
   // Relations
   decisions           Decision[]

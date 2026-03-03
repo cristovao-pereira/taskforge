@@ -18,7 +18,7 @@ async function main() {
   })
   console.log('✅ Created demo user:', demoUser.email)
 
-  // Create Strategic DNA
+  // Create Strategic DNA (DNA Estratégico)
   const strategicDna = await prisma.strategicDNA.upsert({
     where: { userId: demoUser.id },
     update: {},
@@ -32,7 +32,7 @@ async function main() {
       overallScore: 81,
     },
   })
-  console.log('✅ Created Strategic DNA for user')
+  console.log('✅ Created Strategic DNA (DNA Estratégico) for user')
 
   // Create System Health record
   const systemHealth = await prisma.systemHealth.upsert({

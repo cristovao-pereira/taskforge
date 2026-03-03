@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Feature**: Simulação Estratégica é exclusiva do plano **Strategic**
+**Feature**: Simulação Estratégica é exclusiva do plano **Estratégico**
 **Versão**: MVP
 **Status**: ✅ Pronto para testes
 
@@ -12,68 +12,68 @@
 
 ### Database
 - **User.plan**: Campo novo em Prisma schema
-  - Valores: `free` | `builder` | `strategic` (default: `free`)
+  - Valores: `gratis` | `construtor` | `estrategico` (default: `gratis`)
   - Tipo: String com default
 
 ### Backend
 - **Endpoint**: `POST /api/simulate`
-- **Validação**: Verifica `user.plan === 'strategic'` antes de executar
-- **Resposta 403** se plano ≠ Strategic:
+- **Validação**: Verifica `user.plan === 'estrategico'` antes de executar
+- **Resposta 403** se plano ≠ Estratégico:
   ```json
   {
     "error": "PLAN_REQUIRED",
-    "requiredPlan": "strategic",
-    "userPlan": "free",
-    "message": "Simulação Estratégica está disponível apenas no plano Strategic."
+    "requiredPlan": "estrategico",
+    "userPlan": "gratis",
+    "message": "Simulação Estratégica está disponível apenas no plano Estratégico."
   }
   ```
 
 ### Frontend
 - **Dashboard**: Botão flutuante com gating visual
-  - **Strategic**: Azul (⚡), clicável, abre SimulationDrawer
-  - **Free/Builder**: Cinza com lock (🔒), clicável, abre UpgradeSimulationModal
+  - **Estratégico**: Azul (⚡), clicável, abre SimulationDrawer
+  - **Gratis/Construtor**: Cinza com lock (🔒), clicável, abre UpgradeSimulationModal
 - **UpgradeSimulationModal**: Modal elegante com copy de upsell
-  - CTA primária: "Evoluir para Strategic" → `/app/pricing`
+  - CTA primária: "Evoluir para Estratégico" → `/app/pricing`
   - CTA secundária: "Ver detalhes do plano"
-- **SimulationDrawer**: Tag "Recurso do plano Strategic" no header
+- **SimulationDrawer**: Tag "Recurso do plano Estratégico" no header
 
 ---
 
 ## Fluxo por Tipo de Usuário
 
-### Usuário Free/Builder
+### Usuário Gratis/Construtor
 1. Clica botão (⚡) no Dashboard
-2. Vê icon lock (🔒) com tooltip "Disponível no plano Strategic"
+2. Vê icon lock (🔒) com tooltip "Disponível no plano Estratégico"
 3. Modal de upsell abre com:
    - Headline: "Simulação Estratégica"
    - Copy explicativa
    - 3 bullets de features
-   - Botão "Evoluir para Strategic" (orange)
+   - Botão "Evoluir para Estratégico" (orange)
 
-### Usuário Strategic
+### Usuário Estratégico
 1. Clica botão (⚡) no Dashboard
 2. Drawer abre normalmente
-3. Vê tag "Recurso do plano Strategic" no header
+3. Vê tag "Recurso do plano Estratégico" no header
 4. Usa feature normalmente
 
 ---
 
 ## Testes
 
-### Test 1: Botão Lock (Free)
-**Setup**: User com plan='free'
+### Test 1: Botão Lock (Gratis)
+**Setup**: User com plan='gratis'
 1. Ir para Dashboard
 2. Ver botão com lock (cinza)
 3. Clicar botão → UpgradeSimulationModal abre
 
-### Test 2: Botão Normal (Strategic)
-**Setup**: User com plan='strategic'
+### Test 2: Botão Normal (Estratégico)
+**Setup**: User com plan='estrategico'
 1. Ir para Dashboard
 2. Ver botão azul (claro)
 3. Clicar botão → SimulationDrawer abre
 
 ### Test 3: Backend Validation
-**Setup**: User com plan='free'
+**Setup**: User com plan='gratis'
 ```bash
 curl -X POST http://localhost:5000/api/simulate \
   -H "Authorization: Bearer $TOKEN" \
@@ -81,8 +81,8 @@ curl -X POST http://localhost:5000/api/simulate \
 ```
 **Esperado**: 403 com erro PLAN_REQUIRED
 
-### Test 4: Backend Success (Strategic)
-**Setup**: User com plan='strategic'
+### Test 4: Backend Success (Estratégico)
+**Setup**: User com plan='estrategico'
 ```bash
 curl -X POST http://localhost:5000/api/simulate \
   -H "Authorization: Bearer $TOKEN" \
@@ -91,12 +91,12 @@ curl -X POST http://localhost:5000/api/simulate \
 **Esperado**: 200 com SimulationResult
 
 ### Test 5: Modal CTAs
-1. Abrir UpgradeSimulationModal (Free user)
-2. Clicar "Evoluir para Strategic" → navega para `/app/pricing`
+1. Abrir UpgradeSimulationModal (Gratis user)
+2. Clicar "Evoluir para Estratégico" → navega para `/app/pricing`
 3. Clicar "Ver detalhes do plano" → fecha modal (placeholder)
 
 ### Test 6: Tag no Drawer
-1. Logar como Strategic
+1. Logar como Estratégico
 2. Abrir SimulationDrawer
 3. Ver "Recurso do plano Strategic" em azul no header
 

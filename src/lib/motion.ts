@@ -470,7 +470,7 @@ export const riskAlertVariants: Variants = {
 };
 
 /**
- * Strategic DNA Badge - Badge animado
+ * DNA Estratégico Badge - Badge animado
  */
 export const dnaBadgeVariants: Variants = {
   initial: { opacity: 0, scale: 0.9 },

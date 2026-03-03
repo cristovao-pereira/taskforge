@@ -43,7 +43,7 @@ export function UpgradeSimulationModal({ isOpen, onClose }: UpgradeSimulationMod
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Simulação Estratégica</h2>
-                  <p className="text-xs text-slate-400 mt-1">Recurso do plano Strategic</p>
+                  <p className="text-xs text-slate-400 mt-1">Recurso do plano Estratégico</p>
                 </div>
               </div>
               <button
@@ -83,7 +83,7 @@ export function UpgradeSimulationModal({ isOpen, onClose }: UpgradeSimulationMod
               {/* Pricing Note */}
               <div className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg">
                 <div className="text-xs text-slate-400 mb-1">Disponível no plano</div>
-                <div className="text-lg font-bold text-white">Strategic</div>
+                <div className="text-lg font-bold text-white">Estratégico</div>
                 <div className="text-xs text-slate-500 mt-2">Acesso ilimitado a simulações</div>
               </div>
             </div>
@@ -95,7 +95,7 @@ export function UpgradeSimulationModal({ isOpen, onClose }: UpgradeSimulationMod
                 onClick={onClose}
                 className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white font-bold rounded-lg transition-all text-center block"
               >
-                Evoluir para Strategic
+                Evoluir para Estratégico
               </Link>
               <button
                 onClick={onClose}

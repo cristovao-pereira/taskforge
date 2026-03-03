@@ -217,7 +217,7 @@ export default function BillingPage() {
             features={[
               "Acesso completo aos agentes",
               "Histórico ilimitado",
-              "Strategic DNA avançado",
+              "DNA Estratégico avançado",
               "Suporte prioritário"
             ]}
           />

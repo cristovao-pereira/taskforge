@@ -45,9 +45,9 @@ export default function DashboardPage() {
     // Debug log
     console.log('User plan:', user?.plan, 'Type:', typeof user?.plan);
     
-    // Case-insensitive comparison
+    // Verificação case-insensitive (padrão pt-BR: 'estrategico')
     const userPlan = user?.plan?.toLowerCase().trim();
-    if (userPlan === 'strategic' || userPlan === 'estrategico') {
+    if (userPlan === 'estrategico') {
       setShowSimulation(true);
     } else {
       setShowUpgradeModal(true);
@@ -216,13 +216,13 @@ export default function DashboardPage() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           className={`p-4 rounded-full text-white transition-all duration-300 flex items-center justify-center group shadow-lg ${
-            user?.plan === 'strategic'
+            user?.plan?.toLowerCase() === 'estrategico'
               ? 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 shadow-blue-500/50'
               : 'bg-gradient-to-br from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 shadow-slate-500/50 cursor-not-allowed opacity-75'
           }`}
-          title={user?.plan === 'strategic' ? 'Simular Cenário Estratégico' : 'Disponível no plano Strategic'}
+          title={user?.plan?.toLowerCase() === 'estrategico' ? 'Simular Cenário Estratégico' : 'Disponível no plano Estratégico'}
         >
-          {user?.plan === 'strategic' ? (
+          {user?.plan?.toLowerCase() === 'estrategico' ? (
             <Zap className="w-6 h-6 group-hover:rotate-12 transition-transform" />
           ) : (
             <Lock className="w-5 h-5" />

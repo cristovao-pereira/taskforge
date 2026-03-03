@@ -127,7 +127,7 @@ export function SimulationDrawer({
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-white">Simulação Estratégica</h2>
-                    <p className="text-xs text-blue-400 mt-1">Recurso do plano Strategic</p>
+                    <p className="text-xs text-blue-400 mt-1">Recurso do plano Estratégico</p>
                   </div>
                 </div>
                 <button
@@ -368,7 +368,7 @@ function SimulationResultDisplay({ result }: { result: SimulationResult }) {
         className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/30 rounded-lg p-4"
       >
         <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">
-          Strategic DNA
+          DNA Estratégico
         </p>
         <div className="flex items-end gap-4">
           <div>
