@@ -83,6 +83,20 @@ export async function getSubscriptionStatus(): Promise<{
 
   if (!response.ok) {
     const error = await response.json();
+    const backendMessage = (error?.message || '').toLowerCase();
+
+    if (
+      response.status === 503 ||
+      backendMessage.includes('stripe não configurado') ||
+      backendMessage.includes('stripe authentication failed') ||
+      backendMessage.includes('invalid api key')
+    ) {
+      return {
+        credits: 0,
+        subscription: null,
+      };
+    }
+
     throw new Error(error.message || 'Failed to fetch subscription status');
   }
 

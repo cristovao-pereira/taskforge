@@ -1880,11 +1880,30 @@ app.get('/api/billing/subscription', authenticateUser, async (req, res) => {
             });
         }
 
-        const subscriptions = await stripe.subscriptions.list({
-            customer: user.stripeCustomerId,
-            status: 'all',
-            limit: 20,
-        });
+        let subscriptions: Stripe.ApiList<Stripe.Subscription>;
+        try {
+            subscriptions = await stripe.subscriptions.list({
+                customer: user.stripeCustomerId,
+                status: 'all',
+                limit: 20,
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            const isStripeAuthError =
+                error instanceof Stripe.errors.StripeAuthenticationError ||
+                message.toLowerCase().includes('invalid api key');
+
+            if (isStripeAuthError) {
+                console.error('Stripe authentication failed while fetching subscription:', message);
+                return res.json({
+                    credits: user.credits || 0,
+                    subscription: null,
+                    billingUnavailable: true,
+                });
+            }
+
+            throw error;
+        }
 
         const allowedStatuses: Stripe.Subscription.Status[] = ['active', 'trialing', 'past_due', 'incomplete', 'unpaid'];
         const statusPriority: Record<Stripe.Subscription.Status, number> = {
