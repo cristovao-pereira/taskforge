@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icons } from '@/components/Icons';
 import { AnimatedPage } from '@/components/AnimatedPage';
 import { useStrategicMode } from '@/contexts/StrategicContext';
 import { useEvent } from '@/contexts/EventContext';
+import { useApp } from '@/contexts/AppContext';
 import { agentAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ export default function ClarityForgePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const { socket } = useEvent();
+  const { addSession } = useApp();
 
   const [activeMode, setActiveMode] = useState<'simple' | 'strategic' | 'executive'>('strategic');
   const [inputText, setInputText] = useState('');
@@ -30,6 +32,7 @@ export default function ClarityForgePage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const activeJobIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const modeParam = searchParams.get('mode');
@@ -43,13 +46,31 @@ export default function ClarityForgePage() {
     if (!socket) return;
 
     const handleJobUpdate = (data: any) => {
-      if (data.jobId === activeJobId && data.status === 'COMPLETED') {
-        setResult(data.result);
-        setIsAnalyzing(false);
-        setShowResult(true);
-        setActiveJobId(null);
-        toast.success('✨ Organização concluída!');
-        fetchHistory();
+      if (data.jobId === activeJobId) {
+        if (data.status === 'COMPLETED') {
+          const resultPayload = data.result || {};
+          setResult(resultPayload);
+          setIsAnalyzing(false);
+          setShowResult(true);
+          setActiveJobId(null);
+          activeJobIdRef.current = null;
+          toast.success('✨ Organização concluída!');
+          fetchHistory();
+          // Sync to global state
+          addSession({
+            title: inputText.slice(0, 50) + (inputText.length > 50 ? '...' : '') || 'Sessão de Clareza',
+            module: 'ClarityForge',
+            mode: activeMode === 'strategic' || activeMode === 'executive' ? 'deep' : 'quick',
+            status: 'completed',
+            summary: resultPayload.summary || 'Organização estruturada por Inteligência Artificial.',
+          });
+        } else if (data.status === 'FAILED') {
+          setIsAnalyzing(false);
+          setActiveJobId(null);
+          activeJobIdRef.current = null;
+          toast.dismiss('clarity-loading');
+          toast.error('❌ Falha na organização enviada ao agente.');
+        }
       }
     };
 
@@ -58,8 +79,18 @@ export default function ClarityForgePage() {
       setIsAnalyzing(false);
       setShowResult(true);
       setActiveJobId(null);
+      activeJobIdRef.current = null;
+      toast.dismiss('clarity-loading');
       toast.success('✨ Estrutura mental pronta!');
       fetchHistory();
+      // Sync to global state
+      addSession({
+        title: inputText.slice(0, 50) + (inputText.length > 50 ? '...' : '') || 'Sessão de Clareza',
+        module: 'ClarityForge',
+        mode: activeMode === 'strategic' || activeMode === 'executive' ? 'deep' : 'quick',
+        status: 'completed',
+        summary: data.summary || 'Organização estruturada por Inteligência Artificial.',
+      });
     };
 
     socket.on('agent:job_update', handleJobUpdate);
@@ -166,26 +197,38 @@ export default function ClarityForgePage() {
       );
 
       setActiveJobId(jobId);
+      activeJobIdRef.current = jobId;
       toast.loading('Estruturando informações, aguarde...', { id: 'clarity-loading' });
 
       const checkStatus = async () => {
         try {
           const job = await agentAPI.getJobStatus(jobId);
           if (job.status === 'COMPLETED') {
-            setResult(job.outputPayload);
+            const resultPayload = job.outputPayload || {};
+            setResult(resultPayload);
             setIsAnalyzing(false);
             setShowResult(true);
             setActiveJobId(null);
+            activeJobIdRef.current = null;
             toast.dismiss('clarity-loading');
             toast.success('✨ Estrutura concluída!');
             fetchHistory();
+            // Sync to global state
+            addSession({
+              title: job.inputPayload?.inputText?.slice(0, 50) + (job.inputPayload?.inputText?.length > 50 ? '...' : '') || inputText.slice(0, 50) + (inputText.length > 50 ? '...' : '') || 'Sessão de Clareza',
+              module: 'ClarityForge',
+              mode: activeMode === 'strategic' || activeMode === 'executive' ? 'deep' : 'quick',
+              status: 'completed',
+              summary: resultPayload.summary || 'Organização estruturada por Inteligência Artificial.',
+            });
           } else if (job.status === 'FAILED') {
             setIsAnalyzing(false);
             setActiveJobId(null);
+            activeJobIdRef.current = null;
             toast.dismiss('clarity-loading');
             toast.error('❌ Falha na organização. Tente novamente.');
           } else {
-            if (activeJobId === jobId) setTimeout(checkStatus, 5000);
+            if (activeJobIdRef.current === jobId) setTimeout(checkStatus, 5000);
           }
         } catch (e) {
           console.error('Status check failed:', e);
@@ -495,8 +538,8 @@ function ModeButton({ active, onClick, label }: any) {
     <button
       onClick={onClick}
       className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${active
-          ? 'bg-zinc-800 text-white shadow-sm'
-          : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
+        ? 'bg-zinc-800 text-white shadow-sm'
+        : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
         }`}
     >
       {label}
@@ -519,8 +562,8 @@ function ResultBlock({ title, icon: Icon, children, color = "text-blue-500" }: a
 function ActionButton({ icon: Icon, label, variant = 'primary', onClick }: any) {
   return (
     <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${variant === 'primary'
-        ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700'
-        : 'bg-transparent text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700'
+      ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700'
+      : 'bg-transparent text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700'
       }`}>
       <Icon className="w-4 h-4" />
       {label}
@@ -533,8 +576,8 @@ function HistoryItem({ title, type, date, onOpen }: any) {
     <div className="p-4 flex items-center justify-between hover:bg-zinc-900/50 transition-colors group">
       <div className="flex items-center gap-4">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center border border-zinc-800 ${type === 'Brainstorm' ? 'bg-yellow-500/10 text-yellow-500' :
-            type === 'Reunião' ? 'bg-blue-500/10 text-blue-500' :
-              'bg-purple-500/10 text-purple-500'
+          type === 'Reunião' ? 'bg-blue-500/10 text-blue-500' :
+            'bg-purple-500/10 text-purple-500'
           }`}>
           {type === 'Brainstorm' && <Icons.Lightbulb className="w-4 h-4" />}
           {type === 'Reunião' && <Icons.Users className="w-4 h-4" />}

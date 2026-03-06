@@ -10,14 +10,16 @@ interface OnboardingModalProps {
 
 export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
+  const [project, setProject] = useState('');
   const [objective, setObjective] = useState('');
+  const [challenge, setChallenge] = useState('');
   const [mode, setMode] = useState<'conservador' | 'equilibrado' | 'expansao'>('equilibrado');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleNext = () => {
     if (step === 1) {
-      if (!objective.trim()) {
-        toast.error('Descreva seu objetivo estratégico');
+      if (!project.trim() || !objective.trim() || !challenge.trim()) {
+        toast.error('Preencha os campos para continuarmos');
         return;
       }
       setStep(2);
@@ -29,10 +31,13 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
   const handleComplete = async () => {
     try {
       setIsLoading(true);
-      await onComplete({ objective, mode });
+      const combinedObjective = `Projeto/Empresa: ${project}\nObjetivo: ${objective}\nMaior desafio: ${challenge}`;
+      await onComplete({ objective: combinedObjective, mode });
       // Só reseta depois que o onboarding for salvo com sucesso
       setStep(1);
+      setProject('');
       setObjective('');
+      setChallenge('');
       setMode('equilibrado');
     } catch (error) {
       toast.error('Erro ao completar onboarding');
@@ -93,10 +98,10 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
               </h2>
               <p className="text-sm text-zinc-400">
                 {step === 1
-                  ? 'Qual é seu objetivo estratégico principal?'
+                  ? 'Vamos entender melhor o seu contexto atual.'
                   : step === 2
-                  ? 'Como você prefere abordar decisões estratégicas?'
-                  : 'Pronto para sua primeira decisão estratégica?'}
+                    ? 'Como você prefere abordar decisões estratégicas no dia a dia?'
+                    : 'Pronto para iniciar sua jornada estratégica!'}
               </p>
             </div>
 
@@ -105,9 +110,8 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
               {[1, 2, 3].map((s) => (
                 <motion.div
                   key={s}
-                  className={`h-1 flex-1 rounded-full transition-colors ${
-                    s <= step ? 'bg-blue-500' : 'bg-zinc-800'
-                  }`}
+                  className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-blue-500' : 'bg-zinc-800'
+                    }`}
                   layoutId={`step-${s}`}
                 />
               ))}
@@ -123,16 +127,37 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-4 mb-8"
                 >
-                  <textarea
-                    autoFocus
-                    value={objective}
-                    onChange={(e) => setObjective(e.target.value)}
-                    placeholder="Ex: Expandir mercado na América Latina nos próximos 12 meses"
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none transition-colors resize-none"
-                    rows={4}
-                  />
-                  <p className="text-xs text-zinc-500">
-                    📝 Seja específico. Este objetivo guiará suas decisões estratégicas.
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Qual o nome do seu projeto ou empresa?</label>
+                    <input
+                      autoFocus
+                      value={project}
+                      onChange={(e) => setProject(e.target.value)}
+                      placeholder="Ex: Startup Tech, Nova Filial, etc."
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Qual é seu principal objetivo estratégico hoje?</label>
+                    <input
+                      value={objective}
+                      onChange={(e) => setObjective(e.target.value)}
+                      placeholder="Ex: Dobrar a receita, Lançar novo produto..."
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Qual o maior obstáculo ou desafio atual?</label>
+                    <textarea
+                      value={challenge}
+                      onChange={(e) => setChallenge(e.target.value)}
+                      placeholder="Ex: Equipe engessada, gargalos na operação..."
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                      rows={3}
+                    />
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-2">
+                    📝 Seja específico. Estas respostas guiarão as análises dos agentes do TaskForge.
                   </p>
                 </motion.div>
               )}
@@ -149,11 +174,10 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
                     <motion.button
                       key={m.value}
                       onClick={() => setMode(m.value)}
-                      className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
-                        mode === m.value
+                      className={`w-full p-4 border-2 rounded-lg transition-all text-left ${mode === m.value
                           ? `${m.color.split(' ')[0]} ${m.color.split(' ')[1]}`
                           : `${m.color} border-zinc-700`
-                      }`}
+                        }`}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -184,8 +208,8 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
                     <div className="flex gap-3">
                       <Icons.Lightbulb className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-semibold text-blue-200 mb-1">Objetivo configurado:</p>
-                        <p className="text-sm text-blue-300">{objective}</p>
+                        <p className="text-sm font-semibold text-blue-200 mb-1">Contexto fornecido:</p>
+                        <p className="text-sm text-blue-300 line-clamp-2">Projeto: {project} | Objetivo: {objective} | Desafio: {challenge}</p>
                       </div>
                     </div>
                   </div>

@@ -6,6 +6,7 @@ interface AuthContextType {
   loading: boolean
   logout: () => Promise<void>
   getIdToken: () => Promise<string | null>
+  deleteAccount: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -35,14 +36,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return await user.getIdToken()
   }, [user])
 
+  const deleteAccount = useCallback(async () => {
+    if (!user) return
+    try {
+      await user.delete()
+      setUser(null)
+    } catch (error: any) {
+      if (error?.code === 'auth/requires-recent-login') {
+        throw new Error('requires-recent-login')
+      }
+      throw error
+    }
+  }, [user])
+
   const value = useMemo(
     () => ({
       user,
       loading,
       logout,
       getIdToken,
+      deleteAccount,
     }),
-    [user, loading, logout, getIdToken],
+    [user, loading, logout, getIdToken, deleteAccount],
   )
 
   return (

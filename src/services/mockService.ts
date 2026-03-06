@@ -17,58 +17,58 @@ let MOCK_USER: User = {
 };
 
 const MOCK_DECISIONS: Decision[] = [
-  { 
-    id: 'd1', 
-    title: 'Pivotar para Modelo de Vendas Enterprise', 
-    date: '2025-10-24', 
-    status: 'analyzing', 
-    riskLevel: 'high', 
-    impactScore: 92, 
-    type: 'Strategy', 
+  {
+    id: 'd1',
+    title: 'Pivotar para Modelo de Vendas Enterprise',
+    date: '2025-10-24',
+    status: 'analyzing',
+    riskLevel: 'high',
+    impactScore: 92,
+    type: 'Strategy',
     summary: 'Mudança estratégica para focar em grandes contas.',
     outcome: 'Pending'
   },
-  { 
-    id: 'd2', 
-    title: 'Contratar Head de Engenharia', 
-    date: '2025-09-12', 
-    status: 'implemented', 
-    riskLevel: 'medium', 
-    impactScore: 85, 
-    type: 'Hiring', 
+  {
+    id: 'd2',
+    title: 'Contratar Head de Engenharia',
+    date: '2025-09-12',
+    status: 'implemented',
+    riskLevel: 'medium',
+    impactScore: 85,
+    type: 'Hiring',
     summary: 'Contratação chave para escalar o time técnico.',
     outcome: 'Positive'
   },
-  { 
-    id: 'd3', 
-    title: 'Aumentar Preços SaaS em 20%', 
-    date: '2025-08-05', 
-    status: 'implemented', 
-    riskLevel: 'high', 
-    impactScore: 78, 
-    type: 'Pricing', 
+  {
+    id: 'd3',
+    title: 'Aumentar Preços SaaS em 20%',
+    date: '2025-08-05',
+    status: 'implemented',
+    riskLevel: 'high',
+    impactScore: 78,
+    type: 'Pricing',
     summary: 'Ajuste de preços para melhorar margens.',
     outcome: 'Negative'
   },
-  { 
-    id: 'd4', 
-    title: 'Lançar MVP do App Mobile', 
-    date: '2025-07-15', 
-    status: 'implemented', 
-    riskLevel: 'low', 
-    impactScore: 65, 
-    type: 'Product', 
+  {
+    id: 'd4',
+    title: 'Lançar MVP do App Mobile',
+    date: '2025-07-15',
+    status: 'implemented',
+    riskLevel: 'low',
+    impactScore: 65,
+    type: 'Product',
     summary: 'Lançamento do MVP mobile para validação.',
     outcome: 'Positive'
   },
-  { 
-    id: 'd5', 
-    title: 'Expandir para Mercado Europeu', 
-    date: '2025-06-01', 
-    status: 'analyzing', 
-    riskLevel: 'medium', 
-    impactScore: 70, 
-    type: 'Growth', 
+  {
+    id: 'd5',
+    title: 'Expandir para Mercado Europeu',
+    date: '2025-06-01',
+    status: 'analyzing',
+    riskLevel: 'medium',
+    impactScore: 70,
+    type: 'Growth',
     summary: 'Exploração de novos mercados geográficos.',
     outcome: 'Pending'
   },
@@ -226,16 +226,43 @@ export const mockService = {
       MOCK_RISKS[index].status = 'resolved';
     }
   },
+  createRisk: async (risk: Omit<Risk, 'id'>): Promise<Risk> => {
+    await delay(600);
+    const newRisk: Risk = {
+      ...risk,
+      id: `r${Date.now()}`
+    };
+    MOCK_RISKS.unshift(newRisk);
+    return newRisk;
+  },
 
   // Plans
   getPlans: async (): Promise<ExecutionPlan[]> => {
     await delay(400);
     return [...MOCK_PLANS];
   },
+  createPlan: async (plan: Omit<ExecutionPlan, 'id'>): Promise<ExecutionPlan> => {
+    await delay(600);
+    const newPlan: ExecutionPlan = {
+      ...plan,
+      id: `p${Date.now()}`
+    };
+    MOCK_PLANS.unshift(newPlan);
+    return newPlan;
+  },
 
   // Sessions
   getSessions: async (): Promise<StrategicSession[]> => {
     await delay(300);
     return [...MOCK_SESSIONS];
+  },
+  createSession: async (session: Omit<StrategicSession, 'id'>): Promise<StrategicSession> => {
+    await delay(600);
+    const newSession: StrategicSession = {
+      ...session,
+      id: `s${Date.now()}`
+    };
+    MOCK_SESSIONS.unshift(newSession);
+    return newSession;
   },
 };

@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Decision, Risk, ExecutionPlan, StrategicSession } from '../types';
-import { mockService } from '../services/mockService';
+import { dataApi } from '../lib/api';
 import { useAuth } from './AuthContext';
 
 interface AppContextType {
@@ -15,6 +15,9 @@ interface AppContextType {
   refreshData: () => Promise<void>;
   updateUser: (user: Partial<User>) => Promise<void>;
   addDecision: (decision: Omit<Decision, 'id' | 'date'>) => Promise<void>;
+  addRisk: (risk: Omit<Risk, 'id'>) => Promise<void>;
+  addPlan: (plan: Omit<ExecutionPlan, 'id'>) => Promise<void>;
+  addSession: (session: Omit<StrategicSession, 'id'>) => Promise<void>;
   resolveRisk: (id: string) => Promise<void>;
   completeOnboarding: (objective: string, mode: 'conservador' | 'equilibrado' | 'expansao') => Promise<void>;
 }
@@ -46,7 +49,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (response.ok) {
             const profileData = await response.json();
             setHasCompletedOnboarding(profileData.hasCompletedOnboarding || false);
-            
+
             // Map backend profile to User type
             const userData: User = {
               id: profileData.id,
@@ -67,12 +70,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      // Fetch mock data for decisions, risks, plans, sessions
+      // Fetch data for decisions, risks, plans, sessions
       const [decisionsData, risksData, plansData, sessionsData] = await Promise.all([
-        mockService.getDecisions(),
-        mockService.getRisks(),
-        mockService.getPlans(),
-        mockService.getSessions(),
+        dataApi.getDecisions(),
+        dataApi.getRisks(),
+        dataApi.getPlans(),
+        dataApi.getSessions(),
       ]);
 
       setDecisions(decisionsData);
@@ -127,7 +130,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const profileData = await response.json();
-      
+
       // Update local state
       if (user) {
         setUser({
@@ -148,16 +151,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addDecision = async (decision: Omit<Decision, 'id' | 'date'>) => {
     try {
-      const newDecision = await mockService.createDecision(decision);
+      const newDecision = await dataApi.createDecision(decision);
       setDecisions(prev => [newDecision, ...prev]);
     } catch (error) {
       console.error('Failed to add decision:', error);
     }
   };
 
+  const addRisk = async (risk: Omit<Risk, 'id'>) => {
+    try {
+      const newRisk = await dataApi.createRisk(risk);
+      setRisks(prev => [newRisk, ...prev]);
+    } catch (error) {
+      console.error('Failed to add risk:', error);
+    }
+  };
+
+  const addPlan = async (plan: Omit<ExecutionPlan, 'id'>) => {
+    try {
+      const newPlan = await dataApi.createPlan(plan);
+      setPlans(prev => [newPlan, ...prev]);
+    } catch (error) {
+      console.error('Failed to add plan:', error);
+    }
+  };
+
+  const addSession = async (session: Omit<StrategicSession, 'id'>) => {
+    try {
+      const newSession = await dataApi.createSession(session);
+      setSessions(prev => [newSession, ...prev]);
+    } catch (error) {
+      console.error('Failed to add session:', error);
+    }
+  };
+
   const resolveRisk = async (id: string) => {
     try {
-      await mockService.resolveRisk(id);
+      await dataApi.resolveRisk(id);
       setRisks(prev => prev.map(r => r.id === id ? { ...r, status: 'resolved' } : r));
     } catch (error) {
       console.error('Failed to resolve risk:', error);
@@ -167,7 +197,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const completeOnboarding = async (objective: string, mode: 'conservador' | 'equilibrado' | 'expansao') => {
     try {
       console.log('[AppContext] Iniciando completeOnboarding:', { objective, mode });
-      
+
       if (!firebaseUser) {
         console.error('[AppContext] Erro: usuário não autenticado');
         throw new Error('User not authenticated');
@@ -198,7 +228,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
 
       console.log('[AppContext] Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[AppContext] Response error:', errorText);
@@ -250,6 +280,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       refreshData,
       updateUser,
       addDecision,
+      addRisk,
+      addPlan,
+      addSession,
       resolveRisk,
       completeOnboarding,
     }}>

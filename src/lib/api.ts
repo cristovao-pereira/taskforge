@@ -135,4 +135,33 @@ export const agentAPI = {
     api.get(`/api/agents/jobs/${jobId}`),
 };
 
+/**
+ * Data-specific API helpers
+ * Interacts with the real database for Forge entities
+ */
+export const dataApi = {
+  // Decisions
+  getDecisions: async () => api.get('/api/decisions'),
+  createDecision: async (data: any) => api.post('/api/decisions', data),
+  updateDecision: async (id: string, data: any) => api.put(`/api/decisions/${id}`, data),
+
+  // Risks
+  getRisks: async () => api.get('/api/risks'),
+  createRisk: async (data: any) => api.post('/api/risks', data),
+  resolveRisk: async (id: string) => api.put(`/api/risks/${id}/resolve`),
+
+  // Plans
+  getPlans: async () => api.get('/api/plans'),
+  createPlan: async (data: any) => api.post('/api/plans', data),
+
+  // Sessions
+  getSessions: async () => api.get('/api/sessions'),
+  createSession: async (data: any) => api.post('/api/sessions', data),
+};
+
+/**
+ * Delete User Account Data
+ */
+export const deleteUserAccount = () => api.delete('/api/user/account');
+
 export default api;

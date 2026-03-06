@@ -1496,6 +1496,173 @@ app.get('/api/documents/:id/audit-history', authenticateUser, async (req, res) =
     }
 });
 
+// --- Real Data Endpoints for Forge Entities ---
+
+// GET /api/decisions
+app.get('/api/decisions', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    try {
+        const decisions = await prisma.decision.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(decisions);
+    } catch (error) {
+        console.error('Error fetching decisions:', error);
+        res.status(500).json({ error: 'Failed to fetch decisions' });
+    }
+});
+
+// POST /api/decisions
+app.post('/api/decisions', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    const { title, description, impact, confidence, status } = req.body;
+
+    try {
+        const decision = await prisma.decision.create({
+            data: {
+                userId,
+                title,
+                description: description || '',
+                impact: impact || 'medium',
+                confidence: confidence || 50,
+                status: status || 'draft'
+            }
+        });
+        res.status(201).json(decision);
+    } catch (error) {
+        console.error('Error creating decision:', error);
+        res.status(500).json({ error: 'Failed to create decision' });
+    }
+});
+
+// PUT /api/decisions/:id
+app.put('/api/decisions/:id', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    const decisionId = req.params.id;
+    const { title, description, impact, confidence, status } = req.body;
+
+    try {
+        const decision = await prisma.decision.updateMany({
+            where: { id: decisionId, userId },
+            data: { title, description, impact, confidence, status }
+        });
+        if (decision.count === 0) return res.status(404).json({ error: 'Decision not found' });
+
+        const updated = await prisma.decision.findUnique({ where: { id: decisionId } });
+        res.json(updated);
+    } catch (error) {
+        console.error('Error updating decision:', error);
+        res.status(500).json({ error: 'Failed to update decision' });
+    }
+});
+
+// GET /api/risks
+app.get('/api/risks', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    try {
+        const risks = await prisma.risk.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(risks);
+    } catch (error) {
+        console.error('Error fetching risks:', error);
+        res.status(500).json({ error: 'Failed to fetch risks' });
+    }
+});
+
+// POST /api/risks
+app.post('/api/risks', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    const { title, description, severity, status } = req.body;
+
+    try {
+        const risk = await prisma.risk.create({
+            data: {
+                userId,
+                title,
+                description: description || '',
+                severity: severity || 'medium',
+                status: status || 'active'
+            }
+        });
+        res.status(201).json(risk);
+    } catch (error) {
+        console.error('Error creating risk:', error);
+        res.status(500).json({ error: 'Failed to create risk' });
+    }
+});
+
+// PUT /api/risks/:id/resolve
+app.put('/api/risks/:id/resolve', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    const riskId = req.params.id;
+
+    try {
+        const risk = await prisma.risk.updateMany({
+            where: { id: riskId, userId },
+            data: { status: 'resolved' }
+        });
+        if (risk.count === 0) return res.status(404).json({ error: 'Risk not found' });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error resolving risk:', error);
+        res.status(500).json({ error: 'Failed to resolve risk' });
+    }
+});
+
+// GET /api/plans
+app.get('/api/plans', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    try {
+        const plans = await prisma.plan.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(plans);
+    } catch (error) {
+        console.error('Error fetching plans:', error);
+        res.status(500).json({ error: 'Failed to fetch plans' });
+    }
+});
+
+// GET /api/sessions
+app.get('/api/sessions', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    try {
+        const sessions = await prisma.session.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(sessions);
+    } catch (error) {
+        console.error('Error fetching sessions:', error);
+        res.status(500).json({ error: 'Failed to fetch sessions' });
+    }
+});
+
+// POST /api/sessions
+app.post('/api/sessions', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+    const { title, type, status } = req.body;
+
+    try {
+        const session = await prisma.session.create({
+            data: {
+                userId,
+                title,
+                type: type || 'strategy',
+                status: status || 'scheduled'
+            }
+        });
+        res.status(201).json(session);
+    } catch (error) {
+        console.error('Error creating session:', error);
+        res.status(500).json({ error: 'Failed to create session' });
+    }
+});
+
 app.post('/api/plans', authenticateUser, async (req, res) => {
     const { title, description, phases, tasks, suggestionId } = req.body;
     const userId = req.userId!;
@@ -1565,13 +1732,44 @@ let userProfileCache: any = {
 
 app.put('/api/user/profile', authenticateUser, async (req, res) => {
     const userId = req.userId!;
-    const { name, strategicMode, company, role, objective, deepMode, alertSensitivity, notifications } = req.body;
+    const { name, strategicMode, company, role, objective, deepMode, alertSensitivity, notifications, completingOnboarding } = req.body;
 
     // Update Prisma fields
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
         where: { id: userId },
-        data: { name, strategicMode }
+        data: {
+            name,
+            strategicMode,
+            objective,
+            hasCompletedOnboarding: completingOnboarding !== undefined ? completingOnboarding : undefined
+        }
     });
+
+    if (completingOnboarding) {
+        // Create an introductory Session
+        await prisma.session.create({
+            data: {
+                userId,
+                title: 'Primeira Sessão de Planejamento',
+                type: 'planning',
+                status: 'scheduled'
+            }
+        });
+
+        // Create an introductory Decision based on Objective
+        if (objective) {
+            await prisma.decision.create({
+                data: {
+                    userId,
+                    title: `Atingir objetivo: ${objective.substring(0, 50)}${objective.length > 50 ? '...' : ''}`,
+                    description: `Decisão fundamental focada no objetivo estratégico principal fornecido durante o onboarding: ${objective}`,
+                    impact: 'high',
+                    confidence: 10,
+                    status: 'draft'
+                }
+            });
+        }
+    }
 
     // Update Cache fields
     userProfileCache = {
@@ -1585,6 +1783,47 @@ app.put('/api/user/profile', authenticateUser, async (req, res) => {
     };
 
     res.json({ success: true });
+});
+
+app.delete('/api/user/account', authenticateUser, async (req, res) => {
+    const userId = req.userId!;
+
+    try {
+        // Start a transaction to delete all user data
+        await prisma.$transaction(async (tx) => {
+            // Level 2 Dependencies (Depend on Level 1)
+            await tx.eventLog.deleteMany({ where: { userId } });
+            await tx.documentAuditLog.deleteMany({ where: { userId } });
+            await tx.decisionSuggestion.deleteMany({ where: { userId } });
+            await tx.planSuggestion.deleteMany({ where: { userId } });
+            await tx.suggestionFeedback.deleteMany({ where: { userId } });
+            await tx.systemHealth.deleteMany({ where: { userId } });
+            await tx.strategicDNA.deleteMany({ where: { userId } });
+            await tx.explanationLog.deleteMany({
+                where: { event: { userId } }
+            });
+
+            // Level 1 Dependencies (Depend directly on User)
+            await tx.documentInsights.deleteMany({
+                where: { document: { userId } }
+            });
+            await tx.document.deleteMany({ where: { userId } });
+            await tx.decision.deleteMany({ where: { userId } });
+            await tx.risk.deleteMany({ where: { userId } });
+            await tx.plan.deleteMany({ where: { userId } });
+            await tx.session.deleteMany({ where: { userId } });
+
+            // Finally, delete the user
+            await tx.user.delete({ where: { id: userId } });
+        }, {
+            timeout: 60000 // 60 seconds timeout, as deletion can take time
+        });
+
+        res.json({ success: true, message: 'Account and all associated data deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting user account:', error);
+        res.status(500).json({ error: 'Failed to delete account' });
+    }
 });
 
 app.get('/api/user/credits', (req, res) => {
@@ -2683,7 +2922,7 @@ app.post('/api/webhooks/n8n/complete', async (req, res) => {
         const eventMap: Record<string, string> = {
             'DECISION': 'agent:decision_analysis_ready',
             'CLARITY': 'agent:clarity_structure_ready',
-            'LEVERAGE': 'agent:leverage_execution_ready'
+            'LEVERAGE': 'agent:leverage_analysis_ready'
         };
 
         const eventName = eventMap[job.agentType] || 'agent:analysis_complete';

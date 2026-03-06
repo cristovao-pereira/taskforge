@@ -7,6 +7,7 @@ import { cardHover, buttonPrimary } from '../lib/motion';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { useUpgrade } from '../contexts/UpgradeContext';
 import { useEvent } from '../contexts/EventContext';
+import { useApp } from '../contexts/AppContext';
 import { agentAPI } from '../lib/api';
 import { toast } from 'sonner';
 
@@ -48,6 +49,7 @@ export default function DecisionForgePage() {
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const { metrics, checkUpgradeTriggers } = useUpgrade();
   const { socket } = useEvent();
+  const { decisions, addDecision, addRisk } = useApp();
 
   const [activeTab, setActiveTab] = useState<'analysis' | 'map' | 'history'>('analysis');
   const [decisionTheme, setDecisionTheme] = useState('');
@@ -58,6 +60,7 @@ export default function DecisionForgePage() {
   const [result, setResult] = useState<any | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const activeJobIdRef = useRef<string | null>(null);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [historyRiskFilter, setHistoryRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
@@ -86,13 +89,46 @@ export default function DecisionForgePage() {
     if (!socket) return;
 
     const handleJobUpdate = (data: any) => {
-      if (data.jobId === activeJobId && data.status === 'COMPLETED') {
-        setResult(data.result);
-        setIsAnalyzing(false);
-        setActiveJobId(null);
-        toast.dismiss('analysis-loading');
-        toast.success('✨ Análise concluída em tempo real!');
-        fetchHistory(); // Refresh history
+      if (data.jobId === activeJobId) {
+        if (data.status === 'COMPLETED') {
+          const resultPayload = data.result || {};
+          setResult(resultPayload);
+          setIsAnalyzing(false);
+          setActiveJobId(null);
+          activeJobIdRef.current = null;
+          toast.dismiss('analysis-loading');
+          toast.success('✨ Análise concluída em tempo real!');
+          fetchHistory(); // Refresh history
+          const parsedRiskLevel = resultPayload.risk?.toLowerCase().includes('alto') ? 'high' :
+            resultPayload.risk?.toLowerCase().includes('médio') ? 'medium' : 'low';
+
+          // Sync to global state
+          addDecision({
+            title: decisionTheme || 'Decisão Estratégica',
+            status: 'analyzing',
+            riskLevel: parsedRiskLevel,
+            impactScore: parseInt(resultPayload.impact?.match(/\d+/)?.[0] || '50'),
+            type: deepMode ? 'Deep' : 'Quick',
+            summary: resultPayload.summary || 'Análise gerada por Inteligência Artificial.',
+          });
+
+          if (parsedRiskLevel === 'high' || parsedRiskLevel === 'medium') {
+            addRisk({
+              title: `Risco gerado por decisão: ${decisionTheme || 'Decisão Estratégica'}`,
+              description: resultPayload.summary || 'Análise gerada por IA indicando riscos e pontos de atenção.',
+              severity: parsedRiskLevel === 'high' ? 'critical' : 'high',
+              probability: 'medium',
+              status: 'active',
+              mitigationPlan: resultPayload.mitigation || 'Requer acompanhamento ativo do Comitê Estratégico.'
+            });
+          }
+        } else if (data.status === 'FAILED') {
+          setIsAnalyzing(false);
+          setActiveJobId(null);
+          activeJobIdRef.current = null;
+          toast.dismiss('analysis-loading');
+          toast.error('❌ Falha na análise pelo agente.');
+        }
       }
     };
 
@@ -100,9 +136,33 @@ export default function DecisionForgePage() {
       setResult(data);
       setIsAnalyzing(false);
       setActiveJobId(null);
+      activeJobIdRef.current = null;
       toast.dismiss('analysis-loading');
       toast.success('✨ Análise estratégica pronta!');
       fetchHistory();
+      const parsedRiskLevel = data.risk?.toLowerCase().includes('alto') ? 'high' :
+        data.risk?.toLowerCase().includes('médio') ? 'medium' : 'low';
+
+      // Sync to global state
+      addDecision({
+        title: decisionTheme || 'Decisão Estratégica',
+        status: 'analyzing',
+        riskLevel: parsedRiskLevel,
+        impactScore: parseInt(data.impact?.match(/\d+/)?.[0] || '50'),
+        type: deepMode ? 'Deep' : 'Quick',
+        summary: data.summary || 'Análise gerada por Inteligência Artificial.',
+      });
+
+      if (parsedRiskLevel === 'high' || parsedRiskLevel === 'medium') {
+        addRisk({
+          title: `Risco gerado por decisão: ${decisionTheme || 'Decisão Estratégica'}`,
+          description: data.summary || 'Análise gerada por IA indicando riscos e pontos de atenção.',
+          severity: parsedRiskLevel === 'high' ? 'critical' : 'high',
+          probability: 'medium',
+          status: 'active',
+          mitigationPlan: data.mitigation || 'Requer acompanhamento ativo do Comitê Estratégico.'
+        });
+      }
     };
 
     socket.on('agent:job_update', handleJobUpdate);
@@ -130,14 +190,27 @@ export default function DecisionForgePage() {
   useEffect(() => {
     fetchHistory();
   }, []);
-  // Mock for visual map - real ones would come from a different API probably
-  const decisionNodes: DecisionNode[] = [
-    { id: '1', x: 50, y: 50, label: 'Enterprise Pivot', impact: 95, risk: 'high', status: 'analyzing', date: 'Oct 24, 2025', description: 'Mudança estratégica para focar em grandes contas.', connections: ['2', '3'] },
-    { id: '2', x: 30, y: 30, label: 'Sales Team Restructure', impact: 80, risk: 'medium', status: 'validated', date: 'Oct 26, 2025', description: 'Contratação de Heads de Vendas experientes.', connections: [] },
-    { id: '3', x: 70, y: 30, label: 'SOC2 Compliance', impact: 85, risk: 'low', status: 'validated', date: 'Nov 01, 2025', description: 'Certificação necessária para Enterprise.', connections: ['4'] },
-    { id: '4', x: 80, y: 60, label: 'Security Audit', impact: 60, risk: 'low', status: 'validated', date: 'Nov 15, 2025', description: 'Auditoria externa de segurança.', connections: [] },
-    { id: '5', x: 20, y: 70, label: 'Legacy Sunset', impact: 70, risk: 'medium', status: 'reverted', date: 'Sep 10, 2025', description: 'Descontinuação de produtos antigos.', connections: ['1'] },
-  ];
+  // Map real ones from context for visual map
+  const decisionNodes: DecisionNode[] = useMemo(() => {
+    return decisions.map((d, index) => {
+      // Deterministic layout for visual appeal
+      const x = 20 + ((index * 37) % 60);
+      const y = 20 + ((index * 23) % 60);
+
+      return {
+        id: String(d.id),
+        x,
+        y,
+        label: d.title || 'Decisão',
+        impact: d.impactScore ?? 50,
+        risk: (d.riskLevel === 'high' || d.riskLevel === 'critical') ? 'high' : d.riskLevel === 'medium' ? 'medium' : 'low',
+        status: d.status === 'analyzing' ? 'analyzing' : d.status === 'reverted' ? 'reverted' : 'validated',
+        date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+        description: d.summary || 'Análise de decisão estratégica.',
+        connections: [],
+      };
+    });
+  }, [decisions]);
 
   const handleAnalyze = async () => {
     if (!decisionTheme) {
@@ -160,6 +233,7 @@ export default function DecisionForgePage() {
       );
 
       setActiveJobId(jobId);
+      activeJobIdRef.current = jobId;
       toast.loading('Brainstorming em progresso, por favor aguarde...', { id: 'analysis-loading' });
 
       // Fallback polling or just wait for socket
@@ -167,20 +241,46 @@ export default function DecisionForgePage() {
         try {
           const job = await agentAPI.getJobStatus(jobId);
           if (job.status === 'COMPLETED') {
-            setResult(job.outputPayload);
+            const resultPayload = job.outputPayload || {};
+            setResult(resultPayload);
             setIsAnalyzing(false);
             setActiveJobId(null);
+            activeJobIdRef.current = null;
             toast.dismiss('analysis-loading');
             toast.success('✨ Análise concluída!');
             fetchHistory();
+            const parsedRiskLevel = resultPayload.risk?.toLowerCase().includes('alto') ? 'high' :
+              resultPayload.risk?.toLowerCase().includes('médio') ? 'medium' : 'low';
+
+            // Sync to global state
+            addDecision({
+              title: job.inputPayload?.theme || decisionTheme || 'Decisão Estratégica',
+              status: 'analyzing',
+              riskLevel: parsedRiskLevel,
+              impactScore: parseInt(resultPayload.impact?.match(/\d+/)?.[0] || '50'),
+              type: job.inputPayload?.deepMode ? 'Deep' : 'Quick',
+              summary: resultPayload.summary || 'Análise gerada por Inteligência Artificial.',
+            });
+
+            if (parsedRiskLevel === 'high' || parsedRiskLevel === 'medium') {
+              addRisk({
+                title: `Risco gerado por decisão: ${job.inputPayload?.theme || decisionTheme || 'Decisão Estratégica'}`,
+                description: resultPayload.summary || 'Análise gerada por IA indicando riscos e pontos de atenção.',
+                severity: parsedRiskLevel === 'high' ? 'critical' : 'high',
+                probability: 'medium',
+                status: 'active',
+                mitigationPlan: resultPayload.mitigation || 'Requer acompanhamento ativo do Comitê Estratégico.'
+              });
+            }
           } else if (job.status === 'FAILED') {
             setIsAnalyzing(false);
             setActiveJobId(null);
+            activeJobIdRef.current = null;
             toast.dismiss('analysis-loading');
             toast.error('❌ Falha na análise. Tente novamente.');
           } else {
             // Re-check after 5 seconds if still analyzing
-            if (activeJobId === jobId) setTimeout(checkStatus, 5000);
+            if (activeJobIdRef.current === jobId) setTimeout(checkStatus, 5000);
           }
         } catch (e) {
           console.error('Status check failed:', e);
@@ -613,34 +713,44 @@ export default function DecisionForgePage() {
                 </svg>
 
                 {/* Nodes */}
-                {decisionNodes.map(node => (
-                  <motion.div
-                    key={node.id}
-                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10 flex flex-col items-center`}
-                    style={{ left: `${node.x}%`, top: `${node.y}%` }}
-                    whileHover={{ scale: 1.1 }}
-                    onClick={() => setSelectedNodeId(node.id)}
-                  >
-                    <div className={`rounded-full border-2 shadow-lg transition-all duration-300 flex items-center justify-center
-                      ${selectedNodeId === node.id ? 'ring-4 ring-white/10 scale-110' : ''}
-                      ${node.risk === 'high' ? 'bg-orange-500/20 border-orange-500 text-orange-500' :
-                        node.risk === 'medium' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-500' :
-                          'bg-emerald-500/20 border-emerald-500 text-emerald-500'}
-                    `}
-                      style={{
-                        width: `${Math.max(40, node.impact * 0.8)}px`,
-                        height: `${Math.max(40, node.impact * 0.8)}px`
-                      }}
+                {decisionNodes.length === 0 ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 z-10">
+                    <Icons.GitFork className="w-12 h-12 mb-4 opacity-20" />
+                    <p>Nenhuma decisão no mapa ainda.</p>
+                    <button className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors" onClick={() => setActiveTab('analysis')}>
+                      Criar Primeira Decisão
+                    </button>
+                  </div>
+                ) : (
+                  decisionNodes.map(node => (
+                    <motion.div
+                      key={node.id}
+                      className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10 flex flex-col items-center`}
+                      style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                      whileHover={{ scale: 1.1 }}
+                      onClick={() => setSelectedNodeId(node.id)}
                     >
-                      <span className="text-xs font-bold">{node.impact}</span>
-                    </div>
+                      <div className={`rounded-full border-2 shadow-lg transition-all duration-300 flex items-center justify-center
+                        ${selectedNodeId === node.id ? 'ring-4 ring-white/10 scale-110' : ''}
+                        ${node.risk === 'high' ? 'bg-orange-500/20 border-orange-500 text-orange-500' :
+                          node.risk === 'medium' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-500' :
+                            'bg-emerald-500/20 border-emerald-500 text-emerald-500'}
+                      `}
+                        style={{
+                          width: `${Math.max(40, node.impact * 0.8)}px`,
+                          height: `${Math.max(40, node.impact * 0.8)}px`
+                        }}
+                      >
+                        <span className="text-xs font-bold">{node.impact}</span>
+                      </div>
 
-                    {/* Label */}
-                    <div className="mt-2 px-2 py-1 bg-zinc-950/80 backdrop-blur-sm rounded border border-zinc-800 text-xs text-zinc-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      {node.label}
-                    </div>
-                  </motion.div>
-                ))}
+                      {/* Label */}
+                      <div className="mt-2 px-2 py-1 bg-zinc-950/80 backdrop-blur-sm rounded border border-zinc-800 text-xs text-zinc-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        {node.label}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
 
                 {/* Legend */}
                 <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur p-3 rounded-lg border border-zinc-800 text-xs space-y-2">
@@ -769,64 +879,72 @@ export default function DecisionForgePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
-                    {filteredHistory.map((decision) => (
-                      <tr key={decision.id} className="hover:bg-zinc-800/30 transition-colors group">
-                        <td className="px-6 py-4 font-medium text-white">{decision.title}</td>
-                        <td className="px-6 py-4 text-zinc-400">{decision.date}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${decision.type === 'Deep' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
-                            }`}>
-                            {decision.type}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`flex items-center gap-1.5 ${decision.riskLevel === 'Alto' ? 'text-orange-400' :
-                            decision.riskLevel === 'Médio' ? 'text-yellow-400' :
-                              'text-emerald-400'
-                            }`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${decision.riskLevel === 'Alto' ? 'bg-orange-400' :
-                              decision.riskLevel === 'Médio' ? 'bg-yellow-400' :
-                                'bg-emerald-400'
-                              }`}></div>
-                            {decision.riskLevel}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-zinc-300 font-mono">{decision.impactScore}</td>
-                        <td className="px-6 py-4 text-right relative">
-                          <button
-                            className="text-zinc-500 hover:text-white transition-colors"
-                            onClick={() => setOpenMenuId(openMenuId === decision.id ? null : decision.id)}
-                          >
-                            <Icons.MoreVertical className="w-4 h-4 ml-auto" />
-                          </button>
-                          {openMenuId === decision.id && (
-                            <div ref={menuRef} className="absolute right-0 mt-1 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg z-10">
-                              <button
-                                onClick={() => {
-                                  setSelectedNodeId(decision.id);
-                                  setActiveTab('map');
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2 border-b border-zinc-800"
-                              >
-                                <Icons.Map className="w-4 h-4" />
-                                Ver no Mapa
-                              </button>
-                              <button
-                                onClick={() => {
-                                  toast.info('Editar decisão: ' + decision.title);
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2"
-                              >
-                                <Icons.Edit2 className="w-4 h-4" />
-                                Editar
-                              </button>
-                            </div>
-                          )}
+                    {filteredHistory.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                          Nenhuma decisão registrada no histórico.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredHistory.map((decision) => (
+                        <tr key={decision.id} className="hover:bg-zinc-800/30 transition-colors group">
+                          <td className="px-6 py-4 font-medium text-white">{decision.title}</td>
+                          <td className="px-6 py-4 text-zinc-400">{decision.date}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${decision.type === 'Deep' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
+                              }`}>
+                              {decision.type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`flex items-center gap-1.5 ${decision.riskLevel === 'Alto' ? 'text-orange-400' :
+                              decision.riskLevel === 'Médio' ? 'text-yellow-400' :
+                                'text-emerald-400'
+                              }`}>
+                              <div className={`w-1.5 h-1.5 rounded-full ${decision.riskLevel === 'Alto' ? 'bg-orange-400' :
+                                decision.riskLevel === 'Médio' ? 'bg-yellow-400' :
+                                  'bg-emerald-400'
+                                }`}></div>
+                              {decision.riskLevel}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-zinc-300 font-mono">{decision.impactScore}</td>
+                          <td className="px-6 py-4 text-right relative">
+                            <button
+                              className="text-zinc-500 hover:text-white transition-colors"
+                              onClick={() => setOpenMenuId(openMenuId === decision.id ? null : decision.id)}
+                            >
+                              <Icons.MoreVertical className="w-4 h-4 ml-auto" />
+                            </button>
+                            {openMenuId === decision.id && (
+                              <div ref={menuRef} className="absolute right-0 mt-1 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg z-10">
+                                <button
+                                  onClick={() => {
+                                    setSelectedNodeId(decision.id);
+                                    setActiveTab('map');
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2 border-b border-zinc-800"
+                                >
+                                  <Icons.Map className="w-4 h-4" />
+                                  Ver no Mapa
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    toast.info('Editar decisão: ' + decision.title);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2"
+                                >
+                                  <Icons.Edit2 className="w-4 h-4" />
+                                  Editar
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

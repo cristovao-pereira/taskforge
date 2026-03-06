@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { useEvent } from '../contexts/EventContext';
+import { useApp } from '../contexts/AppContext';
 import { agentAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ export default function LeverageForgePage() {
   const navigate = useNavigate();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const { socket } = useEvent();
+  const { addPlan, addRisk } = useApp();
 
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -29,18 +31,59 @@ export default function LeverageForgePage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const activeJobIdRef = useRef<string | null>(null);
   // Socket.io for Real-time Updates
   useEffect(() => {
     if (!socket) return;
 
     const handleJobUpdate = (data: any) => {
-      if (data.jobId === activeJobId && data.status === 'COMPLETED') {
-        setResult(data.result);
-        setIsAnalyzing(false);
-        setShowResult(true);
-        setActiveJobId(null);
-        toast.success('✨ Análise de alavancagem concluída!');
-        fetchHistory();
+      if (data.jobId === activeJobId) {
+        if (data.status === 'COMPLETED') {
+          const resultPayload = data.result || {};
+          setResult(resultPayload);
+          setIsAnalyzing(false);
+          setShowResult(true);
+          setActiveJobId(null);
+          activeJobIdRef.current = null;
+          toast.success('✨ Análise de alavancagem concluída!');
+          fetchHistory();
+          // Sync to global state
+          addPlan({
+            title: inputText.slice(0, 50) + (inputText.length > 50 ? '...' : '') || 'Análise de Alavancagem',
+            origin: 'LeverageForge',
+            date: new Date().toISOString().split('T')[0],
+            status: 'active',
+            progress: 0,
+            priority: 'high',
+            objective: resultPayload.summary || 'Identificar pontos de alto retorno.',
+            timeline: 'Planejamento Inicial',
+            phases: [],
+            intelligence: {
+              risks: resultPayload.bottlenecks ? [resultPayload.bottlenecks] : [],
+              dependencies: [],
+              impact: resultPayload.estimatedImpact || 'Alto',
+              confidence: parseInt(resultPayload.leverageScore?.match(/\d+/)?.[0] || '75'),
+              rationale: resultPayload.focusRecommendations || 'Foco em iniciativas de alto retorno.',
+            }
+          });
+
+          if (resultPayload.bottlenecks && resultPayload.bottlenecks.length > 5 && resultPayload.bottlenecks.toLowerCase() !== 'nenhum') {
+            addRisk({
+              title: `Gargalo de Alavancagem: ${inputText.slice(0, 30) || 'Análise Otimizada'}`,
+              description: resultPayload.bottlenecks,
+              severity: 'high',
+              probability: 'high',
+              status: 'active',
+              mitigationPlan: resultPayload.focusRecommendations || 'Foco em iniciativas de alto retorno e eliminação de desperdício.'
+            });
+          }
+        } else if (data.status === 'FAILED') {
+          setIsAnalyzing(false);
+          setActiveJobId(null);
+          activeJobIdRef.current = null;
+          toast.dismiss('leverage-loading');
+          toast.error('❌ Falha na análise de alavancagem enviada ao agente.');
+        }
       }
     };
 
@@ -49,8 +92,40 @@ export default function LeverageForgePage() {
       setIsAnalyzing(false);
       setShowResult(true);
       setActiveJobId(null);
+      activeJobIdRef.current = null;
+      toast.dismiss('leverage-loading');
       toast.success('✨ Oportunidades de impacto identificadas!');
       fetchHistory();
+      // Sync to global state
+      addPlan({
+        title: inputText.slice(0, 50) + (inputText.length > 50 ? '...' : '') || 'Análise de Alavancagem',
+        origin: 'LeverageForge',
+        date: new Date().toISOString().split('T')[0],
+        status: 'active',
+        progress: 0,
+        priority: 'high',
+        objective: data.summary || 'Identificar pontos de alto retorno.',
+        timeline: 'Planejamento Inicial',
+        phases: [],
+        intelligence: {
+          risks: data.bottlenecks ? [data.bottlenecks] : [],
+          dependencies: [],
+          impact: data.estimatedImpact || 'Alto',
+          confidence: parseInt(data.leverageScore?.match(/\d+/)?.[0] || '75'),
+          rationale: data.focusRecommendations || 'Foco em iniciativas de alto retorno.',
+        }
+      });
+
+      if (data.bottlenecks && data.bottlenecks.length > 5 && data.bottlenecks.toLowerCase() !== 'nenhum') {
+        addRisk({
+          title: `Gargalo de Alavancagem: ${inputText.slice(0, 30) || 'Análise Otimizada'}`,
+          description: data.bottlenecks,
+          severity: 'high',
+          probability: 'high',
+          status: 'active',
+          mitigationPlan: data.focusRecommendations || 'Foco em iniciativas de alto retorno e eliminação de desperdício.'
+        });
+      }
     };
 
     socket.on('agent:job_update', handleJobUpdate);
@@ -98,26 +173,60 @@ export default function LeverageForgePage() {
       );
 
       setActiveJobId(jobId);
+      activeJobIdRef.current = jobId;
       toast.loading('Calculando impacto estratégico...', { id: 'leverage-loading' });
 
       const checkStatus = async () => {
         try {
           const job = await agentAPI.getJobStatus(jobId);
           if (job.status === 'COMPLETED') {
-            setResult(job.outputPayload);
+            const resultPayload = job.outputPayload || {};
+            setResult(resultPayload);
             setIsAnalyzing(false);
             setShowResult(true);
             setActiveJobId(null);
+            activeJobIdRef.current = null;
             toast.dismiss('leverage-loading');
             toast.success('✨ Alavancagem mapeada!');
             fetchHistory();
+            // Sync to global state
+            addPlan({
+              title: inputText.slice(0, 50) + (inputText.length > 50 ? '...' : '') || 'Análise de Alavancagem',
+              origin: 'LeverageForge',
+              date: new Date().toISOString().split('T')[0],
+              status: 'active',
+              progress: 0,
+              priority: 'high',
+              objective: resultPayload.summary || 'Identificar pontos de alto retorno.',
+              timeline: 'Planejamento Inicial',
+              phases: [],
+              intelligence: {
+                risks: resultPayload.bottlenecks ? [resultPayload.bottlenecks] : [],
+                dependencies: [],
+                impact: resultPayload.estimatedImpact || 'Alto',
+                confidence: parseInt(resultPayload.leverageScore?.match(/\d+/)?.[0] || '75'),
+                rationale: resultPayload.focusRecommendations || 'Foco em iniciativas de alto retorno.',
+              }
+            });
+
+            if (resultPayload.bottlenecks && resultPayload.bottlenecks.length > 5 && resultPayload.bottlenecks.toLowerCase() !== 'nenhum') {
+              addRisk({
+                title: `Gargalo de Alavancagem: ${inputText.slice(0, 30) || 'Análise Otimizada'}`,
+                description: resultPayload.bottlenecks,
+                severity: 'high',
+                probability: 'high',
+                status: 'active',
+                mitigationPlan: resultPayload.focusRecommendations || 'Foco em iniciativas de alto retorno e eliminação de desperdício.'
+              });
+            }
           } else if (job.status === 'FAILED') {
             setIsAnalyzing(false);
             setActiveJobId(null);
+            activeJobIdRef.current = null;
             toast.dismiss('leverage-loading');
             toast.error('❌ Falha na análise. Tente novamente.');
           } else {
-            if (activeJobId === jobId) setTimeout(checkStatus, 5000);
+            if (activeJobIdRef.current === jobId) setTimeout(checkStatus, 5000);
           }
         } catch (e) {
           console.error('Status check failed:', e);
