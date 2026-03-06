@@ -11,7 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 async function getIdToken(): Promise<string | null> {
   const user = auth.currentUser;
   if (!user) return null;
-  
+
   try {
     return await user.getIdToken();
   } catch (error) {
@@ -28,7 +28,7 @@ export async function apiRequest<T = any>(
   options: RequestInit = {}
 ): Promise<T> {
   const idToken = await getIdToken();
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -96,22 +96,34 @@ export const agentAPI = {
     api.post('/api/agents/retrieve', { query, mode, documentIds, topK }),
 
   /**
-   * DecisionForge: Analyze decision with document context
+   * DecisionForge: Analyze decision with document context (Async)
    */
-  analyzeDecision: async (decision: string, context: any = {}, documentIds: string[] = []) =>
+  decision: async (decision: string, context: any = {}, documentIds: string[] = []) =>
     api.post('/api/agents/decision', { decision, context, documentIds }),
 
   /**
-   * ClarityForge: Structure thinking with document context
+   * ClarityForge: Structure thinking with document context (Async)
    */
-  clarifyThinking: async (input: string, context: any = {}, documentIds: string[] = []) =>
+  clarity: async (input: string, context: any = {}, documentIds: string[] = []) =>
     api.post('/api/agents/clarity', { input, context, documentIds }),
 
   /**
-   * LeverageForge: Identify high-impact actions
+   * LeverageForge: Identify high-impact actions (Async)
    */
-  planExecution: async (objective: string, context: any = {}, documentIds: string[] = []) =>
+  leverage: async (objective: string, context: any = {}, documentIds: string[] = []) =>
     api.post('/api/agents/leverage', { objective, context, documentIds }),
+
+  /**
+   * Get agent job history
+   */
+  getHistory: async (agentType?: string) =>
+    api.get(`/api/agents/history${agentType ? `?type=${agentType}` : ''}`),
+
+  /**
+   * Get specific agent job status/result
+   */
+  getJobStatus: async (jobId: string) =>
+    api.get(`/api/agents/jobs/${jobId}`),
 };
 
 export default api;

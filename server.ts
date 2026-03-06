@@ -24,8 +24,8 @@ const hasValidStripeSecretKey =
 
 const stripe = hasValidStripeSecretKey
     ? new Stripe(stripeSecretKey, {
-            apiVersion: '2026-02-25.clover',
-        })
+        apiVersion: '2026-02-25.clover',
+    })
     : null;
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -52,16 +52,16 @@ const getCorsOrigins = () => {
 const corsOrigins = getCorsOrigins();
 
 const io = new Server(httpServer, {
-  cors: {
-    origin: corsOrigins,
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+    cors: {
+        origin: corsOrigins,
+        methods: ["GET", "POST"],
+        credentials: true
+    }
 });
 
 app.use(cors({
-  origin: corsOrigins,
-  credentials: true
+    origin: corsOrigins,
+    credentials: true
 }));
 const jsonParser = express.json();
 app.use((req, res, next) => {
@@ -73,7 +73,7 @@ app.use((req, res, next) => {
 });
 
 // Multer Setup
-const upload = multer({ 
+const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
@@ -94,481 +94,481 @@ const getFileChecksum = (buffer: Buffer) => createHash('sha256').update(buffer).
  * Handles migration from users without firebaseUid
  */
 async function getOrCreateUser(firebaseUid: string, email?: string, name?: string) {
-  // Try to find by firebaseUid first
-  let user = await prisma.user.findUnique({
-    where: { firebaseUid }
-  });
-
-  // If not found and email provided, try by email
-  if (!user && email) {
-    user = await prisma.user.findUnique({
-      where: { email }
+    // Try to find by firebaseUid first
+    let user = await prisma.user.findUnique({
+        where: { firebaseUid }
     });
 
-    // If found by email, update with firebaseUid
-    if (user) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { firebaseUid }
-      });
+    // If not found and email provided, try by email
+    if (!user && email) {
+        user = await prisma.user.findUnique({
+            where: { email }
+        });
+
+        // If found by email, update with firebaseUid
+        if (user) {
+            user = await prisma.user.update({
+                where: { id: user.id },
+                data: { firebaseUid }
+            });
+        }
     }
-  }
 
-  // If still not found, create new user
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        firebaseUid,
-        email: email || `user-${firebaseUid}@taskforge.local`,
-        name: name || 'Usuário',
-      }
-    });
-  }
+    // If still not found, create new user
+    if (!user) {
+        user = await prisma.user.create({
+            data: {
+                firebaseUid,
+                email: email || `user-${firebaseUid}@taskforge.local`,
+                name: name || 'Usuário',
+            }
+        });
+    }
 
-  return user;
+    return user;
 }
 
 async function persistUploadedFile(file: Express.Multer.File, userId: string, documentId: string) {
-  const sanitizedName = sanitizeFilename(file.originalname);
-  const storagePath = `documents/${userId}/${documentId}-${sanitizedName}`;
-  const checksum = getFileChecksum(file.buffer);
+    const sanitizedName = sanitizeFilename(file.originalname);
+    const storagePath = `documents/${userId}/${documentId}-${sanitizedName}`;
+    const checksum = getFileChecksum(file.buffer);
 
-  try {
-    const admin = getFirebaseAdmin();
-    if (admin.apps.length) {
-      const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
-      const bucket = bucketName ? admin.storage().bucket(bucketName) : admin.storage().bucket();
-      const bucketFile = bucket.file(storagePath);
+    try {
+        const admin = getFirebaseAdmin();
+        if (admin.apps.length) {
+            const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
+            const bucket = bucketName ? admin.storage().bucket(bucketName) : admin.storage().bucket();
+            const bucketFile = bucket.file(storagePath);
 
-      await bucketFile.save(file.buffer, {
-        metadata: {
-          contentType: file.mimetype,
-          metadata: {
-            checksum,
-            uploadedBy: userId
-          }
-        },
-        resumable: false,
-      });
+            await bucketFile.save(file.buffer, {
+                metadata: {
+                    contentType: file.mimetype,
+                    metadata: {
+                        checksum,
+                        uploadedBy: userId
+                    }
+                },
+                resumable: false,
+            });
 
-      return {
-        storageUrl: `gs://${bucket.name}/${storagePath}`,
-        storagePath,
+            return {
+                storageUrl: `gs://${bucket.name}/${storagePath}`,
+                storagePath,
+                checksum,
+                mimeType: file.mimetype,
+            };
+        }
+    } catch (error) {
+        console.warn('Firebase Storage unavailable, using local fallback:', error);
+    }
+
+    const localRelativePath = path.join('uploads', userId, `${documentId}-${sanitizedName}`);
+    const localAbsolutePath = path.resolve(process.cwd(), localRelativePath);
+    await mkdir(path.dirname(localAbsolutePath), { recursive: true });
+    await writeFile(localAbsolutePath, file.buffer);
+
+    return {
+        storageUrl: localRelativePath.replace(/\\/g, '/'),
+        storagePath: localRelativePath.replace(/\\/g, '/'),
         checksum,
         mimeType: file.mimetype,
-      };
-    }
-  } catch (error) {
-    console.warn('Firebase Storage unavailable, using local fallback:', error);
-  }
-
-  const localRelativePath = path.join('uploads', userId, `${documentId}-${sanitizedName}`);
-  const localAbsolutePath = path.resolve(process.cwd(), localRelativePath);
-  await mkdir(path.dirname(localAbsolutePath), { recursive: true });
-  await writeFile(localAbsolutePath, file.buffer);
-
-  return {
-    storageUrl: localRelativePath.replace(/\\/g, '/'),
-    storagePath: localRelativePath.replace(/\\/g, '/'),
-    checksum,
-    mimeType: file.mimetype,
-  };
+    };
 }
 
 async function enqueueDocumentAnalysis(documentId: string, userId: string, payload?: unknown) {
-  return prisma.documentIngestionJob.create({
-    data: {
-      documentId,
-      userId,
-      status: 'queued',
-      payloadJson: payload ? JSON.stringify(payload) : null,
-      nextRetryAt: new Date(),
-    }
-  });
+    return prisma.documentIngestionJob.create({
+        data: {
+            documentId,
+            userId,
+            status: 'queued',
+            payloadJson: payload ? JSON.stringify(payload) : null,
+            nextRetryAt: new Date(),
+        }
+    });
 }
 
 async function processDocumentIngestionQueue() {
-  if (isDocumentWorkerRunning) return;
-  isDocumentWorkerRunning = true;
-
-  try {
-    const now = new Date();
-    const job = await prisma.documentIngestionJob.findFirst({
-      where: {
-        OR: [
-          { status: 'queued' },
-          {
-            status: 'failed',
-            nextRetryAt: { lte: now }
-          }
-        ]
-      },
-      orderBy: { createdAt: 'asc' }
-    });
-
-    if (!job) return;
-
-    await prisma.documentIngestionJob.update({
-      where: { id: job.id },
-      data: {
-        status: 'processing',
-        attempts: { increment: 1 },
-        startedAt: new Date(),
-      }
-    });
-
-    await prisma.document.update({
-      where: { id: job.documentId },
-      data: { status: 'processing' }
-    });
+    if (isDocumentWorkerRunning) return;
+    isDocumentWorkerRunning = true;
 
     try {
-      await processDocumentPipeline(job.documentId, job.userId);
+        const now = new Date();
+        const job = await prisma.documentIngestionJob.findFirst({
+            where: {
+                OR: [
+                    { status: 'queued' },
+                    {
+                        status: 'failed',
+                        nextRetryAt: { lte: now }
+                    }
+                ]
+            },
+            orderBy: { createdAt: 'asc' }
+        });
 
-      await prisma.documentIngestionJob.update({
-        where: { id: job.id },
-        data: {
-          status: 'completed',
-          completedAt: new Date(),
-          lastError: null,
-          nextRetryAt: null,
+        if (!job) return;
+
+        await prisma.documentIngestionJob.update({
+            where: { id: job.id },
+            data: {
+                status: 'processing',
+                attempts: { increment: 1 },
+                startedAt: new Date(),
+            }
+        });
+
+        await prisma.document.update({
+            where: { id: job.documentId },
+            data: { status: 'processing' }
+        });
+
+        try {
+            await processDocumentPipeline(job.documentId, job.userId);
+
+            await prisma.documentIngestionJob.update({
+                where: { id: job.id },
+                data: {
+                    status: 'completed',
+                    completedAt: new Date(),
+                    lastError: null,
+                    nextRetryAt: null,
+                }
+            });
+        } catch (error) {
+            const freshJob = await prisma.documentIngestionJob.findUnique({ where: { id: job.id } });
+            const attempts = freshJob?.attempts ?? 1;
+            const maxAttempts = freshJob?.maxAttempts ?? 3;
+            const canRetry = attempts < maxAttempts;
+            const backoffMinutes = Math.min(30, attempts * 2);
+            const nextRetryAt = canRetry
+                ? new Date(Date.now() + backoffMinutes * 60 * 1000)
+                : null;
+
+            await prisma.documentIngestionJob.update({
+                where: { id: job.id },
+                data: {
+                    status: 'failed',
+                    lastError: error instanceof Error ? error.message : String(error),
+                    nextRetryAt,
+                }
+            });
+
+            await prisma.document.update({
+                where: { id: job.documentId },
+                data: { status: canRetry ? 'uploaded' : 'error' }
+            });
         }
-      });
-    } catch (error) {
-      const freshJob = await prisma.documentIngestionJob.findUnique({ where: { id: job.id } });
-      const attempts = freshJob?.attempts ?? 1;
-      const maxAttempts = freshJob?.maxAttempts ?? 3;
-      const canRetry = attempts < maxAttempts;
-      const backoffMinutes = Math.min(30, attempts * 2);
-      const nextRetryAt = canRetry
-        ? new Date(Date.now() + backoffMinutes * 60 * 1000)
-        : null;
-
-      await prisma.documentIngestionJob.update({
-        where: { id: job.id },
-        data: {
-          status: 'failed',
-          lastError: error instanceof Error ? error.message : String(error),
-          nextRetryAt,
-        }
-      });
-
-      await prisma.document.update({
-        where: { id: job.documentId },
-        data: { status: canRetry ? 'uploaded' : 'error' }
-      });
+    } finally {
+        isDocumentWorkerRunning = false;
     }
-  } finally {
-    isDocumentWorkerRunning = false;
-  }
 }
 
 function startDocumentWorker() {
-  if (documentWorkerTimer) return;
-  documentWorkerTimer = setInterval(() => {
-    processDocumentIngestionQueue().catch((error) => {
-      console.error('Document worker iteration failed:', error);
-    });
-  }, DOCUMENT_WORKER_INTERVAL_MS);
+    if (documentWorkerTimer) return;
+    documentWorkerTimer = setInterval(() => {
+        processDocumentIngestionQueue().catch((error) => {
+            console.error('Document worker iteration failed:', error);
+        });
+    }, DOCUMENT_WORKER_INTERVAL_MS);
 }
 
 async function logDocumentAudit(
-  documentId: string,
-  userId: string,
-  action: string,
-  reason?: string,
-  metadata?: Record<string, any>,
-  ipAddress?: string
+    documentId: string,
+    userId: string,
+    action: string,
+    reason?: string,
+    metadata?: Record<string, any>,
+    ipAddress?: string
 ) {
-  try {
-    await prisma.documentAuditLog.create({
-      data: {
-        documentId,
-        userId,
-        action,
-        reason,
-        metadata: metadata ? JSON.stringify(metadata) : null,
-        ipAddress,
-      }
-    });
-  } catch (error) {
-    console.warn('Failed to log document audit:', error);
-  }
+    try {
+        await prisma.documentAuditLog.create({
+            data: {
+                documentId,
+                userId,
+                action,
+                reason,
+                metadata: metadata ? JSON.stringify(metadata) : null,
+                ipAddress,
+            }
+        });
+    } catch (error) {
+        console.warn('Failed to log document audit:', error);
+    }
 }
 
 async function cleanupExpiredDocuments() {
-  try {
-    const now = new Date();
-    const expiredCount = await prisma.document.count({
-      where: {
-        retentionExpiresAt: { lte: now },
-        status: { not: 'deleted' }
-      }
-    });
-
-    if (expiredCount === 0) return;
-
-    console.log(`Found ${expiredCount} expired documents for cleanup`);
-
-    const expired = await prisma.document.findMany({
-      where: {
-        retentionExpiresAt: { lte: now },
-        status: { not: 'deleted' }
-      },
-      take: 50
-    });
-
-    for (const doc of expired) {
-      try {
-        // Log deletion audit
-        await logDocumentAudit(
-          doc.id,
-          doc.userId,
-          'delete',
-          'Automatic retention expiration',
-          { expiresAt: doc.retentionExpiresAt }
-        );
-
-        // Delete from Firebase Storage if applicable
-        if (doc.storagePath?.startsWith('documents/')) {
-          try {
-            const admin = getFirebaseAdmin();
-            if (admin.apps.length) {
-              const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
-              const bucket = bucketName ? admin.storage().bucket(bucketName) : admin.storage().bucket();
-              await bucket.file(doc.storagePath).delete().catch(() => {
-                // File may not exist, ignore error
-              });
+    try {
+        const now = new Date();
+        const expiredCount = await prisma.document.count({
+            where: {
+                retentionExpiresAt: { lte: now },
+                status: { not: 'deleted' }
             }
-          } catch (error) {
-            console.warn(`Failed to delete file ${doc.storagePath}:`, error);
-          }
-        }
-
-        // Mark as deleted
-        await prisma.document.update({
-          where: { id: doc.id },
-          data: { status: 'deleted', storageUrl: null, storagePath: null }
         });
 
-        console.log(`Deleted expired document ${doc.id}`);
-      } catch (error) {
-        console.error(`Error deleting document ${doc.id}:`, error);
-      }
+        if (expiredCount === 0) return;
+
+        console.log(`Found ${expiredCount} expired documents for cleanup`);
+
+        const expired = await prisma.document.findMany({
+            where: {
+                retentionExpiresAt: { lte: now },
+                status: { not: 'deleted' }
+            },
+            take: 50
+        });
+
+        for (const doc of expired) {
+            try {
+                // Log deletion audit
+                await logDocumentAudit(
+                    doc.id,
+                    doc.userId,
+                    'delete',
+                    'Automatic retention expiration',
+                    { expiresAt: doc.retentionExpiresAt }
+                );
+
+                // Delete from Firebase Storage if applicable
+                if (doc.storagePath?.startsWith('documents/')) {
+                    try {
+                        const admin = getFirebaseAdmin();
+                        if (admin.apps.length) {
+                            const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
+                            const bucket = bucketName ? admin.storage().bucket(bucketName) : admin.storage().bucket();
+                            await bucket.file(doc.storagePath).delete().catch(() => {
+                                // File may not exist, ignore error
+                            });
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to delete file ${doc.storagePath}:`, error);
+                    }
+                }
+
+                // Mark as deleted
+                await prisma.document.update({
+                    where: { id: doc.id },
+                    data: { status: 'deleted', storageUrl: null, storagePath: null }
+                });
+
+                console.log(`Deleted expired document ${doc.id}`);
+            } catch (error) {
+                console.error(`Error deleting document ${doc.id}:`, error);
+            }
+        }
+    } catch (error) {
+        console.error('Cleanup error:', error);
     }
-  } catch (error) {
-    console.error('Cleanup error:', error);
-  }
 }
 
 function startCleanupWorker() {
-  // Run cleanup every 6 hours
-  setInterval(() => {
-    cleanupExpiredDocuments().catch(error => {
-      console.error('Cleanup worker failed:', error);
-    });
-  }, 6 * 60 * 60 * 1000);
+    // Run cleanup every 6 hours
+    setInterval(() => {
+        cleanupExpiredDocuments().catch(error => {
+            console.error('Cleanup worker failed:', error);
+        });
+    }, 6 * 60 * 60 * 1000);
 
-  // Also run once on startup
-  cleanupExpiredDocuments().catch(error => {
-    console.error('Initial cleanup failed:', error);
-  });
+    // Also run once on startup
+    cleanupExpiredDocuments().catch(error => {
+        console.error('Initial cleanup failed:', error);
+    });
 }
 
 // --- Socket.io with Multi-tenant Authorization ---
 
 io.on('connection', async (socket) => {
-  console.log('Client socket connected:', socket.id);
-  
-  // Authenticate socket via Firebase token
-  const token = socket.handshake.auth.token;
-  let userId: string | null = null;
-  
-  try {
-    if (token) {
-      const admin = getFirebaseAdmin();
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      userId = decodedToken.uid;
-      
-      // Join user-specific room
-      socket.join(userId);
-      socket.data.userId = userId;
-      console.log(`Socket ${socket.id} authenticated for userId ${userId}, joined room ${userId}`);
-    } else {
-      console.warn(`Socket ${socket.id} connected without token, disconnecting`);
-      socket.disconnect();
-      return;
+    console.log('Client socket connected:', socket.id);
+
+    // Authenticate socket via Firebase token
+    const token = socket.handshake.auth.token;
+    let userId: string | null = null;
+
+    try {
+        if (token) {
+            const admin = getFirebaseAdmin();
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            userId = decodedToken.uid;
+
+            // Join user-specific room
+            socket.join(userId);
+            socket.data.userId = userId;
+            console.log(`Socket ${socket.id} authenticated for userId ${userId}, joined room ${userId}`);
+        } else {
+            console.warn(`Socket ${socket.id} connected without token, disconnecting`);
+            socket.disconnect();
+            return;
+        }
+    } catch (error) {
+        console.error(`Socket ${socket.id} auth failed:`, error);
+        socket.disconnect();
+        return;
     }
-  } catch (error) {
-    console.error(`Socket ${socket.id} auth failed:`, error);
-    socket.disconnect();
-    return;
-  }
-  
-  socket.on('disconnect', () => {
-    console.log(`Client socket disconnected: ${socket.id} (userId: ${userId})`);
-  });
+
+    socket.on('disconnect', () => {
+        console.log(`Client socket disconnected: ${socket.id} (userId: ${userId})`);
+    });
 });
 
 // --- API Routes ---
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // User Profile Endpoints
 app.get('/api/user/profile', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.userId!;
-    let user = await prisma.user.findUnique({ where: { id: userId } });
-    
-    if (!user && req.user) {
-      // Create user if doesn't exist
-      user = await prisma.user.create({
-        data: {
-          id: userId,
-          email: req.user.email || `${userId}@unknown.com`,
-          name: req.user.name || 'User',
-        },
-      });
-    }
+    try {
+        const userId = req.userId!;
+        let user = await prisma.user.findUnique({ where: { id: userId } });
 
-    if (!user) {
-      res.status(404).json({ error: 'User not found' });
-      return;
-    }
+        if (!user && req.user) {
+            // Create user if doesn't exist
+            user = await prisma.user.create({
+                data: {
+                    id: userId,
+                    email: req.user.email || `${userId}@unknown.com`,
+                    name: req.user.name || 'User',
+                },
+            });
+        }
 
-    res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      hasCompletedOnboarding: user.hasCompletedOnboarding,
-      objective: user.objective,
-      strategicMode: user.strategicMode,
-      plan: user.plan?.toLowerCase() || 'gratis',
-    });
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        res.json({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            hasCompletedOnboarding: user.hasCompletedOnboarding,
+            objective: user.objective,
+            strategicMode: user.strategicMode,
+            plan: user.plan?.toLowerCase() || 'gratis',
+        });
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
 app.patch('/api/user/profile', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.userId!;
-    const { hasCompletedOnboarding, objective, strategicMode, name } = req.body;
+    try {
+        const userId = req.userId!;
+        const { hasCompletedOnboarding, objective, strategicMode, name } = req.body;
 
-    const updateData: any = {};
-    if (hasCompletedOnboarding !== undefined) updateData.hasCompletedOnboarding = hasCompletedOnboarding;
-    if (objective !== undefined) updateData.objective = objective;
-    if (strategicMode !== undefined) updateData.strategicMode = strategicMode;
-    if (name !== undefined) updateData.name = name;
+        const updateData: any = {};
+        if (hasCompletedOnboarding !== undefined) updateData.hasCompletedOnboarding = hasCompletedOnboarding;
+        if (objective !== undefined) updateData.objective = objective;
+        if (strategicMode !== undefined) updateData.strategicMode = strategicMode;
+        if (name !== undefined) updateData.name = name;
 
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-    });
+        const user = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+        });
 
-    res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      hasCompletedOnboarding: user.hasCompletedOnboarding,
-      objective: user.objective,
-      strategicMode: user.strategicMode,
-    });
-  } catch (error) {
-    console.error('Error updating user profile:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
+        res.json({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            hasCompletedOnboarding: user.hasCompletedOnboarding,
+            objective: user.objective,
+            strategicMode: user.strategicMode,
+        });
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
 // Events Endpoint - Requires Authentication
 app.post('/api/events', authenticateUser, async (req, res) => {
-  try {
-    const { eventType, entityType, entityId, metadata } = req.body;
-    const firebaseUserId = req.userId!;
+    try {
+        const { eventType, entityType, entityId, metadata } = req.body;
+        const firebaseUserId = req.userId!;
 
-    // 1. Find or create user based on Firebase UID
-    let user = await prisma.user.findUnique({ where: { id: firebaseUserId } });
-    if (!user && req.user) {
-      // Create user from Firebase token
-      user = await prisma.user.create({
-        data: {
-          id: firebaseUserId,
-          email: req.user.email || `${firebaseUserId}@unknown.com`,
-          name: req.user.name || 'User',
-        },
-      });
-    }
-
-    if (!user) {
-      res.status(404).json({ error: 'User not found' });
-      return;
-    }
-
-    const event = await prisma.eventLog.create({
-      data: {
-        eventType,
-        entityType,
-        entityId,
-        metadata: JSON.stringify(metadata || {}),
-        userId: user.id,
-      }
-    });
-
-    // Emit raw event to user's room only
-    io.to(user.id).emit('event:new', { ...event, metadata: JSON.parse(event.metadata || '{}') });
-
-    // 2. Process Metrics Logic via Service
-    const updates = await processEvent(event.id);
-
-    if (updates) {
-        for (const update of updates) {
-            // Log explanation
-            await prisma.explanationLog.create({
+        // 1. Find or create user based on Firebase UID
+        let user = await prisma.user.findUnique({ where: { id: firebaseUserId } });
+        if (!user && req.user) {
+            // Create user from Firebase token
+            user = await prisma.user.create({
                 data: {
-                    relatedEventId: event.id,
-                    title: update.type === 'dna_update' ? 'DNA Estratégico' : 'System Health',
-                    whatChanged: `Score alterado de ${update.scoreBefore} para ${update.scoreAfter}`,
-                    whyChanged: update.reason,
-                    impact: 'Impacto na priorização.',
-                    recommendation: update.recommendation,
-                }
+                    id: firebaseUserId,
+                    email: req.user.email || `${firebaseUserId}@unknown.com`,
+                    name: req.user.name || 'User',
+                },
             });
-            
-            // Emit explanation update to user's room only
-            io.to(user.id).emit('explanation:new', { 
-                relatedEventId: event.id,
-                type: update.type,
-                ...update
-            });
+        }
 
-            // Also emit updated metrics to refresh UI immediately (to user's room)
-            if (update.type === 'dna_update') {
-                 const dna = await prisma.strategicDNA.findUnique({ where: { userId: user.id } });
-                 io.to(user.id).emit('metrics:dna:update', dna);
-            } else if (update.type === 'health_update') {
-                 const health = await prisma.systemHealth.findUnique({ where: { userId: user.id } });
-                 io.to(user.id).emit('metrics:health:update', health);
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        const event = await prisma.eventLog.create({
+            data: {
+                eventType,
+                entityType,
+                entityId,
+                metadata: JSON.stringify(metadata || {}),
+                userId: user.id,
+            }
+        });
+
+        // Emit raw event to user's room only
+        io.to(user.id).emit('event:new', { ...event, metadata: JSON.parse(event.metadata || '{}') });
+
+        // 2. Process Metrics Logic via Service
+        const updates = await processEvent(event.id);
+
+        if (updates) {
+            for (const update of updates) {
+                // Log explanation
+                await prisma.explanationLog.create({
+                    data: {
+                        relatedEventId: event.id,
+                        title: update.type === 'dna_update' ? 'DNA Estratégico' : 'System Health',
+                        whatChanged: `Score alterado de ${update.scoreBefore} para ${update.scoreAfter}`,
+                        whyChanged: update.reason,
+                        impact: 'Impacto na priorização.',
+                        recommendation: update.recommendation,
+                    }
+                });
+
+                // Emit explanation update to user's room only
+                io.to(user.id).emit('explanation:new', {
+                    relatedEventId: event.id,
+                    type: update.type,
+                    ...update
+                });
+
+                // Also emit updated metrics to refresh UI immediately (to user's room)
+                if (update.type === 'dna_update') {
+                    const dna = await prisma.strategicDNA.findUnique({ where: { userId: user.id } });
+                    io.to(user.id).emit('metrics:dna:update', dna);
+                } else if (update.type === 'health_update') {
+                    const health = await prisma.systemHealth.findUnique({ where: { userId: user.id } });
+                    io.to(user.id).emit('metrics:health:update', health);
+                }
             }
         }
-    }
 
-    res.json({ success: true, eventId: event.id });
-  } catch (error) {
-    console.error('Error processing event:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
+        res.json({ success: true, eventId: event.id });
+    } catch (error) {
+        console.error('Error processing event:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
 // Metrics Endpoints - Requires Authentication
 app.get('/api/metrics/dna', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!; 
+        const userId = req.userId!;
         let dna = await prisma.strategicDNA.findUnique({ where: { userId } });
-        
+
         if (!dna) {
             // Ensure user exists
             let user = await prisma.user.findUnique({ where: { id: userId } });
@@ -581,7 +581,7 @@ app.get('/api/metrics/dna', authenticateUser, async (req, res) => {
                     }
                 });
             }
-            
+
             dna = await prisma.strategicDNA.create({
                 data: { userId }
             });
@@ -597,7 +597,7 @@ app.get('/api/metrics/health', authenticateUser, async (req, res) => {
     try {
         const userId = req.userId!;
         let health = await prisma.systemHealth.findUnique({ where: { userId } });
-        
+
         if (!health) {
             // Ensure user exists
             let user = await prisma.user.findUnique({ where: { id: userId } });
@@ -627,10 +627,10 @@ app.get('/api/explanations', authenticateUser, async (req, res) => {
     try {
         const userId = req.userId!;
         const limit = parseInt(req.query.limit as string) || 20;
-        
+
         // Return empty array - explanations table may be empty for this user
         const explanations: any[] = [];
-        
+
         res.json(explanations);
     } catch (error) {
         console.error('Error fetching explanations:', error);
@@ -651,26 +651,26 @@ app.get('/api/documents', authenticateUser, async (req, res) => {
 
 app.get('/api/documents/score', authenticateUser, async (req, res) => {
     const userId = req.userId!;
-    
+
     const totalDocs = await prisma.document.count({ where: { userId } });
     if (totalDocs === 0) return res.json({ score: 0 });
 
     const processedDocs = await prisma.document.count({ where: { userId, status: { in: ['processed', 'insights_ready', 'risk_detected'] } } });
-    const linkedDocs = await prisma.document.count({ 
-        where: { 
-            userId, 
+    const linkedDocs = await prisma.document.count({
+        where: {
+            userId,
             OR: [
                 { linkedDecisions: { some: {} } },
                 { linkedPlans: { some: {} } },
                 { linkedRisks: { some: {} } }
             ]
-        } 
+        }
     });
-    
+
     // Simple mock calculation
     const score = Math.round(
-        ((processedDocs / totalDocs) * 40) + 
-        ((linkedDocs / totalDocs) * 40) + 
+        ((processedDocs / totalDocs) * 40) +
+        ((linkedDocs / totalDocs) * 40) +
         20 // Base score
     );
 
@@ -1043,7 +1043,7 @@ app.get('/api/documents/:id/suggestions', authenticateUser, async (req, res) => 
 
 app.get('/api/suggestions/pending', authenticateUser, async (req, res) => {
     const userId = req.userId!;
-    
+
     // Fetch pending decision suggestions
     const decisionSuggestions = await prisma.decisionSuggestion.findMany({
         where: { userId, status: 'pending' },
@@ -1127,14 +1127,18 @@ app.post('/api/suggestions/decision/:id/accept', authenticateUser, async (req, r
             whyChanged: "Sugestão do sistema aceita pelo usuário.",
             impact: "Impacto no DNA Estratégico.",
             recommendation: "Monitorar execução.",
-            event: { connect: { id: (await prisma.eventLog.create({
-                data: {
-                    eventType: 'decision.created', 
-                    entityType: 'decision', 
-                    userId,
-                    metadata: JSON.stringify({ origin: 'document_suggestion', documentId: suggestion.documentId })
+            event: {
+                connect: {
+                    id: (await prisma.eventLog.create({
+                        data: {
+                            eventType: 'decision.created',
+                            entityType: 'decision',
+                            userId,
+                            metadata: JSON.stringify({ origin: 'document_suggestion', documentId: suggestion.documentId })
+                        }
+                    })).id
                 }
-            })).id } }
+            }
         }
     });
 
@@ -1291,12 +1295,12 @@ app.get('/api/documents/quality-metrics', authenticateUser, async (req, res) => 
         const totalSuggestions = totalAccepted + totalDismissed;
         const overallAcceptanceRate = totalSuggestions > 0 ? (totalAccepted / totalSuggestions) * 100 : 0;
 
-        const avgProcessingTime = insights.length > 0 
-            ? insights.reduce((sum, i) => sum + (i.processingTimeMs || 0), 0) / insights.length 
+        const avgProcessingTime = insights.length > 0
+            ? insights.reduce((sum, i) => sum + (i.processingTimeMs || 0), 0) / insights.length
             : 0;
 
         const avgConfidenceScore = insights.length > 0
-            ? insights.reduce((sum, i) => sum + (i.confidenceScore || 0), 0) / insights.length 
+            ? insights.reduce((sum, i) => sum + (i.confidenceScore || 0), 0) / insights.length
             : 0;
 
         const feedbackWithUsefulnessScore = feedback.filter(f => f.usefulnessScore !== null);
@@ -1522,14 +1526,18 @@ app.post('/api/plans', authenticateUser, async (req, res) => {
                 whyChanged: "Sugestão de documento transformada em plano.",
                 impact: "Aumento na capacidade de execução.",
                 recommendation: "Acompanhar progresso das fases.",
-                event: { connect: { id: (await prisma.eventLog.create({
-                    data: {
-                        eventType: 'plan.created', 
-                        entityType: 'plan', 
-                        userId,
-                        metadata: JSON.stringify({ origin: 'document_suggestion', suggestionId })
+                event: {
+                    connect: {
+                        id: (await prisma.eventLog.create({
+                            data: {
+                                eventType: 'plan.created',
+                                entityType: 'plan',
+                                userId,
+                                metadata: JSON.stringify({ origin: 'document_suggestion', suggestionId })
+                            }
+                        })).id
                     }
-                })).id } }
+                }
             }
         });
     }
@@ -1558,7 +1566,7 @@ let userProfileCache: any = {
 app.put('/api/user/profile', authenticateUser, async (req, res) => {
     const userId = req.userId!;
     const { name, strategicMode, company, role, objective, deepMode, alertSensitivity, notifications } = req.body;
-    
+
     // Update Prisma fields
     await prisma.user.update({
         where: { id: userId },
@@ -1599,7 +1607,7 @@ app.get('/api/user/mode', authenticateUser, async (req, res) => {
     try {
         const userId = req.userId!;
         let user = await prisma.user.findUnique({ where: { id: userId } });
-        
+
         if (!user && req.user) {
             user = await prisma.user.create({
                 data: {
@@ -1651,7 +1659,7 @@ app.post('/api/checkout/create-session', authenticateUser, async (req, res) => {
                 }
             });
             stripeCustomerId = customer.id;
-            
+
             await prisma.user.update({
                 where: { id: user.id },
                 data: { stripeCustomerId }
@@ -1719,7 +1727,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
     // Helper function to resolve plan from price ID
     const resolvePlan = (priceId: string | undefined): 'gratis' | 'essencial' | 'profissional' | 'estrategico' => {
         if (!priceId) return 'gratis';
-        
+
         const planMap: Record<string, 'essencial' | 'profissional' | 'estrategico'> = {
             'price_1T6O7HBNgnXewP8Me1hVETGA': 'essencial',
             'price_1T6O6QBNgnXewP8Mude8pCy8': 'profissional',
@@ -1727,7 +1735,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
             'price_1TAnnualBuilder': 'profissional',
             'price_1TAnnualStrategic': 'estrategico',
         };
-        
+
         return planMap[priceId] || 'gratis';
     };
 
@@ -1900,9 +1908,9 @@ app.get('/api/billing/subscription', authenticateUser, async (req, res) => {
         const user = await getOrCreateUser(userId, req.user?.email, req.user?.name);
 
         if (!user || !user.stripeCustomerId) {
-            return res.json({ 
+            return res.json({
                 credits: user?.credits || 0,
-                subscription: null 
+                subscription: null
             });
         }
 
@@ -2135,7 +2143,7 @@ app.post('/api/billing/sync-plan', authenticateUser, async (req, res) => {
         // Helper to resolve plan from price
         const resolvePlan = (priceId: string | undefined): 'gratis' | 'essencial' | 'profissional' | 'estrategico' => {
             if (!priceId) return 'gratis';
-            
+
             const planMap: Record<string, 'essencial' | 'profissional' | 'estrategico'> = {
                 'price_1T6O7HBNgnXewP8Me1hVETGA': 'essencial',
                 'price_1T6O6QBNgnXewP8Mude8pCy8': 'profissional',
@@ -2143,7 +2151,7 @@ app.post('/api/billing/sync-plan', authenticateUser, async (req, res) => {
                 'price_1TAnnualBuilder': 'profissional',
                 'price_1TAnnualStrategic': 'estrategico',
             };
-            
+
             return planMap[priceId] || 'gratis';
         };
 
@@ -2163,10 +2171,10 @@ app.post('/api/billing/sync-plan', authenticateUser, async (req, res) => {
 
         // Get highest priority active subscription
         const subscription = activeSubscriptions.sort((a, b) => {
-            const aPriority = (a.items.data[0]?.price?.id === 'price_1T6O6XBNgnXewP8M5BxqsMGU') ? 3 : 
-                             (a.items.data[0]?.price?.id === 'price_1T6O6QBNgnXewP8Mude8pCy8') ? 2 : 1;
+            const aPriority = (a.items.data[0]?.price?.id === 'price_1T6O6XBNgnXewP8M5BxqsMGU') ? 3 :
+                (a.items.data[0]?.price?.id === 'price_1T6O6QBNgnXewP8Mude8pCy8') ? 2 : 1;
             const bPriority = (b.items.data[0]?.price?.id === 'price_1T6O6XBNgnXewP8M5BxqsMGU') ? 3 :
-                             (b.items.data[0]?.price?.id === 'price_1T6O6QBNgnXewP8Mude8pCy8') ? 2 : 1;
+                (b.items.data[0]?.price?.id === 'price_1T6O6QBNgnXewP8Mude8pCy8') ? 2 : 1;
             return bPriority - aPriority;
         })[0];
 
@@ -2274,26 +2282,26 @@ async function startServer() {
     const basePort = Number(process.env.PORT || 5000);
     const port = basePort;
 
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
+    if (process.env.NODE_ENV !== 'production') {
+        const vite = await createViteServer({
             server: {
                 middlewareMode: true,
-                                hmr: {
-                                        server: httpServer,
-                                },
+                hmr: {
+                    server: httpServer,
+                },
             },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    // Serve static files in production
-    // app.use(express.static('dist'));
-  }
+            appType: 'spa',
+        });
+        app.use(vite.middlewares);
+    } else {
+        // Serve static files in production
+        // app.use(express.static('dist'));
+    }
 
-        httpServer.listen(port, () => {
-                console.log(`Server running on http://localhost:${port}`);
-                startDocumentWorker();
-                startCleanupWorker();
+    httpServer.listen(port, () => {
+        console.log(`Server running on http://localhost:${port}`);
+        startDocumentWorker();
+        startCleanupWorker();
     });
 
     httpServer.on('error', (error: NodeJS.ErrnoException) => {
@@ -2306,14 +2314,14 @@ async function startServer() {
         process.exit(1);
     });
 
-  // Global Error Handler
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error('Unhandled Error:', err);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: err instanceof Error ? err.message : String(err) 
+    // Global Error Handler
+    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+        console.error('Unhandled Error:', err);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: err instanceof Error ? err.message : String(err)
+        });
     });
-  });
 }
 
 // --- Agent Endpoints (Phases 6-7 of AI Agent Implementation) ---
@@ -2413,53 +2421,35 @@ app.post('/api/agents/decision', authenticateUser, async (req, res) => {
         const { decision, context = {}, documentIds = [] } = req.body;
 
         if (!decision || decision.trim().length === 0) {
-            return res.status(400).json({ error: 'Decision statement is required' });
+            return res.status(400).json({ error: 'Statement description is required' });
         }
 
-        // Retrieve relevant documents
-        const documents = await prisma.document.findMany({
-            where: {
-                userId,
-                ...(documentIds.length > 0 && { id: { in: documentIds } }),
-                status: { in: ['processed', 'insights_ready', 'risk_detected'] }
-            },
-            include: { insights: true },
-            take: 5
+        // 1. Get user to check credits/plan
+        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        // 2. Create AgentJob
+        const job = await prisma.agentJob.create({
+            data: {
+                userId: user.id,
+                agentType: 'DECISION',
+                status: 'PENDING',
+                inputPayload: { decision, context, documentIds }
+            }
         });
 
-        // Log analysis request
-        await logDocumentAudit(
-            'N/A',
-            userId,
-            'agent_query',
-            'DecisionForge analysis initiated',
-            { decision: decision.substring(0, 100), documentCount: documents.length },
-            req.ip
-        );
+        // 3. Log audit
+        await logDocumentAudit('N/A', user.id, 'agent_query', 'DecisionForge analysis initiated (Async)', { jobId: job.id, documentCount: documentIds.length }, req.ip);
 
-        // For MVP, return structured template
-        // Future: integrate with Gemini API for real analysis
-        const analysis = {
-            agentId: 'decision-forge-v1',
-            timestamp: new Date().toISOString(),
-            decision: decision.substring(0, 500),
-            mode: (context.mode || 'equilibrado') as string,
-            riskAssessment: {
-                primaryRisks: documents.flatMap(d => d.insights?.risksJson ? JSON.parse(d.insights.risksJson) : []).slice(0, 3),
-                secondOrderRisk: 'Requires Gemini analysis',
-                confidenceScore: 0
-            },
-            documentContext: documents.length,
-            readyForGemini: true,
-            metadata: {
-                documentIds: documents.map(d => d.id),
-                userStrategicMode: context.mode || 'equilibrado'
-            }
-        };
+        // 4. Trigger n8n (asynchronous)
+        triggerN8nAgent(job.id, 'DECISION', decision, user.id, documentIds);
 
-        io.to(userId).emit('agent:decision_analysis_ready', analysis);
-
-        res.json(analysis);
+        // 5. Respond with jobId
+        res.json({
+            jobId: job.id,
+            status: 'PENDING',
+            message: 'Análise iniciada. Você receberá uma notificação quando estiver pronta.'
+        });
     } catch (error) {
         console.error('Error in DecisionForge:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -2479,46 +2469,27 @@ app.post('/api/agents/clarity', authenticateUser, async (req, res) => {
             return res.status(400).json({ error: 'Input is required' });
         }
 
-        const documents = await prisma.document.findMany({
-            where: {
-                userId,
-                ...(documentIds.length > 0 && { id: { in: documentIds } }),
-                status: { in: ['processed', 'insights_ready', 'risk_detected'] }
-            },
-            include: { insights: true },
-            take: 5
+        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const job = await prisma.agentJob.create({
+            data: {
+                userId: user.id,
+                agentType: 'CLARITY',
+                status: 'PENDING',
+                inputPayload: { input, context, documentIds }
+            }
         });
 
-        await logDocumentAudit(
-            'N/A',
-            userId,
-            'agent_query',
-            'ClarityForge structuring initiated',
-            { inputLength: input.length, documentCount: documents.length },
-            req.ip
-        );
+        await logDocumentAudit('N/A', user.id, 'agent_query', 'ClarityForge analysis initiated (Async)', { jobId: job.id, documentCount: documentIds.length }, req.ip);
 
-        const structure = {
-            agentId: 'clarity-forge-v1',
-            timestamp: new Date().toISOString(),
-            input: input.substring(0, 500),
-            mode: context.mode || 'equilibrado',
-            structure: {
-                mainTheme: 'Requires Gemini analysis',
-                subThemes: [],
-                contradictions: [],
-                clarityScore: 0
-            },
-            documentContext: documents.length,
-            readyForGemini: true,
-            metadata: {
-                documentIds: documents.map(d => d.id)
-            }
-        };
+        triggerN8nAgent(job.id, 'CLARITY', input, user.id, documentIds);
 
-        io.to(userId).emit('agent:clarity_structure_ready', structure);
-
-        res.json(structure);
+        res.json({
+            jobId: job.id,
+            status: 'PENDING',
+            message: 'Estruturação de pensamento iniciada.'
+        });
     } catch (error) {
         console.error('Error in ClarityForge:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -2538,48 +2509,235 @@ app.post('/api/agents/leverage', authenticateUser, async (req, res) => {
             return res.status(400).json({ error: 'Objective is required' });
         }
 
-        const documents = await prisma.document.findMany({
-            where: {
-                userId,
-                ...(documentIds.length > 0 && { id: { in: documentIds } }),
-                status: { in: ['processed', 'insights_ready', 'risk_detected'] }
-            },
-            include: { insights: true },
-            take: 5
+        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const job = await prisma.agentJob.create({
+            data: {
+                userId: user.id,
+                agentType: 'LEVERAGE',
+                status: 'PENDING',
+                inputPayload: { objective, context, documentIds }
+            }
         });
 
-        await logDocumentAudit(
-            'N/A',
-            userId,
-            'agent_query',
-            'LeverageForge execution planning initiated',
-            { objectiveLength: objective.length, documentCount: documents.length },
-            req.ip
-        );
+        await logDocumentAudit('N/A', user.id, 'agent_query', 'LeverageForge analysis initiated (Async)', { jobId: job.id, documentCount: documentIds.length }, req.ip);
 
-        const leverage = {
-            agentId: 'leverage-forge-v1',
-            timestamp: new Date().toISOString(),
-            objective: objective.substring(0, 500),
-            mode: context.mode || 'equilibrado',
-            execution: {
-                highImpactActions: [],
-                dependencies: [],
-                priority: 'Requires Gemini analysis',
-                leverageScore: 0
-            },
-            documentContext: documents.length,
-            readyForGemini: true,
-            metadata: {
-                documentIds: documents.map(d => d.id)
-            }
-        };
+        triggerN8nAgent(job.id, 'LEVERAGE', objective, user.id, documentIds);
 
-        io.to(userId).emit('agent:leverage_execution_ready', leverage);
-
-        res.json(leverage);
+        res.json({
+            jobId: job.id,
+            status: 'PENDING',
+            message: 'Plano de execução estratégica iniciado.'
+        });
     } catch (error) {
         console.error('Error in LeverageForge:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/agents/history
+ * List agent job history for the authenticated user
+ */
+app.get('/api/agents/history', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.userId!;
+        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const jobs = await prisma.agentJob.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+
+        res.json(jobs);
+    } catch (error) {
+        console.error('Error fetching agent history:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/agents/jobs/:jobId
+ * Get details of a specific agent job
+ */
+app.get('/api/agents/jobs/:jobId', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.userId!;
+        const { jobId } = req.params;
+
+        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const job = await prisma.agentJob.findUnique({
+            where: { id: jobId }
+        });
+
+        if (!job || job.userId !== user.id) {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+
+        res.json(job);
+    } catch (error) {
+        console.error('Error fetching agent job:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// --- n8n Integration Helpers ---
+
+async function triggerN8nAgent(jobId: string, agentType: string, input: any, userId: string, documentIds: string[]) {
+    const webhookUrl = `${process.env.N8N_WEBHOOK_BASE_URL}/taskforge`;
+    const apiKey = process.env.N8N_API_KEY;
+
+    console.log(`[n8n] Triggering analysis for job ${jobId} (${agentType})`);
+
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                jobId,
+                agentType,
+                input,
+                userId,
+                documentIds
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`n8n webhook failed with status ${response.status}: ${errorText}`);
+        }
+
+        console.log(`[n8n] Job ${jobId} successfully sent to analysis server`);
+    } catch (error) {
+        console.error(`[n8n] Failed to trigger analysis for job ${jobId}:`, error);
+
+        // Update job status to FAILED in DB
+        await prisma.agentJob.update({
+            where: { id: jobId },
+            data: {
+                status: 'FAILED',
+                errorMessage: error instanceof Error ? error.message : String(error)
+            }
+        });
+
+        // Notify user via socket
+        io.to(userId).emit('agent:job_update', {
+            jobId,
+            status: 'FAILED',
+            error: 'Erro de comunicação interna com o servidor de análise.'
+        });
+    }
+}
+
+// --- n8n Webhooks ---
+
+/**
+ * POST /api/webhooks/n8n/complete
+ * Received when n8n finishes processing an agent job
+ */
+app.post('/api/webhooks/n8n/complete', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const responseToken = process.env.N8N_RESPONSE_TOKEN;
+
+    if (!authHeader || authHeader !== `Bearer ${responseToken}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId, result } = req.body;
+
+    if (!jobId || !result) {
+        return res.status(400).json({ error: 'Missing jobId or result' });
+    }
+
+    try {
+        console.log(`[n8n Webhook] Completing job ${jobId}`);
+
+        const job = await prisma.agentJob.update({
+            where: { id: jobId },
+            data: {
+                status: 'COMPLETED',
+                outputResult: result,
+                completedAt: new Date()
+            },
+            include: { user: true }
+        });
+
+        // Notify client via Socket.IO
+        // Map agent type to legacy event names to maintain frontend compatibility
+        const eventMap: Record<string, string> = {
+            'DECISION': 'agent:decision_analysis_ready',
+            'CLARITY': 'agent:clarity_structure_ready',
+            'LEVERAGE': 'agent:leverage_execution_ready'
+        };
+
+        const eventName = eventMap[job.agentType] || 'agent:analysis_complete';
+
+        // Emit standardized events
+        // @ts-ignore - Prisma include can sometimes confuse simple type inference
+        const firebaseUid = (job as any).user?.firebaseUid;
+        if (firebaseUid) {
+            io.to(firebaseUid).emit(eventName, result);
+            io.to(firebaseUid).emit('agent:job_update', {
+                jobId,
+                status: 'COMPLETED',
+                result
+            });
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[n8n Webhook] Error completing job:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * POST /api/webhooks/n8n/error
+ * Received when n8n encounters an error
+ */
+app.post('/api/webhooks/n8n/error', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const responseToken = process.env.N8N_RESPONSE_TOKEN;
+
+    if (!authHeader || authHeader !== `Bearer ${responseToken}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { jobId, error } = req.body;
+
+    try {
+        console.log(`[n8n Webhook] Error reported for job ${jobId}`);
+
+        const job = await prisma.agentJob.update({
+            where: { id: jobId },
+            data: {
+                status: 'FAILED',
+                errorMessage: (error as string) || 'Generic analysis error'
+            },
+            include: { user: true }
+        });
+
+        // @ts-ignore
+        const firebaseUid = (job as any).user?.firebaseUid;
+        if (firebaseUid) {
+            io.to(firebaseUid).emit('agent:job_update', {
+                jobId,
+                status: 'FAILED',
+                errorMessage: job.errorMessage
+            });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[n8n Webhook] Error reporting lab error:', err);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

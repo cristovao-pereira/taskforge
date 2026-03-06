@@ -3,15 +3,33 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icons } from '@/components/Icons';
 import { AnimatedPage } from '@/components/AnimatedPage';
 import { useStrategicMode } from '@/contexts/StrategicContext';
+import { useEvent } from '@/contexts/EventContext';
+import { agentAPI } from '@/lib/api';
+import { toast } from 'sonner';
+
+interface AnalysisResult {
+  summary: string;
+  themes: string[];
+  decisions: string[];
+  actions: string[];
+  ambiguities: string;
+  recommendations: string;
+}
 
 export default function ClarityForgePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
+  const { socket } = useEvent();
+
   const [activeMode, setActiveMode] = useState<'simple' | 'strategic' | 'executive'>('strategic');
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   useEffect(() => {
     const modeParam = searchParams.get('mode');
@@ -19,6 +37,56 @@ export default function ClarityForgePage() {
       setActiveMode(modeParam);
     }
   }, [searchParams]);
+
+  // Socket.io for Real-time Updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleJobUpdate = (data: any) => {
+      if (data.jobId === activeJobId && data.status === 'COMPLETED') {
+        setResult(data.result);
+        setIsAnalyzing(false);
+        setShowResult(true);
+        setActiveJobId(null);
+        toast.success('✨ Organização concluída!');
+        fetchHistory();
+      }
+    };
+
+    const handleClarityReady = (data: any) => {
+      setResult(data);
+      setIsAnalyzing(false);
+      setShowResult(true);
+      setActiveJobId(null);
+      toast.success('✨ Estrutura mental pronta!');
+      fetchHistory();
+    };
+
+    socket.on('agent:job_update', handleJobUpdate);
+    socket.on('agent:clarity_structure_ready', handleClarityReady);
+
+    return () => {
+      socket.off('agent:job_update', handleJobUpdate);
+      socket.off('agent:clarity_structure_ready', handleClarityReady);
+    };
+  }, [socket, activeJobId]);
+
+  // Fetch History
+  const fetchHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const data = await agentAPI.getHistory('CLARITY');
+      setHistory(data);
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   const navigateWithMode = (nextMode: 'simple' | 'strategic' | 'executive') => {
     setActiveMode(nextMode);
@@ -77,20 +145,65 @@ export default function ClarityForgePage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleAnalyze = () => {
-    if (!inputText.trim()) return;
+  const handleAnalyze = async () => {
+    if (!inputText.trim()) {
+      toast.error('Por favor, insira algum texto para organizar.');
+      return;
+    }
+
     setIsAnalyzing(true);
-    // Simulate analysis delay
-    console.log('Analyzing with strategic mode:', mode);
-    setTimeout(() => {
+    setShowResult(false);
+    setResult(null);
+    toast.info('🔍 Organizando seus pensamentos...');
+
+    try {
+      const { jobId } = await agentAPI.clarity(
+        inputText,
+        {
+          mode,
+          activeMode
+        }
+      );
+
+      setActiveJobId(jobId);
+      toast.loading('Estruturando informações, aguarde...', { id: 'clarity-loading' });
+
+      const checkStatus = async () => {
+        try {
+          const job = await agentAPI.getJobStatus(jobId);
+          if (job.status === 'COMPLETED') {
+            setResult(job.outputPayload);
+            setIsAnalyzing(false);
+            setShowResult(true);
+            setActiveJobId(null);
+            toast.dismiss('clarity-loading');
+            toast.success('✨ Estrutura concluída!');
+            fetchHistory();
+          } else if (job.status === 'FAILED') {
+            setIsAnalyzing(false);
+            setActiveJobId(null);
+            toast.dismiss('clarity-loading');
+            toast.error('❌ Falha na organização. Tente novamente.');
+          } else {
+            if (activeJobId === jobId) setTimeout(checkStatus, 5000);
+          }
+        } catch (e) {
+          console.error('Status check failed:', e);
+        }
+      };
+
+      setTimeout(checkStatus, 10000);
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
       setIsAnalyzing(false);
-      setShowResult(true);
-    }, 1500);
+      toast.error('Erro ao iniciar ClarityForge.');
+    }
   };
 
   return (
-     <AnimatedPage className="max-w-5xl mx-auto section-spacing pb-20">
-      
+    <AnimatedPage className="max-w-5xl mx-auto section-spacing pb-20">
+
       {/* Header */}
       <header className="space-y-6 pt-8 relative">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
@@ -107,14 +220,14 @@ export default function ClarityForgePage() {
                 Modo: {getModeLabel()}
               </div>
             </div>
-            
+
             <p className="text-2xl text-zinc-300 font-light max-w-2xl">
               "Organize informação dispersa em estrutura estratégica."
             </p>
             <p className="text-base text-zinc-500 max-w-lg leading-relaxed">
               Transforme brainstorms, reuniões e documentos em estruturas claras e acionáveis.
             </p>
-            
+
             <div className="flex items-center gap-4 pt-2">
               <button className="btn-primary px-6" onClick={() => navigateWithMode('simple')}>
                 <Icons.Zap className="w-4 h-4" />
@@ -131,7 +244,7 @@ export default function ClarityForgePage() {
 
       {/* Section 1: Usage Types */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <UsageCard 
+        <UsageCard
           icon={Icons.Lightbulb}
           title="Brainstorm"
           items={[
@@ -140,7 +253,7 @@ export default function ClarityForgePage() {
             "Identifica temas centrais"
           ]}
         />
-        <UsageCard 
+        <UsageCard
           icon={Icons.Users}
           title="Reunião"
           items={[
@@ -149,7 +262,7 @@ export default function ClarityForgePage() {
             "Identifica responsabilidades implícitas"
           ]}
         />
-        <UsageCard 
+        <UsageCard
           icon={Icons.FileText}
           title="Documento"
           items={[
@@ -165,30 +278,30 @@ export default function ClarityForgePage() {
       <section className="space-y-6">
         <div className="card-standard p-1">
           <div className="flex items-center gap-1 p-2 border-b border-zinc-800/50 mb-2">
-            <ModeButton 
-              active={activeMode === 'simple'} 
+            <ModeButton
+              active={activeMode === 'simple'}
               onClick={() => navigateWithMode('simple')}
               label="Estrutura Simples"
             />
-            <ModeButton 
-              active={activeMode === 'strategic'} 
+            <ModeButton
+              active={activeMode === 'strategic'}
               onClick={() => navigateWithMode('strategic')}
               label="Estrutura Estratégica"
             />
-            <ModeButton 
-              active={activeMode === 'executive'} 
+            <ModeButton
+              active={activeMode === 'executive'}
               onClick={() => navigateWithMode('executive')}
               label="Estrutura Executiva"
             />
           </div>
-          
-          <textarea 
+
+          <textarea
             className="w-full h-48 bg-transparent text-zinc-300 p-4 focus:outline-none resize-none placeholder:text-zinc-600 font-mono text-sm"
             placeholder="Notas da call com time comercial, dúvidas sobre pricing, ideias sobre expansão..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
           />
-          
+
           <div className="flex items-center justify-between p-4 border-t border-zinc-800/50 bg-zinc-900/30 rounded-b-xl">
             <button
               className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors"
@@ -197,8 +310,8 @@ export default function ClarityForgePage() {
               <Icons.Folder className="w-4 h-4" />
               Usar Documento do Document Center
             </button>
-            
-            <button 
+
+            <button
               onClick={handleAnalyze}
               disabled={!inputText.trim() || isAnalyzing}
               className={`btn-primary px-6 ${(!inputText.trim() || isAnalyzing) ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -234,62 +347,56 @@ export default function ClarityForgePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <ResultBlock title="Resumo Estruturado" icon={Icons.AlignLeft}>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                A discussão focou na necessidade de expansão para o mercado Enterprise, identificando gargalos atuais no processo de vendas e na estrutura de suporte. O consenso é que o produto está pronto, mas a operação não.
+                {result?.summary || 'Processando resumo...'}
               </p>
             </ResultBlock>
 
             <ResultBlock title="Principais Temas" icon={Icons.Hash}>
               <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-sm text-zinc-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                  Escalabilidade do Suporte
-                </li>
-                <li className="flex items-center gap-2 text-sm text-zinc-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                  Ciclo de Vendas Longo
-                </li>
-                <li className="flex items-center gap-2 text-sm text-zinc-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                  Necessidade de Certificações de Segurança
-                </li>
+                {result?.themes?.map((theme, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-zinc-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    {theme}
+                  </li>
+                ))}
+                {!result?.themes && <li className="text-sm text-zinc-600 italic">Nenhum tema identificado.</li>}
               </ul>
             </ResultBlock>
 
             <ResultBlock title="Decisões Detectadas" icon={Icons.GitCommit}>
               <ul className="space-y-3">
-                <li className="text-sm text-zinc-300 border-l-2 border-emerald-500 pl-3">
-                  Aprovação para contratar Head de Sales Enterprise.
-                </li>
-                <li className="text-sm text-zinc-300 border-l-2 border-emerald-500 pl-3">
-                  Início imediato do processo de certificação SOC2.
-                </li>
+                {result?.decisions?.map((dec, i) => (
+                  <li key={i} className="text-sm text-zinc-300 border-l-2 border-emerald-500 pl-3">
+                    {dec}
+                  </li>
+                ))}
+                {!result?.decisions && <li className="text-sm text-zinc-600 italic">Nenhuma decisão explícita.</li>}
               </ul>
             </ResultBlock>
 
             <ResultBlock title="Ações Identificadas" icon={Icons.CheckSquare}>
               <ul className="space-y-2">
-                <li className="flex items-start gap-2 text-sm text-zinc-400">
-                  <Icons.Square className="w-4 h-4 mt-0.5 text-zinc-600" />
-                  <span>Mapear requisitos de segurança (CTO)</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-zinc-400">
-                  <Icons.Square className="w-4 h-4 mt-0.5 text-zinc-600" />
-                  <span>Revisar pricing para Enterprise (CFO)</span>
-                </li>
+                {result?.actions?.map((action, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
+                    <Icons.Square className="w-4 h-4 mt-0.5 text-zinc-600" />
+                    <span>{action}</span>
+                  </li>
+                ))}
+                {!result?.actions && <li className="text-sm text-zinc-600 italic">Nenhuma ação listada.</li>}
               </ul>
             </ResultBlock>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <ResultBlock title="Pontos Ambíguos" icon={Icons.HelpCircle} color="text-yellow-500">
+            <ResultBlock title="Pontos Ambíguos" icon={Icons.HelpCircle} color="text-yellow-500">
               <p className="text-zinc-400 text-sm leading-relaxed">
-                Não ficou claro quem será o responsável final pela aprovação do budget de marketing para Q3.
+                {result?.ambiguities || 'Nenhuma ambiguidade crítica detectada.'}
               </p>
             </ResultBlock>
 
             <ResultBlock title="Recomendações de Organização" icon={Icons.Layout} color="text-blue-500">
               <p className="text-zinc-400 text-sm leading-relaxed">
-                Sugerido criar um canal dedicado para "Enterprise Transition" e mover a discussão de pricing para uma sessão específica do DecisionForge.
+                {result?.recommendations || 'Use o DecisionForge para aprofundar as decisões listadas.'}
               </p>
             </ResultBlock>
           </div>
@@ -315,24 +422,41 @@ export default function ClarityForgePage() {
         </div>
 
         <div className="card-standard overflow-hidden divide-y divide-zinc-800/50">
-          <HistoryItem 
-            onOpen={() => handleOpenHistory(historyItems[0].seedText)}
-            title="Planejamento Q3 Marketing" 
-            type="Reunião" 
-            date="Hoje, 10:30" 
-          />
-          <HistoryItem 
-            onOpen={() => handleOpenHistory(historyItems[1].seedText)}
-            title="Ideias para Nova Feature de IA" 
-            type="Brainstorm" 
-            date="Ontem, 16:45" 
-          />
-          <HistoryItem 
-            onOpen={() => handleOpenHistory(historyItems[2].seedText)}
-            title="Análise de Concorrentes - Relatório Anual" 
-            type="Documento" 
-            date="24 Out, 09:15" 
-          />
+          {history.map((job) => {
+            const input = job.inputPayload || {};
+            const typeLabels: Record<string, string> = {
+              'simple': 'Simples',
+              'strategic': 'Estratégica',
+              'executive': 'Executiva'
+            };
+            return (
+              <HistoryItem
+                key={job.id}
+                onOpen={() => {
+                  if (job.outputPayload) {
+                    setResult(job.outputPayload);
+                    setInputText(input.input || '');
+                    setShowResult(true);
+                    setActiveMode(input.activeMode || 'strategic');
+                    window.scrollTo({ top: 500, behavior: 'smooth' });
+                  }
+                }}
+                title={input.input?.substring(0, 40) + '...' || 'Estruturação'}
+                type={typeLabels[input.activeMode] || 'Estratégica'}
+                date={new Date(job.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              />
+            );
+          })}
+          {history.length === 0 && !isLoadingHistory && (
+            <div className="p-10 text-center text-zinc-500 italic">
+              Nenhuma estruturação encontrada no histórico.
+            </div>
+          )}
+          {isLoadingHistory && (
+            <div className="p-8 text-center">
+              <Icons.Loader2 className="w-6 h-6 animate-spin mx-auto text-zinc-700" />
+            </div>
+          )}
         </div>
       </section>
 
@@ -368,13 +492,12 @@ function UsageCard({ icon: Icon, title, items }: any) {
 
 function ModeButton({ active, onClick, label }: any) {
   return (
-    <button 
+    <button
       onClick={onClick}
-      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-        active 
-          ? 'bg-zinc-800 text-white shadow-sm' 
+      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${active
+          ? 'bg-zinc-800 text-white shadow-sm'
           : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
-      }`}
+        }`}
     >
       {label}
     </button>
@@ -395,11 +518,10 @@ function ResultBlock({ title, icon: Icon, children, color = "text-blue-500" }: a
 
 function ActionButton({ icon: Icon, label, variant = 'primary', onClick }: any) {
   return (
-    <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
-      variant === 'primary' 
-        ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700' 
+    <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${variant === 'primary'
+        ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700'
         : 'bg-transparent text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700'
-    }`}>
+      }`}>
       <Icon className="w-4 h-4" />
       {label}
     </button>
@@ -410,11 +532,10 @@ function HistoryItem({ title, type, date, onOpen }: any) {
   return (
     <div className="p-4 flex items-center justify-between hover:bg-zinc-900/50 transition-colors group">
       <div className="flex items-center gap-4">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border border-zinc-800 ${
-          type === 'Brainstorm' ? 'bg-yellow-500/10 text-yellow-500' :
-          type === 'Reunião' ? 'bg-blue-500/10 text-blue-500' :
-          'bg-purple-500/10 text-purple-500'
-        }`}>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border border-zinc-800 ${type === 'Brainstorm' ? 'bg-yellow-500/10 text-yellow-500' :
+            type === 'Reunião' ? 'bg-blue-500/10 text-blue-500' :
+              'bg-purple-500/10 text-purple-500'
+          }`}>
           {type === 'Brainstorm' && <Icons.Lightbulb className="w-4 h-4" />}
           {type === 'Reunião' && <Icons.Users className="w-4 h-4" />}
           {type === 'Documento' && <Icons.FileText className="w-4 h-4" />}

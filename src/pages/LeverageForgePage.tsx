@@ -1,29 +1,141 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { useStrategicMode } from '../contexts/StrategicContext';
+import { useEvent } from '../contexts/EventContext';
+import { agentAPI } from '@/lib/api';
+import { toast } from 'sonner';
+
+interface AnalysisResult {
+  summary: string;
+  impactPoints: string[];
+  lowReturnIniciatives: string[];
+  bottlenecks: string;
+  scalingOpportunities: string;
+  focusRecommendations: string;
+  estimatedImpact: string;
+  leverageScore: string;
+}
 
 export default function LeverageForgePage() {
   const navigate = useNavigate();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
+  const { socket } = useEvent();
+
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  // Socket.io for Real-time Updates
+  useEffect(() => {
+    if (!socket) return;
 
-  const handleAnalyze = () => {
-    if (!inputText.trim()) return;
-    setIsAnalyzing(true);
-    // Simulate analysis delay
-    console.log('Analyzing with strategic mode:', mode);
-    setTimeout(() => {
+    const handleJobUpdate = (data: any) => {
+      if (data.jobId === activeJobId && data.status === 'COMPLETED') {
+        setResult(data.result);
+        setIsAnalyzing(false);
+        setShowResult(true);
+        setActiveJobId(null);
+        toast.success('✨ Análise de alavancagem concluída!');
+        fetchHistory();
+      }
+    };
+
+    const handleLeverageReady = (data: any) => {
+      setResult(data);
       setIsAnalyzing(false);
       setShowResult(true);
-    }, 1500);
+      setActiveJobId(null);
+      toast.success('✨ Oportunidades de impacto identificadas!');
+      fetchHistory();
+    };
+
+    socket.on('agent:job_update', handleJobUpdate);
+    socket.on('agent:leverage_analysis_ready', handleLeverageReady);
+
+    return () => {
+      socket.off('agent:job_update', handleJobUpdate);
+      socket.off('agent:leverage_analysis_ready', handleLeverageReady);
+    };
+  }, [socket, activeJobId]);
+
+  // Fetch History
+  const fetchHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const data = await agentAPI.getHistory('LEVERAGE');
+      setHistory(data);
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+  const handleAnalyze = async () => {
+    if (!inputText.trim()) {
+      toast.error('Por favor, descreva seu cenário para análise.');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setShowResult(false);
+    setResult(null);
+    toast.info('🔍 Analisando pontos de alavancagem...');
+
+    try {
+      const { jobId } = await agentAPI.leverage(
+        inputText,
+        {
+          mode
+        }
+      );
+
+      setActiveJobId(jobId);
+      toast.loading('Calculando impacto estratégico...', { id: 'leverage-loading' });
+
+      const checkStatus = async () => {
+        try {
+          const job = await agentAPI.getJobStatus(jobId);
+          if (job.status === 'COMPLETED') {
+            setResult(job.outputPayload);
+            setIsAnalyzing(false);
+            setShowResult(true);
+            setActiveJobId(null);
+            toast.dismiss('leverage-loading');
+            toast.success('✨ Alavancagem mapeada!');
+            fetchHistory();
+          } else if (job.status === 'FAILED') {
+            setIsAnalyzing(false);
+            setActiveJobId(null);
+            toast.dismiss('leverage-loading');
+            toast.error('❌ Falha na análise. Tente novamente.');
+          } else {
+            if (activeJobId === jobId) setTimeout(checkStatus, 5000);
+          }
+        } catch (e) {
+          console.error('Status check failed:', e);
+        }
+      };
+
+      setTimeout(checkStatus, 10000);
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      setIsAnalyzing(false);
+      toast.error('Erro ao iniciar LeverageForge.');
+    }
   };
 
   return (
     <div className="max-w-5xl mx-auto section-spacing pb-20 animate-in fade-in duration-700">
-      
+
       {/* Header */}
       <header className="space-y-6 pt-8 relative">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
@@ -40,14 +152,14 @@ export default function LeverageForgePage() {
                 Modo: {getModeLabel()}
               </div>
             </div>
-            
+
             <p className="text-2xl text-zinc-300 font-light max-w-2xl">
               "Identifique onde concentrar esforço para gerar máximo impacto."
             </p>
             <p className="text-base text-zinc-500 max-w-lg leading-relaxed">
               Descubra oportunidades de alavancagem estratégica e elimine dispersão de foco.
             </p>
-            
+
             <div className="flex items-center gap-4 pt-2">
               <button className="btn-primary px-6" onClick={handleAnalyze}>
                 <Icons.Zap className="w-4 h-4" />
@@ -64,7 +176,7 @@ export default function LeverageForgePage() {
 
       {/* Section 1: How it works */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <InfoCard 
+        <InfoCard
           icon={Icons.Zap}
           title="Análise Rápida"
           items={[
@@ -73,7 +185,7 @@ export default function LeverageForgePage() {
             "Prioriza iniciativas estratégicas"
           ]}
         />
-        <InfoCard 
+        <InfoCard
           icon={Icons.Layers}
           title="Deep Strategic Leverage"
           items={[
@@ -89,29 +201,29 @@ export default function LeverageForgePage() {
       <section className="space-y-6">
         <div className="card-standard p-1">
           <div className="p-4 border-b border-zinc-800/50 mb-2">
-             <h3 className="text-zinc-400">Descreva seu cenário atual ou plano em andamento</h3>
+            <h3 className="text-zinc-400">Descreva seu cenário atual ou plano em andamento</h3>
           </div>
-          
-          <textarea 
+
+          <textarea
             className="w-full h-48 bg-transparent text-zinc-300 p-4 focus:outline-none resize-none placeholder:text-zinc-600 font-mono text-sm"
             placeholder="Temos 5 iniciativas rodando simultaneamente, foco em crescimento e expansão..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
           />
-          
+
           <div className="flex items-center justify-between p-4 border-t border-zinc-800/50 bg-zinc-900/30 rounded-b-xl">
             <div className="flex gap-3">
-                <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors" onClick={() => navigate('/app/documents')}>
+              <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors" onClick={() => navigate('/app/documents')}>
                 <Icons.Folder className="w-4 h-4" />
                 Usar Documento do Document Center
-                </button>
-                <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors" onClick={() => navigate('/app/plans')}>
+              </button>
+              <button className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-2 transition-colors" onClick={() => navigate('/app/plans')}>
                 <Icons.BarChart3 className="w-4 h-4" />
                 Analisar Execution Plans ativos
-                </button>
+              </button>
             </div>
-            
-            <button 
+
+            <button
               onClick={handleAnalyze}
               disabled={!inputText.trim() || isAnalyzing}
               className={`btn-primary px-6 ${(!inputText.trim() || isAnalyzing) ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -147,75 +259,73 @@ export default function LeverageForgePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <ResultBlock title="Resumo do Cenário" icon={Icons.AlignLeft}>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                O cenário atual indica alta dispersão de recursos em múltiplas iniciativas de crescimento (5 simultâneas), diluindo o impacto potencial de cada uma.
+                {result?.summary || 'Processando resumo...'}
               </p>
             </ResultBlock>
 
             <ResultBlock title="Pontos de Maior Impacto" icon={Icons.TrendingUp} color="text-emerald-500">
               <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-sm text-zinc-300">
-                  <Icons.CheckCircle className="w-4 h-4 text-emerald-500" />
-                  Otimização do Funil de Vendas (Alta Alavancagem)
-                </li>
-                <li className="flex items-center gap-2 text-sm text-zinc-300">
-                  <Icons.CheckCircle className="w-4 h-4 text-emerald-500" />
-                  Parcerias Estratégicas B2B
-                </li>
+                {result?.impactPoints?.map((point, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-zinc-300">
+                    <Icons.CheckCircle className="w-4 h-4 text-emerald-500" />
+                    {point}
+                  </li>
+                ))}
+                {!result?.impactPoints?.length && <li className="text-sm text-zinc-600 italic">Nenhum ponto detectado.</li>}
               </ul>
             </ResultBlock>
 
             <ResultBlock title="Iniciativas de Baixo Retorno" icon={Icons.AlertTriangle} color="text-yellow-500">
-               <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-sm text-zinc-400">
-                  <Icons.XCircle className="w-4 h-4 text-yellow-500" />
-                  Redesign do Blog (Baixo impacto imediato)
-                </li>
-                <li className="flex items-center gap-2 text-sm text-zinc-400">
-                  <Icons.XCircle className="w-4 h-4 text-yellow-500" />
-                  Novos canais de Social Media (Esforço alto, retorno lento)
-                </li>
+              <ul className="space-y-2">
+                {result?.lowReturnIniciatives?.map((item, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-zinc-400">
+                    <Icons.XCircle className="w-4 h-4 text-yellow-500" />
+                    {item}
+                  </li>
+                ))}
+                {!result?.lowReturnIniciatives?.length && <li className="text-sm text-zinc-600 italic">Nenhum desperdício óbvio.</li>}
               </ul>
             </ResultBlock>
 
             <ResultBlock title="Gargalos Identificados" icon={Icons.Filter}>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                A capacidade de engenharia está fragmentada entre manutenção e novas features, atrasando o lançamento crítico da API.
+                {result?.bottlenecks || 'Nenhum gargalo crítico identificado.'}
               </p>
             </ResultBlock>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <ResultBlock title="Oportunidades de Escala" icon={Icons.Scale} color="text-blue-500">
+            <ResultBlock title="Oportunidades de Escala" icon={Icons.Scale} color="text-blue-500">
               <p className="text-zinc-400 text-sm leading-relaxed">
-                Automatizar o onboarding de parceiros pode liberar 20h/semana do time de CS para focar em retenção de contas Enterprise.
+                {result?.scalingOpportunities || 'Não foram identificadas escalas imediatas.'}
               </p>
             </ResultBlock>
 
             <ResultBlock title="Recomendações de Foco" icon={Icons.Crosshair} color="text-orange-500">
               <p className="text-zinc-400 text-sm leading-relaxed">
-                Pausar iniciativas de Social Media e Redesign. Concentrar 80% da engenharia na API e 100% do Marketing em Parcerias e Funil.
+                {result?.focusRecommendations || 'Mantenha o curso atual.'}
               </p>
             </ResultBlock>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <div className="card-standard">
-                <div className="flex items-center gap-2 mb-2">
-                    <Icons.BarChart3 className="w-4 h-4 text-zinc-400" />
-                    <h3 className="text-zinc-200 uppercase tracking-wide">Impacto Estimado</h3>
-                </div>
-                <div className="text-3xl font-bold text-white mb-1">+40%</div>
-                <p className="text-xs text-zinc-500">na conversão de leads qualificados em 90 dias.</p>
-             </div>
+            <div className="card-standard">
+              <div className="flex items-center gap-2 mb-2">
+                <Icons.BarChart3 className="w-4 h-4 text-zinc-400" />
+                <h3 className="text-zinc-200 uppercase tracking-wide">Impacto Estimado</h3>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">{result?.estimatedImpact || '0%'}</div>
+              <p className="text-xs text-zinc-500">estimativa de melhoria nos resultados.</p>
+            </div>
 
-             <div className="card-standard">
-                <div className="flex items-center gap-2 mb-2">
-                    <Icons.Activity className="w-4 h-4 text-blue-500" />
-                    <h3 className="text-zinc-200 uppercase tracking-wide">Leverage Score</h3>
-                </div>
-                <div className="text-3xl font-bold text-blue-500 mb-1">8.5/10</div>
-                <p className="text-xs text-zinc-500">Potencial de alavancagem alto após ajustes.</p>
-             </div>
+            <div className="card-standard">
+              <div className="flex items-center gap-2 mb-2">
+                <Icons.Activity className="w-4 h-4 text-blue-500" />
+                <h3 className="text-zinc-200 uppercase tracking-wide">Leverage Score</h3>
+              </div>
+              <div className="text-3xl font-bold text-blue-500 mb-1">{result?.leverageScore || '0/10'}</div>
+              <p className="text-xs text-zinc-500">Potencial de alavancagem estratégica.</p>
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -239,27 +349,37 @@ export default function LeverageForgePage() {
         </div>
 
         <div className="card-standard overflow-hidden divide-y divide-zinc-800/50">
-          <HistoryItem 
-            title="Otimização de Canais de Aquisição" 
-            date="25 Out, 14:20" 
-            score="7.8"
-            impact="Médio"
-            onOpen={() => navigate('/app/plans')}
-          />
-          <HistoryItem 
-            title="Reestruturação do Time de Produto" 
-            date="10 Out, 09:00" 
-            score="9.2"
-            impact="Alto"
-            onOpen={() => navigate('/app/plans')}
-          />
-          <HistoryItem 
-            title="Análise de Expansão LatAm" 
-            date="01 Out, 16:45" 
-            score="6.5"
-            impact="Baixo"
-            onOpen={() => navigate('/app/plans')}
-          />
+          {history.map((job) => {
+            const output = job.outputPayload || {};
+            const input = job.inputPayload || {};
+            return (
+              <HistoryItem
+                key={job.id}
+                title={input.input?.substring(0, 40) + '...' || 'Análise de Alavancagem'}
+                date={new Date(job.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                score={output.leverageScore || 'N/A'}
+                impact={parseFloat(output.estimatedImpact) > 20 ? 'Alto' : 'Médio'}
+                onOpen={() => {
+                  if (job.outputPayload) {
+                    setResult(job.outputPayload);
+                    setInputText(input.input || '');
+                    setShowResult(true);
+                    window.scrollTo({ top: 500, behavior: 'smooth' });
+                  }
+                }}
+              />
+            );
+          })}
+          {history.length === 0 && !isLoadingHistory && (
+            <div className="p-10 text-center text-zinc-500 italic">
+              Nenhuma análise de alavancagem encontrada no histórico.
+            </div>
+          )}
+          {isLoadingHistory && (
+            <div className="p-8 text-center">
+              <Icons.Loader2 className="w-6 h-6 animate-spin mx-auto text-zinc-700" />
+            </div>
+          )}
         </div>
       </section>
 
@@ -307,11 +427,10 @@ function ResultBlock({ title, icon: Icon, children, color = "text-zinc-400" }: a
 
 function ActionButton({ icon: Icon, label, variant = 'primary', onClick }: any) {
   return (
-    <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
-      variant === 'primary' 
-        ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700' 
-        : 'bg-transparent text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700'
-    }`}>
+    <button onClick={onClick} className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${variant === 'primary'
+      ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-zinc-700'
+      : 'bg-transparent text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700'
+      }`}>
       <Icon className="w-4 h-4" />
       {label}
     </button>
@@ -323,8 +442,8 @@ function HistoryItem({ title, date, score, impact, onOpen }: any) {
     <div className="p-4 flex items-center justify-between hover:bg-zinc-900/50 transition-colors group">
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-lg flex flex-col items-center justify-center border border-zinc-800 bg-zinc-950">
-           <span className="text-[10px] text-zinc-500 uppercase">Score</span>
-           <span className="text-sm font-bold text-blue-500">{score}</span>
+          <span className="text-[10px] text-zinc-500 uppercase">Score</span>
+          <span className="text-sm font-bold text-blue-500">{score}</span>
         </div>
         <div>
           <h4 className="text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">{title}</h4>

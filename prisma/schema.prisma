@@ -40,6 +40,7 @@ model User {
   planSuggestions     PlanSuggestion[]
   suggestionFeedbacks SuggestionFeedback[]
   documentAuditLogs   DocumentAuditLog[]
+  agentJobs           AgentJob[]
 }
 
 model Decision {
@@ -301,4 +302,26 @@ model SystemHealth {
   momentum            Int      @default(60)
   overallScore        Int      @default(78)
   lastUpdated         DateTime @default(now())
+}
+
+model AgentJob {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  agentType         String    // "decision" | "clarity" | "leverage"
+  status            String    @default("pending") // pending | processing | done | failed
+  
+  inputPayload      Json      // {documentIds, context, ...}
+  outputResult      Json?     // resultado do agente
+  errorMessage      String?   // se failed
+  
+  n8nExecutionId    String?   // para rastreabilidade em n8n
+  
+  createdAt         DateTime  @default(now())
+  completedAt       DateTime?
+  
+  @@index([userId])
+  @@index([status])
+  @@index([agentType])
 }
