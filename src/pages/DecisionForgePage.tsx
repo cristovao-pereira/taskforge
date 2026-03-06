@@ -55,7 +55,7 @@ export default function DecisionForgePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [deepMode, setDeepMode] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -438,60 +438,70 @@ export default function DecisionForgePage() {
                       </div>
                       <h2 className="text-xl font-bold text-white">Resultado da Análise</h2>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Nível de Confiança</span>
-                      <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-500 font-bold text-sm">
-                        {result.confidence}%
+                    {typeof result === 'object' && result?.confidence && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Nível de Confiança</span>
+                        <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-500 font-bold text-sm">
+                          {result.confidence}%
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <h3 className="text-zinc-500 uppercase tracking-widest">Resumo</h3>
-                        <p className="text-zinc-300 leading-relaxed">{result.summary}</p>
+                  {typeof result === 'string' ? (
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-8 text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                      {result}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div className="space-y-6">
+                          <div className="space-y-2">
+                            <h3 className="text-zinc-500 uppercase tracking-widest">Resumo</h3>
+                            <p className="text-zinc-300 leading-relaxed">{result.summary || 'Não disponível'}</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <h3 className="text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                              <Icons.TrendingUp className="w-3 h-3" /> Impacto Estimado
+                            </h3>
+                            <p className="text-emerald-400 font-medium">{result.impact || '-'}</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <h3 className="text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                              <Icons.AlertTriangle className="w-3 h-3" /> Risco Identificado
+                            </h3>
+                            <p className="text-orange-400 font-medium">{result.risk || '-'}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-6">
+                          <div className="space-y-2">
+                            <h3 className="text-zinc-500 uppercase tracking-widest">Principais Suposições</h3>
+                            <ul className="space-y-2">
+                              {(result.assumptions || []).map((item: string, i: number) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
+                                  <span className="w-1 h-1 rounded-full bg-zinc-600 mt-2"></span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <h3 className="text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                          <Icons.TrendingUp className="w-3 h-3" /> Impacto Estimado
+                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-8">
+                        <h3 className="text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <Icons.Lightbulb className="w-4 h-4 text-yellow-500" />
+                          Recomendação
                         </h3>
-                        <p className="text-emerald-400 font-medium">{result.impact}</p>
+                        <p className="text-zinc-300 leading-relaxed border-l-2 border-yellow-500/50 pl-4">
+                          {result.recommendation || 'Não disponível'}
+                        </p>
                       </div>
-
-                      <div className="space-y-2">
-                        <h3 className="text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                          <Icons.AlertTriangle className="w-3 h-3" /> Risco Identificado
-                        </h3>
-                        <p className="text-orange-400 font-medium">{result.risk}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <h3 className="text-zinc-500 uppercase tracking-widest">Principais Suposições</h3>
-                        <ul className="space-y-2">
-                          {result.assumptions.map((item, i) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
-                              <span className="w-1 h-1 rounded-full bg-zinc-600 mt-2"></span>
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-8">
-                    <h3 className="text-white uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <Icons.Lightbulb className="w-4 h-4 text-yellow-500" />
-                      Recomendação
-                    </h3>
-                    <p className="text-zinc-300 leading-relaxed border-l-2 border-yellow-500/50 pl-4">
-                      {result.recommendation}
-                    </p>
-                  </div>
+                    </>
+                  )}
                 </div>
               )}
 
