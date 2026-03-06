@@ -2438,8 +2438,10 @@ app.post('/api/agents/decision', authenticateUser, async (req, res) => {
             }
         });
 
-        // 3. Log audit
-        await logDocumentAudit('N/A', user.id, 'agent_query', 'DecisionForge analysis initiated (Async)', { jobId: job.id, documentCount: documentIds.length }, req.ip);
+        // 3. Log audit for relevant documents
+        for (const docId of documentIds) {
+            await logDocumentAudit(docId, user.id, 'agent_query', 'DecisionForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
+        }
 
         // 4. Trigger n8n (asynchronous)
         triggerN8nAgent(job.id, 'DECISION', decision, user.id, documentIds);
@@ -2481,7 +2483,10 @@ app.post('/api/agents/clarity', authenticateUser, async (req, res) => {
             }
         });
 
-        await logDocumentAudit('N/A', user.id, 'agent_query', 'ClarityForge analysis initiated (Async)', { jobId: job.id, documentCount: documentIds.length }, req.ip);
+        // Log audit for relevant documents
+        for (const docId of documentIds) {
+            await logDocumentAudit(docId, user.id, 'agent_query', 'ClarityForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
+        }
 
         triggerN8nAgent(job.id, 'CLARITY', input, user.id, documentIds);
 
@@ -2521,7 +2526,10 @@ app.post('/api/agents/leverage', authenticateUser, async (req, res) => {
             }
         });
 
-        await logDocumentAudit('N/A', user.id, 'agent_query', 'LeverageForge analysis initiated (Async)', { jobId: job.id, documentCount: documentIds.length }, req.ip);
+        // Log audit for relevant documents
+        for (const docId of documentIds) {
+            await logDocumentAudit(docId, user.id, 'agent_query', 'LeverageForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
+        }
 
         triggerN8nAgent(job.id, 'LEVERAGE', objective, user.id, documentIds);
 
