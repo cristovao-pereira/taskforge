@@ -2129,8 +2129,22 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
             case 'checkout.session.completed': {
                 const session = event.data.object as Stripe.Checkout.Session;
                 const firebaseUid = session.metadata?.firebaseUid;
-                if (!firebaseUid) {
-                    console.error('Missing firebaseUid in session metadata');
+                const customerId = session.customer as string | null;
+
+                console.log(`[Webhook] checkout.session.completed | firebaseUid=${firebaseUid} | customerId=${customerId} | mode=${session.mode}`);
+
+                // Find user by firebaseUid (primary) or stripeCustomerId (fallback)
+                let targetUser = firebaseUid
+                    ? await prisma.user.findUnique({ where: { firebaseUid } })
+                    : null;
+
+                if (!targetUser && customerId) {
+                    targetUser = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } });
+                    if (targetUser) console.log(`[Webhook] checkout: user found via stripeCustomerId fallback`);
+                }
+
+                if (!targetUser) {
+                    console.error(`[Webhook] checkout: could not find user for firebaseUid=${firebaseUid} or customerId=${customerId}`);
                     break;
                 }
 
@@ -2138,16 +2152,18 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                 const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
                 const priceId = lineItems.data[0]?.price?.id;
 
+                console.log(`[Webhook] checkout: priceId=${priceId} for user ${targetUser.id}`);
+
                 // Map price IDs to credits
                 const creditMap: Record<string, number> = {
-                    'price_1T6O7HBNgnXewP8Me1hVETGA': 500,    // Essencial
-                    'price_1T6O6QBNgnXewP8Mude8pCy8': 2000,   // Profissional
-                    'price_1T6O6XBNgnXewP8M5BxqsMGU': 5000,   // Estratégico
-                    'price_1T6O6bBNgnXewP8MulEJ7pza': 500,    // Pack 500
-                    'price_1T6O5OBNgnXewP8MlJvNPkU6': 1000,   // Pack 1000
-                    'price_1T6O5RBNgnXewP8MSKndCTN0': 5000,   // Pack 5000
-                    'price_1TAnnualBuilder': 2000,             // Builder Annual
-                    'price_1TAnnualStrategic': 5000,           // Strategic Annual
+                    'price_1T6O7HBNgnXewP8Me1hVETGA': 500,
+                    'price_1T6O6QBNgnXewP8Mude8pCy8': 2000,
+                    'price_1T6O6XBNgnXewP8M5BxqsMGU': 5000,
+                    'price_1T6O6bBNgnXewP8MulEJ7pza': 500,
+                    'price_1T6O5OBNgnXewP8MlJvNPkU6': 1000,
+                    'price_1T6O5RBNgnXewP8MSKndCTN0': 5000,
+                    'price_1TAnnualBuilder': 2000,
+                    'price_1TAnnualStrategic': 5000,
                 };
 
                 const credits = priceId ? (creditMap[priceId] || 0) : 0;
@@ -2155,21 +2171,20 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                 const isSubscription = session.mode === 'subscription';
                 const subscriptionId = session.subscription as string | null;
 
-                // Update user credits, plan, and subscriptionId
-                const updatedUser = await prisma.user.update({
-                    where: { firebaseUid },
+                await prisma.user.update({
+                    where: { id: targetUser.id },
                     data: {
                         credits: credits > 0 ? { increment: credits } : undefined,
                         ...(plan !== 'gratis' && { plan }),
                         ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
+                        ...(customerId && !targetUser.stripeCustomerId && { stripeCustomerId: customerId }),
                     }
                 });
 
-                // Register in CreditLog
                 if (credits > 0) {
                     await prisma.creditLog.create({
                         data: {
-                            userId: updatedUser.id,
+                            userId: targetUser.id,
                             amount: credits,
                             reason: isSubscription ? 'subscription_renewal' : 'pack_purchase',
                             metadata: { priceId, sessionId: session.id },
@@ -2177,25 +2192,32 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                     });
                 }
 
-                console.log(`Checkout completed: Added ${credits} credits, plan=${plan}, sub=${subscriptionId} for user ${firebaseUid}`);
+                console.log(`[Webhook] checkout done: +${credits} credits, plan=${plan}, sub=${subscriptionId} for userId=${targetUser.id}`);
                 break;
             }
 
+
             case 'invoice.payment_succeeded': {
                 const invoice = event.data.object as Stripe.Invoice;
+                const billingReason = (invoice as any).billing_reason as string | undefined;
+
+                // Skip initial subscription creation invoices — checkout.session.completed handles those credits
+                if (billingReason === 'subscription_create') {
+                    console.log(`[Webhook] invoice.payment_succeeded SKIPPED (billing_reason=subscription_create) — checkout.session.completed handles this`);
+                    break;
+                }
+
                 const customerId = invoice.customer as string;
 
-                // Find user by stripe customer ID
                 const user = await prisma.user.findFirst({
                     where: { stripeCustomerId: customerId }
                 });
 
                 if (!user) {
-                    console.error('User not found for customer:', customerId);
+                    console.error(`[Webhook] invoice.payment_succeeded: user not found for customer ${customerId}`);
                     break;
                 }
 
-                // Get subscription details
                 const subscriptionId = (invoice as any).subscription as string | undefined;
                 if (subscriptionId) {
                     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -2222,21 +2244,21 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                             }
                         });
 
-                        // Register renewal in CreditLog
                         await prisma.creditLog.create({
                             data: {
                                 userId: user.id,
                                 amount: credits,
                                 reason: 'subscription_renewal',
-                                metadata: { priceId, subscriptionId, invoiceId: invoice.id },
+                                metadata: { priceId, subscriptionId, invoiceId: invoice.id, billingReason },
                             }
                         });
 
-                        console.log(`Renewed subscription: Added ${credits} credits and set plan to ${plan} for user ${user.id}`);
+                        console.log(`[Webhook] Renewed subscription: +${credits} credits, plan=${plan} for user ${user.id}`);
                     }
                 }
                 break;
             }
+
 
             case 'customer.subscription.deleted': {
                 const subscription = event.data.object as Stripe.Subscription;
