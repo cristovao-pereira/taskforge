@@ -107,7 +107,7 @@ export default function DecisionMapPage() {
                 <div key={decision.id} className="relative pl-10 py-4 group">
                   {/* Timeline Dot */}
                   <div className={`absolute left-[16px] top-8 w-1.5 h-1.5 rounded-full ring-4 ring-zinc-950 ${decision.riskLevel === 'high' ? 'bg-orange-500' :
-                      decision.riskLevel === 'medium' ? 'bg-yellow-500' : 'bg-emerald-500'
+                    decision.riskLevel === 'medium' ? 'bg-yellow-500' : 'bg-emerald-500'
                     }`}></div>
 
                   <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-lg p-4 hover:bg-zinc-900 hover:border-zinc-700 transition-all">
@@ -128,8 +128,8 @@ export default function DecisionMapPage() {
                       </div>
 
                       <div className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${decision.riskLevel === 'high' ? 'bg-orange-500/5 text-orange-500 border-orange-500/10' :
-                          decision.riskLevel === 'medium' ? 'bg-yellow-500/5 text-yellow-500 border-yellow-500/10' :
-                            'bg-emerald-500/5 text-emerald-500 border-emerald-500/10'
+                        decision.riskLevel === 'medium' ? 'bg-yellow-500/5 text-yellow-500 border-yellow-500/10' :
+                          'bg-emerald-500/5 text-emerald-500 border-emerald-500/10'
                         }`}>
                         Risco {decision.riskLevel === 'high' ? 'Alto' : decision.riskLevel === 'medium' ? 'Médio' : 'Baixo'}
                       </div>
@@ -144,8 +144,8 @@ export default function DecisionMapPage() {
                         </div>
                       ) : (
                         <div className={`flex items-center gap-1.5 text-xs font-medium ${decision.outcome === 'Positive' ? 'text-emerald-500' :
-                            decision.outcome === 'Negative' ? 'text-red-500' :
-                              'text-zinc-500'
+                          decision.outcome === 'Negative' ? 'text-red-500' :
+                            'text-zinc-500'
                           }`}>
                           {decision.outcome === 'Positive' ? <Icons.TrendingUp className="w-3 h-3" /> :
                             decision.outcome === 'Negative' ? <Icons.TrendingDown className="w-3 h-3" /> :
@@ -239,19 +239,26 @@ export default function DecisionMapPage() {
             </div>
           </section>
 
-          {/* Strategic Insight */}
-          <div className="card-standard bg-gradient-to-br from-blue-950/30 to-zinc-900/50 border-blue-500/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-3 opacity-10">
-              <Icons.Brain className="w-12 h-12 text-blue-500" />
+          {decisions.length > 0 && (
+            <div className="card-standard bg-gradient-to-br from-blue-950/30 to-zinc-900/50 border-blue-500/10 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-3 opacity-10">
+                <Icons.Brain className="w-12 h-12 text-blue-500" />
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-wider mb-3">
+                <Icons.Sparkles className="w-3 h-3" />
+                Insight do Sistema
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                {metrics.successRate >= 70
+                  ? `Taxa de sucesso em ${metrics.successRate}% — padrão estratégico sólido. Continue documentando decisões para refinar as análises.`
+                  : metrics.highRisk > 50
+                    ? `${metrics.highRisk}% das decisões são de alto risco. Considere estratégias de mitigação antes de avançar.`
+                    : `Você tem ${metrics.total} decisão${metrics.total !== 1 ? 'ões' : ''} registrada${metrics.total !== 1 ? 's' : ''}. Continue registrando para identificar padrões estratégicos.`
+                }
+              </p>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-wider mb-3">
-              <Icons.Sparkles className="w-3 h-3" />
-              Insight do Sistema
-            </div>
-            <p className="text-sm text-zinc-300 leading-relaxed">
-              Sua velocidade de decisão aumentou em 15% este mês. Garanta que etapas de validação não estejam sendo puladas em favor da velocidade.
-            </p>
-          </div>
+          )}
+
 
         </div>
       </div>
