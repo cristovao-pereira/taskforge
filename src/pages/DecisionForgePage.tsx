@@ -90,6 +90,7 @@ export default function DecisionForgePage() {
         setResult(data.result);
         setIsAnalyzing(false);
         setActiveJobId(null);
+        toast.dismiss('analysis-loading');
         toast.success('✨ Análise concluída em tempo real!');
         fetchHistory(); // Refresh history
       }
@@ -99,6 +100,7 @@ export default function DecisionForgePage() {
       setResult(data);
       setIsAnalyzing(false);
       setActiveJobId(null);
+      toast.dismiss('analysis-loading');
       toast.success('✨ Análise estratégica pronta!');
       fetchHistory();
     };
