@@ -1812,58 +1812,181 @@ app.put('/api/user/profile', authenticateUser, async (req, res) => {
 app.delete('/api/user/account', authenticateUser, async (req, res) => {
     try {
         const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
-        // Start a transaction to delete all user data
-        await prisma.$transaction(async (tx) => {
-            // Level 2 Dependencies (Depend on Level 1)
-            await tx.eventLog.deleteMany({ where: { userId } });
-            await tx.documentAuditLog.deleteMany({ where: { userId } });
-            await tx.decisionSuggestion.deleteMany({ where: { userId } });
-            await tx.planSuggestion.deleteMany({ where: { userId } });
-            await tx.suggestionFeedback.deleteMany({ where: { userId } });
-            await tx.systemHealth.deleteMany({ where: { userId } });
-            await tx.strategicDNA.deleteMany({ where: { userId } });
-            await tx.explanationLog.deleteMany({
-                where: { event: { userId } }
-            });
 
-            // Level 1 Dependencies (Depend directly on User)
-            await tx.documentInsights.deleteMany({
-                where: { document: { userId } }
-            });
-            await tx.document.deleteMany({ where: { userId } });
-            await tx.decision.deleteMany({ where: { userId } });
-            await tx.risk.deleteMany({ where: { userId } });
-            await tx.plan.deleteMany({ where: { userId } });
-            await tx.session.deleteMany({ where: { userId } });
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (user.deletedAt) return res.status(400).json({ error: 'Account is already scheduled for deletion' });
 
-            // Finally, delete the user
-            await tx.user.delete({ where: { id: userId } });
-        }, {
-            timeout: 60000 // 60 seconds timeout, as deletion can take time
+        // 1. Cancel Stripe subscription at end of current period (not immediately)
+        if (stripe && user.stripeSubscriptionId) {
+            try {
+                await stripe.subscriptions.update(user.stripeSubscriptionId, {
+                    cancel_at_period_end: true,
+                });
+                console.log(`[Account Delete] Stripe subscription ${user.stripeSubscriptionId} set to cancel at period end`);
+            } catch (stripeErr) {
+                console.error('[Account Delete] Failed to cancel Stripe subscription:', stripeErr);
+                // Non-fatal: continue with soft delete even if Stripe fails
+            }
+        }
+
+        // 2. Soft delete: mark account as pending deletion (30 days grace period)
+        const deleteAt = new Date();
+        deleteAt.setDate(deleteAt.getDate() + 30);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { deletedAt: new Date() }
         });
 
-        res.json({ success: true, message: 'Account and all associated data deleted successfully.' });
+        // 3. Sign out from Firebase (revoke tokens)
+        try {
+            const admin = getFirebaseAdmin();
+            if (user.firebaseUid) {
+                await admin.auth().revokeRefreshTokens(user.firebaseUid);
+            }
+        } catch (firebaseErr) {
+            console.error('[Account Delete] Failed to revoke Firebase tokens:', firebaseErr);
+        }
+
+        res.json({
+            success: true,
+            message: 'Conta agendada para exclusão.',
+            scheduledDeletionDate: deleteAt.toISOString(),
+            canReactivateUntil: deleteAt.toISOString(),
+        });
     } catch (error) {
-        console.error('Error deleting user account:', error);
-        res.status(500).json({ error: 'Failed to delete account' });
+        console.error('Error scheduling account deletion:', error);
+        res.status(500).json({ error: 'Failed to schedule account deletion' });
     }
 });
 
-app.get('/api/user/credits', (req, res) => {
-    res.json({
-        balance: 450,
-        history: [
-            { id: 1, date: '2024-02-28', agent: 'DecisionForge', amount: -15, desc: 'Análise de Contrato' },
-            { id: 2, date: '2024-02-27', agent: 'ClarityForge', amount: -10, desc: 'Organização de Backlog' },
-            { id: 3, date: '2024-02-25', agent: 'System', amount: 500, desc: 'Recarga Mensal' },
-        ],
-        usageByAgent: [
-            { name: 'DecisionForge', value: 40, color: '#10b981' },
-            { name: 'ClarityForge', value: 25, color: '#3b82f6' },
-            { name: 'LeverageForge', value: 35, color: '#f97316' },
-        ]
-    });
+// Reactivate a soft-deleted account
+app.post('/api/user/reactivate', authenticateUser, async (req, res) => {
+    try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user.deletedAt) return res.status(400).json({ error: 'Account is not scheduled for deletion' });
+
+        // Restore the account
+        await prisma.user.update({
+            where: { id: userId },
+            data: { deletedAt: null }
+        });
+
+        // If subscription was set to cancel at period end, re-enable it
+        if (stripe && user.stripeSubscriptionId) {
+            try {
+                await stripe.subscriptions.update(user.stripeSubscriptionId, {
+                    cancel_at_period_end: false,
+                });
+                console.log(`[Account Reactivate] Stripe subscription ${user.stripeSubscriptionId} reactivated`);
+            } catch (stripeErr) {
+                console.error('[Account Reactivate] Failed to reactivate Stripe subscription:', stripeErr);
+            }
+        }
+
+        res.json({ success: true, message: 'Conta reativada com sucesso.' });
+    } catch (error) {
+        console.error('Error reactivating account:', error);
+        res.status(500).json({ error: 'Failed to reactivate account' });
+    }
 });
+
+
+app.get('/api/user/credits', authenticateUser, async (req, res) => {
+    try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { credits: true }
+        });
+
+        const history = await prisma.creditLog.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            take: 30,
+        });
+
+        // Aggregate usage by agent
+        const agentColors: Record<string, string> = {
+            DECISION: '#10b981',
+            CLARITY: '#3b82f6',
+            LEVERAGE: '#f97316',
+        };
+        const agentTotals: Record<string, number> = {};
+        for (const log of history) {
+            if (log.agentType && log.amount < 0) {
+                agentTotals[log.agentType] = (agentTotals[log.agentType] || 0) + Math.abs(log.amount);
+            }
+        }
+        const usageByAgent = Object.entries(agentTotals).map(([name, value]) => ({
+            name: name.charAt(0) + name.slice(1).toLowerCase() + 'Forge',
+            value,
+            color: agentColors[name] || '#6b7280',
+        }));
+
+        res.json({
+            balance: user?.credits ?? 0,
+            history: history.map(log => ({
+                id: log.id,
+                date: log.createdAt.toISOString(),
+                agent: log.agentType ? log.agentType.charAt(0) + log.agentType.slice(1).toLowerCase() + 'Forge' : 'System',
+                amount: log.amount,
+                desc: log.reason,
+            })),
+            usageByAgent,
+        });
+    } catch (error) {
+        console.error('Error fetching credits:', error);
+        res.status(500).json({ error: 'Failed to fetch credits' });
+    }
+});
+
+// Account status: returns deletion schedule, credits, subscription info
+app.get('/api/user/account-status', authenticateUser, async (req, res) => {
+    try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { credits: true, plan: true, deletedAt: true, stripeSubscriptionId: true, stripeCustomerId: true },
+        });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        let subscriptionInfo: { status: string; currentPeriodEnd?: string; cancelAtPeriodEnd?: boolean } | null = null;
+        if (stripe && user.stripeSubscriptionId) {
+            try {
+                const sub = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+                subscriptionInfo = {
+                    status: sub.status,
+                    currentPeriodEnd: new Date((sub as any).current_period_end * 1000).toISOString(),
+                    cancelAtPeriodEnd: sub.cancel_at_period_end,
+                };
+            } catch { /* subscription may not exist */ }
+        }
+
+        const scheduledDeletionDate = user.deletedAt
+            ? new Date(new Date(user.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+            : null;
+
+        res.json({
+            credits: user.credits,
+            plan: user.plan,
+            isScheduledForDeletion: !!user.deletedAt,
+            deletedAt: user.deletedAt?.toISOString() ?? null,
+            scheduledDeletionDate,
+            subscription: subscriptionInfo,
+        });
+    } catch (error) {
+        console.error('Error fetching account status:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 
 app.get('/api/user/mode', authenticateUser, async (req, res) => {
     try {
@@ -2029,18 +2152,32 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 
                 const credits = priceId ? (creditMap[priceId] || 0) : 0;
                 const plan = resolvePlan(priceId);
+                const isSubscription = session.mode === 'subscription';
+                const subscriptionId = session.subscription as string | null;
 
-                // Update user credits and plan
-                await prisma.user.update({
+                // Update user credits, plan, and subscriptionId
+                const updatedUser = await prisma.user.update({
                     where: { firebaseUid },
                     data: {
-                        credits: {
-                            increment: credits
-                        },
-                        ...(plan !== 'gratis' && { plan })
+                        credits: credits > 0 ? { increment: credits } : undefined,
+                        ...(plan !== 'gratis' && { plan }),
+                        ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
                     }
                 });
-                console.log(`Checkout completed: Added ${credits} credits and set plan to ${plan} for user ${firebaseUid}`);
+
+                // Register in CreditLog
+                if (credits > 0) {
+                    await prisma.creditLog.create({
+                        data: {
+                            userId: updatedUser.id,
+                            amount: credits,
+                            reason: isSubscription ? 'subscription_renewal' : 'pack_purchase',
+                            metadata: { priceId, sessionId: session.id },
+                        }
+                    });
+                }
+
+                console.log(`Checkout completed: Added ${credits} credits, plan=${plan}, sub=${subscriptionId} for user ${firebaseUid}`);
                 break;
             }
 
@@ -2079,12 +2216,22 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                         await prisma.user.update({
                             where: { id: user.id },
                             data: {
-                                credits: {
-                                    increment: credits
-                                },
-                                ...(plan !== 'gratis' && { plan })
+                                credits: { increment: credits },
+                                ...(plan !== 'gratis' && { plan }),
+                                stripeSubscriptionId: subscriptionId,
                             }
                         });
+
+                        // Register renewal in CreditLog
+                        await prisma.creditLog.create({
+                            data: {
+                                userId: user.id,
+                                amount: credits,
+                                reason: 'subscription_renewal',
+                                metadata: { priceId, subscriptionId, invoiceId: invoice.id },
+                            }
+                        });
+
                         console.log(`Renewed subscription: Added ${credits} credits and set plan to ${plan} for user ${user.id}`);
                     }
                 }
@@ -2100,12 +2247,12 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
                 });
 
                 if (user) {
-                    // Reset plan to gratis when subscription is canceled
+                    // Reset plan to gratis and clear subscription ID
                     await prisma.user.update({
                         where: { id: user.id },
-                        data: { plan: 'gratis' }
+                        data: { plan: 'gratis', stripeSubscriptionId: null }
                     });
-                    console.log(`Subscription canceled: Reset plan to gratis for user ${user.id}`);
+                    console.log(`Subscription deleted: Reset plan to gratis for user ${user.id}`);
                 }
                 break;
             }
@@ -3001,5 +3148,60 @@ app.post('/api/webhooks/n8n/error', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+// ─── Cron Job: Hard Delete Expired Soft-Deleted Accounts ────────────────────
+// Runs every hour. Any account with deletedAt older than 30 days is permanently deleted.
+async function hardDeleteExpiredAccounts() {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+
+    const expiredUsers = await prisma.user.findMany({
+        where: { deletedAt: { lte: cutoff } },
+        select: { id: true, firebaseUid: true, stripeCustomerId: true }
+    });
+
+    if (!expiredUsers.length) return;
+
+    console.log(`[HardDelete Cron] Found ${expiredUsers.length} account(s) to permanently delete.`);
+
+    for (const user of expiredUsers) {
+        try {
+            // Delete Firebase user
+            try {
+                const admin = getFirebaseAdmin();
+                if (user.firebaseUid) await admin.auth().deleteUser(user.firebaseUid);
+            } catch { /* may already not exist */ }
+
+            // Hard delete all data in a transaction
+            await prisma.$transaction(async (tx) => {
+                await tx.eventLog.deleteMany({ where: { userId: user.id } });
+                await tx.documentAuditLog.deleteMany({ where: { userId: user.id } });
+                await tx.decisionSuggestion.deleteMany({ where: { userId: user.id } });
+                await tx.planSuggestion.deleteMany({ where: { userId: user.id } });
+                await tx.suggestionFeedback.deleteMany({ where: { userId: user.id } });
+                await tx.systemHealth.deleteMany({ where: { userId: user.id } });
+                await tx.strategicDNA.deleteMany({ where: { userId: user.id } });
+                await tx.explanationLog.deleteMany({ where: { event: { userId: user.id } } });
+                await tx.documentInsights.deleteMany({ where: { document: { userId: user.id } } });
+                await tx.document.deleteMany({ where: { userId: user.id } });
+                await tx.decision.deleteMany({ where: { userId: user.id } });
+                await tx.risk.deleteMany({ where: { userId: user.id } });
+                await tx.plan.deleteMany({ where: { userId: user.id } });
+                await tx.session.deleteMany({ where: { userId: user.id } });
+                await tx.creditLog.deleteMany({ where: { userId: user.id } });
+                await tx.agentJob.deleteMany({ where: { userId: user.id } });
+                await tx.user.delete({ where: { id: user.id } });
+            }, { timeout: 60000 });
+
+            console.log(`[HardDelete Cron] Permanently deleted user ${user.id}`);
+        } catch (err) {
+            console.error(`[HardDelete Cron] Failed to delete user ${user.id}:`, err);
+        }
+    }
+}
+
+// Run immediately on startup, then every hour
+hardDeleteExpiredAccounts().catch(console.error);
+setInterval(() => hardDeleteExpiredAccounts().catch(console.error), 60 * 60 * 1000);
 
 startServer();

@@ -13,17 +13,19 @@ datasource db {
 // --- Core Entities ---
 
 model User {
-  id                      String   @id @default(uuid())
-  email                   String   @unique
+  id                      String    @id @default(uuid())
+  email                   String    @unique
   name                    String?
-  firebaseUid             String?  @unique
-  stripeCustomerId        String?  @unique
-  credits                 Int      @default(0)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  hasCompletedOnboarding  Boolean  @default(false)
+  firebaseUid             String?   @unique
+  stripeCustomerId        String?   @unique
+  stripeSubscriptionId    String?   // active subscription ID
+  credits                 Int       @default(0)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  deletedAt               DateTime? // soft delete: set on account deletion, hard deleted after 30 days
+  hasCompletedOnboarding  Boolean   @default(false)
   objective               String?
-  plan                    String   @default("gratis") // gratis, construtor, estrategico
+  plan                    String    @default("gratis") // gratis, essencial, profissional, estrategico
 
   // Relations
   decisions           Decision[]
@@ -41,6 +43,7 @@ model User {
   suggestionFeedbacks SuggestionFeedback[]
   documentAuditLogs   DocumentAuditLog[]
   agentJobs           AgentJob[]
+  creditLogs          CreditLog[]
 }
 
 model Decision {
@@ -324,4 +327,18 @@ model AgentJob {
   @@index([userId])
   @@index([status])
   @@index([agentType])
+}
+
+model CreditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int      // positivo = recarga, negativo = consumo
+  reason    String   // 'subscription_renewal', 'pack_purchase', 'agent_usage', 'onboarding_bonus', 'plan_change'
+  agentType String?  // 'DECISION' | 'CLARITY' | 'LEVERAGE' (quando reason = agent_usage)
+  metadata  Json?    // dados extras (priceId, jobId, etc.)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }

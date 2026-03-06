@@ -1,4 +1,4 @@
-import { Bot, LayoutDashboard, MessageSquare, Users, BarChart3, Settings, Zap, Headphones, LogOut, Bell, ChevronDown, Search, Plus, Send, Mic, Paperclip, MoreVertical, Edit2, Trash2, Check, Download, CreditCard, Shield, User, GitFork, Sparkles, Target, Brain, ListTodo, Map, AlertTriangle, Fingerprint, Activity, ArrowRight, Clock, TrendingUp, Layers, FileText, PieChart, Loader2, Key, Quote, History, CheckCircle, XCircle, MinusCircle, Filter, Calendar, Play, Eye, SortDesc, ArrowLeft, CheckSquare, Square, AlertOctagon, ShieldAlert, BadgeAlert, Lightbulb, Scale, Compass, Save, Folder, AlignLeft, Hash, GitCommit, HelpCircle, Layout, Crosshair, Receipt, Package, Coins, TrendingDown, Maximize2, File, X, Flame, Lock } from 'lucide-react';
+import { Bot, LayoutDashboard, MessageSquare, Users, BarChart3, Settings, Zap, Headphones, LogOut, Bell, ChevronDown, Search, Plus, Send, Mic, Paperclip, MoreVertical, Edit2, Trash2, Check, Download, CreditCard, Shield, User, GitFork, Sparkles, Target, Brain, ListTodo, Map, AlertTriangle, Fingerprint, Activity, ArrowRight, Clock, TrendingUp, Layers, FileText, PieChart, Loader2, Key, Quote, History, CheckCircle, XCircle, MinusCircle, Filter, Calendar, Play, Eye, SortDesc, ArrowLeft, CheckSquare, Square, AlertOctagon, ShieldAlert, BadgeAlert, Lightbulb, Scale, Compass, Save, Folder, AlignLeft, Hash, GitCommit, HelpCircle, Layout, Crosshair, Receipt, Package, Coins, TrendingDown, Maximize2, File, X, Flame, Lock, RefreshCw } from 'lucide-react';
 
 export const Icons = {
   Bot,
@@ -77,5 +77,6 @@ export const Icons = {
   File,
   X,
   Flame,
-  Lock
+  Lock,
+  RefreshCw
 };

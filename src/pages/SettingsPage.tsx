@@ -45,8 +45,8 @@ const CustomDropdown = ({ value, onChange, options, icon: Icon }: any) => {
                                 setIsOpen(false);
                             }}
                             className={`p-3 px-4 cursor-pointer flex items-center justify-between transition-colors ${value === option.value
-                                    ? 'bg-emerald-500/10 text-emerald-400'
-                                    : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                                ? 'bg-emerald-500/10 text-emerald-400'
+                                : 'text-zinc-300 hover:bg-zinc-800 hover:text-white'
                                 }`}
                         >
                             <span className="flex items-center gap-2">
@@ -73,6 +73,16 @@ export default function SettingsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isReactivating, setIsReactivating] = useState(false);
+
+    // Account status (credits, plan, deletion schedule)
+    const [accountStatus, setAccountStatus] = useState<{
+        credits: number;
+        plan: string;
+        isScheduledForDeletion: boolean;
+        scheduledDeletionDate: string | null;
+        subscription: { status: string; currentPeriodEnd?: string; cancelAtPeriodEnd?: boolean } | null;
+    } | null>(null);
 
     // Profile State
     const [profile, setProfile] = useState({
@@ -139,6 +149,12 @@ export default function SettingsPage() {
                     const creditsData = await creditsRes.json();
                     setCredits(creditsData);
                 }
+
+                // Fetch account status
+                const statusRes = await fetch('/api/user/account-status', { headers });
+                if (statusRes.ok) {
+                    setAccountStatus(await statusRes.json());
+                }
             } catch (error) {
                 console.error("Error loading settings:", error);
             } finally {
@@ -204,27 +220,54 @@ export default function SettingsPage() {
 
         setIsDeleting(true);
         try {
-            // 1. Delete data from backend
-            await deleteUserAccount();
+            const token = await getIdToken();
+            if (!token) throw new Error('Not authenticated');
 
-            // 2. Delete user from Firebase Auth
-            await deleteAccount();
+            // Soft delete: marks account for deletion in 30 days, cancels Stripe at period end
+            const res = await fetch('/api/user/account', {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
 
-            toast.success('Conta excluída com sucesso.');
+            if (!res.ok) throw new Error('Failed to schedule account deletion');
+
+            const data = await res.json();
+
+            // Sign out from Firebase
+            await logout();
+
+            toast.success('Conta agendada para exclusão. Você tem 30 dias para reativar.', { duration: 6000 });
             navigate('/login');
         } catch (error: any) {
-            console.error('Error deleting account:', error);
-            if (error?.message === 'requires-recent-login') {
-                toast.error('Por segurança, faça login novamente antes de excluir sua conta.', { duration: 5000 });
-                await logout();
-                navigate('/login');
-            } else {
-                toast.error('Erro ao excluir conta. Tente novamente mais tarde.');
-            }
+            console.error('Error scheduling account deletion:', error);
+            toast.error('Erro ao agendar exclusão. Tente novamente.');
         } finally {
             setIsDeleting(false);
             setShowDeleteModal(false);
             setDeleteConfirmText('');
+        }
+    };
+
+    const handleReactivateAccount = async () => {
+        setIsReactivating(true);
+        try {
+            const token = await getIdToken();
+            if (!token) throw new Error('Not authenticated');
+
+            const res = await fetch('/api/user/reactivate', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+
+            if (!res.ok) throw new Error('Failed to reactivate account');
+
+            setAccountStatus(prev => prev ? { ...prev, isScheduledForDeletion: false, scheduledDeletionDate: null } : null);
+            toast.success('Conta reativada com sucesso! Bem-vindo de volta.');
+        } catch (error) {
+            console.error('Error reactivating account:', error);
+            toast.error('Erro ao reativar conta. Tente novamente.');
+        } finally {
+            setIsReactivating(false);
         }
     };
 
@@ -493,15 +536,40 @@ export default function SettingsPage() {
                             <h2 className="text-sm font-bold text-red-400 uppercase tracking-wide">Zona de Perigo</h2>
                         </div>
 
+                        {/* Reactivation Banner */}
+                        {accountStatus?.isScheduledForDeletion && (
+                            <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+                                <div className="flex items-start gap-3">
+                                    <Icons.AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-amber-300 mb-1">Conta agendada para exclusão</p>
+                                        <p className="text-xs text-amber-400/80 mb-3">
+                                            Seus dados serão excluídos em {accountStatus.scheduledDeletionDate
+                                                ? new Date(accountStatus.scheduledDeletionDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+                                                : '30 dias'}. Você pode reativar sua conta antes disso.
+                                        </p>
+                                        <button
+                                            onClick={handleReactivateAccount}
+                                            disabled={isReactivating}
+                                            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+                                        >
+                                            {isReactivating ? <><Icons.Loader2 className="w-3 h-3 animate-spin" /> Reativando...</> : <><Icons.RefreshCw className="w-3 h-3" /> Reativar Conta</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-3">
                             <p className="text-sm text-zinc-400 mb-4">
-                                A exclusão da conta é permanente e removerá todos os seus dados, documentos e histórico.
+                                Ao solicitar exclusão, sua conta entra em período de graça de <strong className="text-zinc-300">30 dias</strong>. Você pode reativar até lá. Após esse prazo, todos os seus dados serão excluídos permanentemente.
                             </p>
                             <button
                                 onClick={() => setShowDeleteModal(true)}
-                                className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 rounded-xl text-red-500 text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                                disabled={accountStatus?.isScheduledForDeletion}
+                                className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 rounded-xl text-red-500 text-sm font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                <Icons.Trash2 className="w-4 h-4" /> Excluir Conta Permanentemente
+                                <Icons.Trash2 className="w-4 h-4" /> {accountStatus?.isScheduledForDeletion ? 'Exclusão já agendada' : 'Agendar Exclusão da Conta'}
                             </button>
                         </div>
                     </section>
@@ -541,10 +609,37 @@ export default function SettingsPage() {
                                 <Icons.AlertTriangle className="w-8 h-8" />
                             </div>
 
-                            <h2 className="text-2xl font-bold text-white mb-2">Você tem certeza?</h2>
-                            <p className="text-zinc-400 mb-6 text-sm">
-                                Esta ação não pode ser desfeita. Isso excluirá permanentemente sua conta, configurações, documentos e todo o histórico do DecisionForge, ClarityForge e LeverageForge.
+                            <h2 className="text-2xl font-bold text-white mb-2">Agendar exclusão?</h2>
+                            <p className="text-zinc-400 mb-4 text-sm">
+                                Sua conta entrará em período de graça de <strong className="text-white">30 dias</strong>. Você poderá reativar até lá. Após isso, todos os dados serão excluídos permanentemente.
                             </p>
+
+                            {/* Summary of what will be affected */}
+                            {accountStatus && (
+                                <div className="mb-6 p-4 bg-zinc-900/80 border border-zinc-800 rounded-2xl text-left space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-zinc-500">Plano atual</span>
+                                        <span className="text-white font-medium capitalize">{accountStatus.plan}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-zinc-500">Créditos disponíveis</span>
+                                        <span className="text-white font-medium">{accountStatus.credits.toLocaleString()}</span>
+                                    </div>
+                                    {accountStatus.subscription?.currentPeriodEnd && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-zinc-500">Assinatura até</span>
+                                            <span className="text-amber-400 font-medium">
+                                                {new Date(accountStatus.subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {accountStatus.credits > 0 && (
+                                        <p className="text-xs text-amber-400/80 pt-1 border-t border-zinc-800 mt-2">
+                                            ⚠️ Os {accountStatus.credits.toLocaleString()} créditos serão perdidos após os 30 dias.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="mb-8 text-left">
                                 <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
@@ -576,9 +671,9 @@ export default function SettingsPage() {
                                     className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-900/20"
                                 >
                                     {isDeleting ? (
-                                        <><Icons.Loader2 className="w-5 h-5 animate-spin" /> Excluindo...</>
+                                        <><Icons.Loader2 className="w-5 h-5 animate-spin" /> Agendando...</>
                                     ) : (
-                                        <><Icons.Trash2 className="w-5 h-5" /> Excluir Conta</>
+                                        <><Icons.Trash2 className="w-5 h-5" /> Agendar Exclusão</>
                                     )}
                                 </button>
                             </div>
