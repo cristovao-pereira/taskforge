@@ -5,10 +5,19 @@ import { auth } from './firebase';
  */
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+let authReadyPromise: Promise<void> | null = null;
+const ensureAuthReady = () => {
+  if (!authReadyPromise) {
+    authReadyPromise = auth.authStateReady();
+  }
+  return authReadyPromise;
+};
+
 /**
  * Get the current user's ID token
  */
 async function getIdToken(): Promise<string | null> {
+  await ensureAuthReady();
   const user = auth.currentUser;
   if (!user) return null;
 
