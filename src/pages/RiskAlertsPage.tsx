@@ -26,7 +26,7 @@ export default function RiskAlertsPage() {
   const navigate = useNavigate();
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const rules = getStrategicRules(mode);
-  const { risks, resolveRisk, isLoading } = useApp();
+  const { risks, resolveRisk, isLoading, health } = useApp();
   const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
   const activeRisks = useMemo(() => risks.filter(r => r.status === 'active' || r.status === 'monitoring'), [risks]);
@@ -99,10 +99,10 @@ export default function RiskAlertsPage() {
 
       {/* Section 1: Risk Overview */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <OverviewCard label="Saúde Geral" value="78%" icon={Icons.Activity} color="text-emerald-500" />
+        <OverviewCard label="Saúde Geral" value={health?.overallScore ? `${health.overallScore}%` : 'N/A'} icon={Icons.Activity} color={health?.overallScore ? "text-emerald-500" : "text-zinc-500"} />
         <OverviewCard label="Riscos Ativos" value={activeRisks.length.toString()} icon={Icons.AlertOctagon} color="text-white" />
-        <OverviewCard label="Exigem Atenção" value={criticalRisks.length.toString()} icon={Icons.AlertTriangle} color="text-orange-500" />
-        <OverviewCard label="Tendência" value="Diminuindo" icon={Icons.TrendingUp} color="text-emerald-500" />
+        <OverviewCard label="Exigem Atenção" value={criticalRisks.length.toString()} icon={Icons.AlertTriangle} color={criticalRisks.length > 0 ? "text-orange-500" : "text-zinc-500"} />
+        <OverviewCard label="Tendência" value={health?.overallScore ? "Estável" : "N/A"} icon={Icons.TrendingUp} color={health?.overallScore ? "text-emerald-500" : "text-zinc-500"} />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -235,9 +235,9 @@ const RiskCard: React.FC<{ risk: any, onResolve: () => void, onViewPlan: () => v
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${risk.type === 'strategic' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' :
-                risk.type === 'execution' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' :
-                  risk.type === 'dependency' ? 'text-orange-400 bg-orange-500/10 border-orange-500/20' :
-                    'text-zinc-400 bg-zinc-800 border-zinc-700'
+              risk.type === 'execution' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' :
+                risk.type === 'dependency' ? 'text-orange-400 bg-orange-500/10 border-orange-500/20' :
+                  'text-zinc-400 bg-zinc-800 border-zinc-700'
               }`}>
               {risk.type === 'strategic' ? 'Estratégico' : risk.type === 'execution' ? 'Execução' : risk.type === 'dependency' ? 'Dependência' : 'Prazo'}
             </span>
@@ -250,8 +250,8 @@ const RiskCard: React.FC<{ risk: any, onResolve: () => void, onViewPlan: () => v
         </div>
 
         <div className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border ${risk.level === 'high' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
-            risk.level === 'medium' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-              'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+          risk.level === 'medium' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+            'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
           }`}>
           <Icons.AlertTriangle className="w-3 h-3" />
           {risk.level === 'high' ? 'Alto' : risk.level === 'medium' ? 'Moderado' : 'Baixo'}

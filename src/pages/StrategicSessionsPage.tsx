@@ -30,6 +30,19 @@ export default function StrategicSessionsPage() {
     return filtered;
   }, [sessions, moduleFilter, modeFilter, sortMode]);
 
+  const firstSessionDate = sessions.length > 0 ? sessions[sessions.length - 1].date : 'N/A';
+  const lastSessionDate = sessions.length > 0 ? sessions[0].date : 'N/A';
+
+  const mainModule = useMemo(() => {
+    if (sessions.length === 0) return 'N/A';
+    const counts = sessions.reduce((acc, s: any) => {
+      const mod = String(s.module || 'Desconhecido');
+      acc[mod] = Number(acc[mod] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    return Object.entries(counts).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0];
+  }, [sessions]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96 animate-pulse">
@@ -43,7 +56,7 @@ export default function StrategicSessionsPage() {
 
   return (
     <div className="max-w-5xl mx-auto section-spacing pb-20 animate-in fade-in duration-700">
-      
+
       {/* Header */}
       <header className="space-y-6 pt-8">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
@@ -56,7 +69,7 @@ export default function StrategicSessionsPage() {
                 Sessões Estratégicas
               </h1>
             </div>
-            
+
             <p className="text-xl text-zinc-400 font-light max-w-2xl">
               Seu histórico estratégico estruturado.
             </p>
@@ -92,7 +105,7 @@ export default function StrategicSessionsPage() {
             <span>Ordenar por: {sortMode === 'recent' ? 'Mais Recentes' : sortMode === 'risk' ? 'Maior Risco' : sortMode === 'deep' ? 'Sessões Profundas' : 'Nome do Módulo'}</span>
             <Icons.ChevronDown className="w-3 h-3 opacity-50" />
           </button>
-          
+
           <div className="absolute right-0 top-full mt-2 w-40 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
             <div className="py-1">
               <button onClick={() => setSortMode('recent')} className="w-full text-left px-4 py-2 text-xs text-orange-500 bg-orange-500/5 font-medium flex items-center justify-between">
@@ -120,7 +133,7 @@ export default function StrategicSessionsPage() {
           <div className="card-standard border-orange-500/30 relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-orange-500/5 to-transparent opacity-50"></div>
-            
+
             <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
@@ -185,12 +198,12 @@ export default function StrategicSessionsPage() {
           <div className="flex items-center gap-4 w-full md:w-auto">
             <div className="space-y-1">
               <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Primeira Sessão</div>
-              <div className="text-sm font-medium text-zinc-300">15 Jul, 2025</div>
+              <div className="text-sm font-medium text-zinc-300">{firstSessionDate}</div>
             </div>
             <div className="h-px w-12 bg-zinc-800 hidden md:block"></div>
             <div className="space-y-1">
               <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Última Sessão</div>
-              <div className="text-sm font-medium text-white">24 Out, 2025</div>
+              <div className="text-sm font-medium text-white">{lastSessionDate}</div>
             </div>
           </div>
 
@@ -203,9 +216,9 @@ export default function StrategicSessionsPage() {
             </div>
             <div className="space-y-1 text-center md:text-right">
               <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Tendência de Risco</div>
-              <div className="text-sm font-medium text-emerald-500 flex items-center gap-1 justify-center md:justify-end">
-                <Icons.TrendingUp className="w-4 h-4" />
-                Otimizando
+              <div className={`text-sm font-medium flex items-center gap-1 justify-center md:justify-end ${sessions.length > 0 ? 'text-emerald-500' : 'text-zinc-500'}`}>
+                {sessions.length > 0 ? <Icons.TrendingUp className="w-4 h-4" /> : null}
+                {sessions.length > 0 ? 'Otimizando' : 'N/A'}
               </div>
             </div>
           </div>
@@ -216,8 +229,8 @@ export default function StrategicSessionsPage() {
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
         <SummaryMetric label="Total de Sessões" value={sessions.length.toString()} />
         <SummaryMetric label="Sessões Profundas" value={sessions.filter(s => s.mode === 'deep').length.toString()} />
-        <SummaryMetric label="Risco Médio" value="Médio" color="text-yellow-500" />
-        <SummaryMetric label="Módulo Principal" value="DecisionForge" />
+        <SummaryMetric label="Risco Médio" value={sessions.length > 0 ? "Médio" : "N/A"} color={sessions.length > 0 ? "text-yellow-500" : "text-zinc-500"} />
+        <SummaryMetric label="Módulo Principal" value={mainModule} />
       </section>
 
       {/* Footer */}
@@ -225,7 +238,7 @@ export default function StrategicSessionsPage() {
         <div className="space-y-2">
           <p className="text-xl font-serif italic text-zinc-300">"O pensamento documentado compõe-se ao longo do tempo."</p>
         </div>
-        
+
         <div className="space-y-3">
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-widest">Comece a pensar intencionalmente</p>
           <button className="btn-primary mx-auto px-8" onClick={() => navigate('/app/agent/decision')}>
@@ -241,11 +254,10 @@ export default function StrategicSessionsPage() {
 
 function FilterButton({ label, active, onClick }: { label: string, active?: boolean, onClick?: () => void }) {
   return (
-    <button onClick={onClick} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-      active 
-        ? 'bg-zinc-100 text-zinc-900 border-zinc-100' 
-        : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300'
-    }`}>
+    <button onClick={onClick} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${active
+      ? 'bg-zinc-100 text-zinc-900 border-zinc-100'
+      : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300'
+      }`}>
       {label}
     </button>
   );

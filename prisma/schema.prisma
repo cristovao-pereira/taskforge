@@ -283,12 +283,12 @@ model StrategicDNA {
   id                   String   @id @default(uuid())
   userId               String   @unique
   user                 User     @relation(fields: [userId], references: [id])
-  decisionQuality      Int      @default(75)
-  riskDiscipline       Int      @default(60)
-  executionDiscipline  Int      @default(80)
-  focusLeverage        Int      @default(70)
-  strategicConsistency Int      @default(65)
-  overallScore         Int      @default(71)
+  decisionQuality      Int      @default(0)
+  riskDiscipline       Int      @default(0)
+  executionDiscipline  Int      @default(0)
+  focusLeverage        Int      @default(0)
+  strategicConsistency Int      @default(0)
+  overallScore         Int      @default(0)
   lastUpdated          DateTime @default(now())
 }
 
@@ -296,11 +296,11 @@ model SystemHealth {
   id                  String   @id @default(uuid())
   userId              String   @unique
   user                User     @relation(fields: [userId], references: [id])
-  activeRisksSeverity Int      @default(85)
-  executionStability  Int      @default(70)
-  alignment           Int      @default(90)
-  momentum            Int      @default(60)
-  overallScore        Int      @default(78)
+  activeRisksSeverity Int      @default(0)
+  executionStability  Int      @default(0)
+  alignment           Int      @default(0)
+  momentum            Int      @default(0)
+  overallScore        Int      @default(0)
   lastUpdated         DateTime @default(now())
 }
 
