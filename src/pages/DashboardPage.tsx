@@ -44,11 +44,11 @@ export default function DashboardPage() {
   const handleSimulationClick = () => {
     // Debug log
     console.log('User plan:', user?.plan, 'Type:', typeof user?.plan);
-    
+
     // Verificação case-insensitive e normalizada
     const userPlan = (user?.plan || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const hasStrategicPlan = userPlan === 'estrategico';
-    
+
     if (hasStrategicPlan) {
       setShowSimulation(true);
     } else {
@@ -66,9 +66,12 @@ export default function DashboardPage() {
     checkUpgradeTriggers();
   }, []);
 
+  // Só mostrar o onboarding após o término do carregamento dos dados
   useEffect(() => {
-    setShowOnboarding(!hasCompletedOnboarding);
-  }, [hasCompletedOnboarding]);
+    if (!isLoading) {
+      setShowOnboarding(!hasCompletedOnboarding);
+    }
+  }, [hasCompletedOnboarding, isLoading]);
 
   const handleOnboardingComplete = async (data: { objective: string; mode: 'conservador' | 'equilibrado' | 'expansao' }) => {
     try {
@@ -94,15 +97,15 @@ export default function DashboardPage() {
           title: d.title,
           description: d.summary,
           type: 'decision',
-          rawScores: { 
-            impact: d.impactScore, 
-            risk: d.riskLevel === 'high' ? 90 : d.riskLevel === 'medium' ? 50 : 20, 
+          rawScores: {
+            impact: d.impactScore,
+            risk: d.riskLevel === 'high' ? 90 : d.riskLevel === 'medium' ? 50 : 20,
             urgency: 80, // Mock urgency
             blocking: 50 // Mock blocking
           },
           priorityLabel: d.riskLevel === 'high' ? 'Alta' : d.riskLevel === 'medium' ? 'Média' : 'Baixa',
-          priorityColor: d.riskLevel === 'high' 
-            ? 'text-orange-400 bg-orange-500/5 border-orange-500/10' 
+          priorityColor: d.riskLevel === 'high'
+            ? 'text-orange-400 bg-orange-500/5 border-orange-500/10'
             : 'text-yellow-500 bg-yellow-500/5 border-yellow-500/10'
         });
       }
@@ -123,8 +126,8 @@ export default function DashboardPage() {
             blocking: 20
           },
           priorityLabel: r.level === 'high' ? 'Crítica' : r.level === 'medium' ? 'Alta' : 'Média',
-          priorityColor: r.level === 'high' 
-            ? 'text-red-400 bg-red-500/10 border-red-500/20' 
+          priorityColor: r.level === 'high'
+            ? 'text-red-400 bg-red-500/10 border-red-500/20'
             : 'text-zinc-500 bg-zinc-800/50 border-zinc-700/50'
         });
       }
@@ -163,16 +166,16 @@ export default function DashboardPage() {
     }
 
     return [...items].sort((a, b) => {
-      const scoreA = 
-        a.rawScores.impact * weights.impact + 
-        a.rawScores.risk * weights.risk + 
-        a.rawScores.urgency * weights.urgency + 
+      const scoreA =
+        a.rawScores.impact * weights.impact +
+        a.rawScores.risk * weights.risk +
+        a.rawScores.urgency * weights.urgency +
         a.rawScores.blocking * weights.blocking;
-      
-      const scoreB = 
-        b.rawScores.impact * weights.impact + 
-        b.rawScores.risk * weights.risk + 
-        b.rawScores.urgency * weights.urgency + 
+
+      const scoreB =
+        b.rawScores.impact * weights.impact +
+        b.rawScores.risk * weights.risk +
+        b.rawScores.urgency * weights.urgency +
         b.rawScores.blocking * weights.blocking;
 
       return scoreB - scoreA;
@@ -209,7 +212,7 @@ export default function DashboardPage() {
   }
 
   return (
-      <AnimatedPage className="section-spacing pb-12 max-w-5xl mx-auto relative">
+    <AnimatedPage className="section-spacing pb-12 max-w-5xl mx-auto relative">
 
       {/* Floating Simulation Button */}
       <div className="fixed bottom-8 right-8 z-30">
@@ -217,11 +220,10 @@ export default function DashboardPage() {
           onClick={handleSimulationClick}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          className={`p-4 rounded-full text-white transition-all duration-300 flex items-center justify-center group shadow-lg ${
-            (user?.plan?.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'estrategico')
+          className={`p-4 rounded-full text-white transition-all duration-300 flex items-center justify-center group shadow-lg ${(user?.plan?.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'estrategico')
               ? 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 shadow-blue-500/50'
               : 'bg-gradient-to-br from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 shadow-slate-500/50'
-          }`}
+            }`}
           title={(user?.plan?.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'estrategico') ? 'Simular Cenário Estratégico' : 'Disponível no plano Estratégico'}
         >
           {(user?.plan?.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'estrategico') ? (
@@ -255,12 +257,12 @@ export default function DashboardPage() {
       )}
 
       {/* 1. FOCO ESTRATÉGICO (Dominante) */}
-        <motion.section 
-          {...staggerChild}
-          className="card-standard p-10 relative overflow-hidden shadow-2xl shadow-black/40 text-center group transition-all duration-500 bg-[#1e293b] border-zinc-800"
-        >
+      <motion.section
+        {...staggerChild}
+        className="card-standard p-10 relative overflow-hidden shadow-2xl shadow-black/40 text-center group transition-all duration-500 bg-[#1e293b] border-zinc-800"
+      >
         <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none"></div>
-        
+
         <div className="relative z-10 flex flex-col items-center animate-in slide-in-from-bottom-4 duration-500" key={mainItem.id}>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-6">
             <Icons.Crosshair className="w-3 h-3" />
@@ -270,150 +272,150 @@ export default function DashboardPage() {
           <h1>
             {mainItem.title}
           </h1>
-          
+
           <p className="text-xl text-zinc-400 font-light leading-relaxed mb-10 max-w-2xl mt-4">
             {mainItem.description}
           </p>
 
-            <motion.button 
-              {...buttonPrimary}
-              className="btn-primary px-10"
-              onClick={() => navigate(getItemRoute(mainItem.type))}
-            >
+          <motion.button
+            {...buttonPrimary}
+            className="btn-primary px-10"
+            onClick={() => navigate(getItemRoute(mainItem.type))}
+          >
             <Icons.Zap className="w-5 h-5" />
             {mainItem.actionLabel || 'Resolver Agora'}
-            </motion.button>
+          </motion.button>
         </div>
-        </motion.section>
+      </motion.section>
 
       {/* 2. PRÓXIMAS PRIORIDADES (Lista Minimalista) */}
-        <motion.section 
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-          className="space-y-4"
-        >
+      <motion.section
+        variants={staggerContainer}
+        initial="initial"
+        animate="animate"
+        className="space-y-4"
+      >
         <h3 className="text-zinc-500 uppercase tracking-widest px-2">A seguir</h3>
         <div className="card-standard divide-y divide-zinc-800/50">
-            {nextItems.map((item, index) => (
-                <motion.div 
-                  key={item.id} 
-                  {...cardHover}
-                  className="p-5 flex items-center justify-between group hover:bg-zinc-900/50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                      <span className="text-zinc-500 font-mono text-xs">0{index + 1}</span>
-                      <span className="text-zinc-300 font-medium group-hover:text-blue-400 transition-colors">{item.title}</span>
-                  </div>
-                  <div className="flex items-center gap-6">
-                      <span className={`text-xs font-medium px-2 py-1 rounded border ${item.priorityColor || 'text-zinc-500 bg-zinc-800/50 border-zinc-700/50'}`}>
-                        {item.priorityLabel || 'Normal'}
-                      </span>
-                        <Link to={getItemRoute(item.type)} className="text-zinc-600 hover:text-blue-400 transition-colors">
-                          <Icons.ArrowRight className="w-4 h-4" />
-                      </Link>
-                  </div>
-                  </motion.div>
-            ))}
+          {nextItems.map((item, index) => (
+            <motion.div
+              key={item.id}
+              {...cardHover}
+              className="p-5 flex items-center justify-between group hover:bg-zinc-900/50 transition-colors"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-zinc-500 font-mono text-xs">0{index + 1}</span>
+                <span className="text-zinc-300 font-medium group-hover:text-blue-400 transition-colors">{item.title}</span>
+              </div>
+              <div className="flex items-center gap-6">
+                <span className={`text-xs font-medium px-2 py-1 rounded border ${item.priorityColor || 'text-zinc-500 bg-zinc-800/50 border-zinc-700/50'}`}>
+                  {item.priorityLabel || 'Normal'}
+                </span>
+                <Link to={getItemRoute(item.type)} className="text-zinc-600 hover:text-blue-400 transition-colors">
+                  <Icons.ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </motion.div>
+          ))}
         </div>
-            </motion.section>
+      </motion.section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
+
         {/* 3. MOMENTO ESTRATÉGICO (Visual Sofisticado) */}
-          <motion.section 
-            {...staggerChild}
-            {...cardHover}
-            className="card-standard flex flex-col justify-between"
-          >
-            <div className="mb-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Icons.Activity className="w-4 h-4 text-emerald-500" />
-                    <h3 className="text-zinc-300 uppercase tracking-widest">Momento Estratégico</h3>
-                </div>
-                <h2 className="mb-2">
-                  {mode === 'expansao' ? 'Aceleração Máxima' : mode === 'conservador' ? 'Proteção de Caixa' : 'Fase de Expansão'}
-                </h2>
-                <p className="text-sm text-zinc-500 leading-relaxed">
-                  {mode === 'expansao' 
-                    ? 'Foco total em crescimento. Riscos calculados são aceitáveis para maximizar market share.'
-                    : mode === 'conservador'
-                    ? 'Prioridade é mitigação de riscos e eficiência operacional. Evitar grandes apostas.'
-                    : 'Sua coerência estratégica está alta (85%). O padrão de decisões recentes mostra uma transição clara para "Agressivo".'
-                  }
-                </p>
+        <motion.section
+          {...staggerChild}
+          {...cardHover}
+          className="card-standard flex flex-col justify-between"
+        >
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Icons.Activity className="w-4 h-4 text-emerald-500" />
+              <h3 className="text-zinc-300 uppercase tracking-widest">Momento Estratégico</h3>
             </div>
-            <div className="flex gap-2">
-                <div className="px-3 py-1.5 bg-zinc-950 rounded border border-zinc-800 text-xs text-zinc-400">
-                  {mode === 'expansao' ? 'Alto Crescimento' : 'Risco Controlado'}
-                </div>
-                <div className="px-3 py-1.5 bg-zinc-950 rounded border border-zinc-800 text-xs text-zinc-400">Execução Estável</div>
+            <h2 className="mb-2">
+              {mode === 'expansao' ? 'Aceleração Máxima' : mode === 'conservador' ? 'Proteção de Caixa' : 'Fase de Expansão'}
+            </h2>
+            <p className="text-sm text-zinc-500 leading-relaxed">
+              {mode === 'expansao'
+                ? 'Foco total em crescimento. Riscos calculados são aceitáveis para maximizar market share.'
+                : mode === 'conservador'
+                  ? 'Prioridade é mitigação de riscos e eficiência operacional. Evitar grandes apostas.'
+                  : 'Sua coerência estratégica está alta (85%). O padrão de decisões recentes mostra uma transição clara para "Agressivo".'
+              }
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <div className="px-3 py-1.5 bg-zinc-950 rounded border border-zinc-800 text-xs text-zinc-400">
+              {mode === 'expansao' ? 'Alto Crescimento' : 'Risco Controlado'}
             </div>
-            </motion.section>
+            <div className="px-3 py-1.5 bg-zinc-950 rounded border border-zinc-800 text-xs text-zinc-400">Execução Estável</div>
+          </div>
+        </motion.section>
 
         {/* 4. MOVIMENTO DE EXECUÇÃO */}
-            <motion.section 
-             {...staggerChild}
-             {...cardHover}
-             className="card-standard"
-            >
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-2">
-                    <Icons.Layers className="w-4 h-4 text-zinc-400" />
-                    <h3 className="text-zinc-300 uppercase tracking-widest">Execução</h3>
-                </div>
-                <Link to="/app/plans" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium">
-                    Ver Planos <Icons.ArrowRight className="w-3 h-3" />
-                </Link>
+        <motion.section
+          {...staggerChild}
+          {...cardHover}
+          className="card-standard"
+        >
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-2">
+              <Icons.Layers className="w-4 h-4 text-zinc-400" />
+              <h3 className="text-zinc-300 uppercase tracking-widest">Execução</h3>
             </div>
-            
-            <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                    <div className="text-3xl font-bold text-white mb-1">{plans.filter(p => p.status === 'active').length}</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Ativos</div>
-                </div>
-                <div>
-                    <div className="text-3xl font-bold text-white mb-1">{plans.filter(p => p.status === 'at_risk').length}</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Em Risco</div>
-                </div>
-                <div>
-                    <div className="text-3xl font-bold text-white mb-1">15d</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Marco</div>
-                </div>
+            <Link to="/app/plans" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium">
+              Ver Planos <Icons.ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="text-3xl font-bold text-white mb-1">{plans.filter(p => p.status === 'active').length}</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Ativos</div>
             </div>
-            </motion.section>
+            <div>
+              <div className="text-3xl font-bold text-white mb-1">{plans.filter(p => p.status === 'at_risk').length}</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Em Risco</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-white mb-1">15d</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Marco</div>
+            </div>
+          </div>
+        </motion.section>
 
       </div>
 
       {/* 5. ALERTAS SECUNDÁRIOS (Reduzidos/Silenciosos) */}
-        <motion.section 
-          {...staggerChild}
-          className="pt-8 border-t border-zinc-800/50"
-        >
+      <motion.section
+        {...staggerChild}
+        className="pt-8 border-t border-zinc-800/50"
+      >
         <h3 className="text-zinc-600 uppercase tracking-widest mb-4 px-2">Outros Alertas</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {risks.slice(0, 3).map(risk => (
-              <div key={risk.id} className="p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 hover:bg-zinc-900/40 transition-colors flex items-start gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${risk.level === 'high' ? 'bg-orange-500' : 'bg-yellow-500'}`}></div>
-                  <div>
-                      <p className="text-sm text-zinc-300 font-medium mb-1">{risk.title}</p>
-                      <p className="text-xs text-zinc-500 line-clamp-1">{risk.origin}</p>
-                  </div>
+          {risks.slice(0, 3).map(risk => (
+            <div key={risk.id} className="p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 hover:bg-zinc-900/40 transition-colors flex items-start gap-3">
+              <div className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${risk.level === 'high' ? 'bg-orange-500' : 'bg-yellow-500'}`}></div>
+              <div>
+                <p className="text-sm text-zinc-300 font-medium mb-1">{risk.title}</p>
+                <p className="text-xs text-zinc-500 line-clamp-1">{risk.origin}</p>
               </div>
-            ))}
-            <Link to="/app/risks" className="p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 hover:bg-zinc-900/40 transition-colors flex items-center justify-center text-zinc-500 text-xs hover:text-zinc-300 cursor-pointer">
-                Ver todos os alertas
-            </Link>
+            </div>
+          ))}
+          <Link to="/app/risks" className="p-4 rounded-xl border border-zinc-800/50 bg-zinc-900/20 hover:bg-zinc-900/40 transition-colors flex items-center justify-center text-zinc-500 text-xs hover:text-zinc-300 cursor-pointer">
+            Ver todos os alertas
+          </Link>
         </div>
-            </motion.section>
+      </motion.section>
 
       {/* Decision Edit Modal */}
       {editingDecision && (
-          <DecisionEditModal 
-              suggestion={editingDecision} 
-              onClose={() => setEditingDecision(null)} 
-              onSave={() => {}}
-          />
+        <DecisionEditModal
+          suggestion={editingDecision}
+          onClose={() => setEditingDecision(null)}
+          onSave={() => { }}
+        />
       )}
 
       {/* Simulation Drawer */}
@@ -432,11 +434,11 @@ export default function DashboardPage() {
       />
 
       {/* Onboarding Modal */}
-      <OnboardingModal 
+      <OnboardingModal
         isOpen={showOnboarding}
         onComplete={handleOnboardingComplete}
       />
 
-      </AnimatedPage>
+    </AnimatedPage>
   );
 }

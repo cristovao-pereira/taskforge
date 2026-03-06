@@ -128,6 +128,51 @@ async function getOrCreateUser(firebaseUid: string, email?: string, name?: strin
     return user;
 }
 
+/**
+ * Resolve the internal DB User.id from a Firebase UID.
+ * Supports both legacy users (id = firebaseUid) and new users (firebaseUid field).
+ * Creates user if not found.
+ */
+async function getInternalUserId(firebaseUid: string, email?: string, name?: string): Promise<string> {
+    // Try by firebaseUid field first (new users)
+    let user = await prisma.user.findUnique({ where: { firebaseUid } });
+
+    if (!user) {
+        // Fallback: legacy users where id was set to firebaseUid directly
+        user = await prisma.user.findUnique({ where: { id: firebaseUid } });
+        if (user) {
+            // Migrate: set firebaseUid field if missing
+            if (!user.firebaseUid) {
+                user = await prisma.user.update({
+                    where: { id: user.id },
+                    data: { firebaseUid }
+                });
+            }
+            return user.id;
+        }
+    }
+
+    if (!user && email) {
+        // Try by email
+        user = await prisma.user.findUnique({ where: { email } });
+        if (user) {
+            user = await prisma.user.update({ where: { id: user.id }, data: { firebaseUid } });
+        }
+    }
+
+    if (!user) {
+        user = await prisma.user.create({
+            data: {
+                firebaseUid,
+                email: email || `user-${firebaseUid}@taskforge.local`,
+                name: name || 'Usuário',
+            }
+        });
+    }
+
+    return user.id;
+}
+
 async function persistUploadedFile(file: Express.Multer.File, userId: string, documentId: string) {
     const sanitizedName = sanitizeFilename(file.originalname);
     const storagePath = `documents/${userId}/${documentId}-${sanitizedName}`;
@@ -420,19 +465,13 @@ app.get('/api/health', (req, res) => {
 // User Profile Endpoints
 app.get('/api/user/profile', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
-        let user = await prisma.user.findUnique({ where: { id: userId } });
-
-        if (!user && req.user) {
-            // Create user if doesn't exist
-            user = await prisma.user.create({
-                data: {
-                    id: userId,
-                    email: req.user.email || `${userId}@unknown.com`,
-                    name: req.user.name || 'User',
-                },
-            });
-        }
+        const firebaseUid = req.userId!;
+        const internalId = await getInternalUserId(
+            firebaseUid,
+            req.user?.email,
+            req.user?.name
+        );
+        const user = await prisma.user.findUnique({ where: { id: internalId } });
 
         if (!user) {
             res.status(404).json({ error: 'User not found' });
@@ -456,7 +495,8 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
 
 app.patch('/api/user/profile', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
+        const firebaseUid = req.userId!;
+        const internalId = await getInternalUserId(firebaseUid, req.user?.email, req.user?.name);
         const { hasCompletedOnboarding, objective, strategicMode, name } = req.body;
 
         const updateData: any = {};
@@ -466,7 +506,7 @@ app.patch('/api/user/profile', authenticateUser, async (req, res) => {
         if (name !== undefined) updateData.name = name;
 
         const user = await prisma.user.update({
-            where: { id: userId },
+            where: { id: internalId },
             data: updateData,
         });
 
@@ -566,22 +606,10 @@ app.post('/api/events', authenticateUser, async (req, res) => {
 // Metrics Endpoints - Requires Authentication
 app.get('/api/metrics/dna', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         let dna = await prisma.strategicDNA.findUnique({ where: { userId } });
 
         if (!dna) {
-            // Ensure user exists
-            let user = await prisma.user.findUnique({ where: { id: userId } });
-            if (!user) {
-                user = await prisma.user.create({
-                    data: {
-                        id: userId,
-                        email: 'user@example.com',
-                        name: 'Demo User'
-                    }
-                });
-            }
-
             dna = await prisma.strategicDNA.create({
                 data: { userId }
             });
@@ -595,22 +623,10 @@ app.get('/api/metrics/dna', authenticateUser, async (req, res) => {
 
 app.get('/api/metrics/health', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         let health = await prisma.systemHealth.findUnique({ where: { userId } });
 
         if (!health) {
-            // Ensure user exists
-            let user = await prisma.user.findUnique({ where: { id: userId } });
-            if (!user) {
-                user = await prisma.user.create({
-                    data: {
-                        id: userId,
-                        email: 'user@example.com',
-                        name: 'Demo User'
-                    }
-                });
-            }
-
             health = await prisma.systemHealth.create({
                 data: { userId }
             });
@@ -640,62 +656,60 @@ app.get('/api/explanations', authenticateUser, async (req, res) => {
 
 // Document Routes - Requires Authentication
 app.get('/api/documents', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
-    const docs = await prisma.document.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        include: { insights: true, linkedDecisions: true, linkedPlans: true, linkedRisks: true }
-    });
-    res.json(docs);
+    try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
+        const docs = await prisma.document.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            include: { insights: true, linkedDecisions: true, linkedPlans: true, linkedRisks: true }
+        });
+        res.json(docs);
+    } catch (error) {
+        console.error('Error fetching documents:', error);
+        res.status(500).json({ error: 'Failed to fetch documents' });
+    }
 });
 
 app.get('/api/documents/score', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
+    try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
 
-    const totalDocs = await prisma.document.count({ where: { userId } });
-    if (totalDocs === 0) return res.json({ score: 0 });
+        const totalDocs = await prisma.document.count({ where: { userId } });
+        if (totalDocs === 0) return res.json({ score: 0 });
 
-    const processedDocs = await prisma.document.count({ where: { userId, status: { in: ['processed', 'insights_ready', 'risk_detected'] } } });
-    const linkedDocs = await prisma.document.count({
-        where: {
-            userId,
-            OR: [
-                { linkedDecisions: { some: {} } },
-                { linkedPlans: { some: {} } },
-                { linkedRisks: { some: {} } }
-            ]
-        }
-    });
+        const processedDocs = await prisma.document.count({ where: { userId, status: { in: ['processed', 'insights_ready', 'risk_detected'] } } });
+        const linkedDocs = await prisma.document.count({
+            where: {
+                userId,
+                OR: [
+                    { linkedDecisions: { some: {} } },
+                    { linkedPlans: { some: {} } },
+                    { linkedRisks: { some: {} } }
+                ]
+            }
+        });
 
-    // Simple mock calculation
-    const score = Math.round(
-        ((processedDocs / totalDocs) * 40) +
-        ((linkedDocs / totalDocs) * 40) +
-        20 // Base score
-    );
+        const score = Math.round(
+            ((processedDocs / totalDocs) * 40) +
+            ((linkedDocs / totalDocs) * 40) +
+            20
+        );
 
-    res.json({ score: Math.min(100, score) });
+        res.json({ score: Math.min(100, score) });
+    } catch (error) {
+        console.error('Error calculating document score:', error);
+        res.status(500).json({ error: 'Failed to calculate score' });
+    }
 });
 
 app.post('/api/documents/upload', authenticateUser, upload.single('file'), async (req, res) => {
     try {
-        const userId = req.userId!;
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const file = req.file;
         const ipAddress = req.ip || req.socket.remoteAddress;
 
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        let user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user && req.user) {
-            user = await prisma.user.create({
-                data: {
-                    id: userId,
-                    email: req.user.email || `${userId}@unknown.com`,
-                    name: req.user.name || 'User'
-                }
-            });
         }
 
         // Calculate retention expiry (default 90 days from now)
@@ -1500,8 +1514,8 @@ app.get('/api/documents/:id/audit-history', authenticateUser, async (req, res) =
 
 // GET /api/decisions
 app.get('/api/decisions', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const decisions = await prisma.decision.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' }
@@ -1515,10 +1529,10 @@ app.get('/api/decisions', authenticateUser, async (req, res) => {
 
 // POST /api/decisions
 app.post('/api/decisions', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     const { title, description, impact, confidence, status } = req.body;
 
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const decision = await prisma.decision.create({
             data: {
                 userId,
@@ -1538,11 +1552,11 @@ app.post('/api/decisions', authenticateUser, async (req, res) => {
 
 // PUT /api/decisions/:id
 app.put('/api/decisions/:id', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     const decisionId = req.params.id;
     const { title, description, impact, confidence, status } = req.body;
 
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const decision = await prisma.decision.updateMany({
             where: { id: decisionId, userId },
             data: { title, description, impact, confidence, status }
@@ -1559,8 +1573,8 @@ app.put('/api/decisions/:id', authenticateUser, async (req, res) => {
 
 // GET /api/risks
 app.get('/api/risks', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const risks = await prisma.risk.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' }
@@ -1574,10 +1588,10 @@ app.get('/api/risks', authenticateUser, async (req, res) => {
 
 // POST /api/risks
 app.post('/api/risks', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     const { title, description, severity, status } = req.body;
 
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const risk = await prisma.risk.create({
             data: {
                 userId,
@@ -1596,10 +1610,10 @@ app.post('/api/risks', authenticateUser, async (req, res) => {
 
 // PUT /api/risks/:id/resolve
 app.put('/api/risks/:id/resolve', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     const riskId = req.params.id;
 
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const risk = await prisma.risk.updateMany({
             where: { id: riskId, userId },
             data: { status: 'resolved' }
@@ -1614,8 +1628,8 @@ app.put('/api/risks/:id/resolve', authenticateUser, async (req, res) => {
 
 // GET /api/plans
 app.get('/api/plans', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const plans = await prisma.plan.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' }
@@ -1629,8 +1643,8 @@ app.get('/api/plans', authenticateUser, async (req, res) => {
 
 // GET /api/sessions
 app.get('/api/sessions', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const sessions = await prisma.session.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' }
@@ -1644,10 +1658,10 @@ app.get('/api/sessions', authenticateUser, async (req, res) => {
 
 // POST /api/sessions
 app.post('/api/sessions', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     const { title, type, status } = req.body;
 
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const session = await prisma.session.create({
             data: {
                 userId,
@@ -1665,52 +1679,57 @@ app.post('/api/sessions', authenticateUser, async (req, res) => {
 
 app.post('/api/plans', authenticateUser, async (req, res) => {
     const { title, description, phases, tasks, suggestionId } = req.body;
-    const userId = req.userId!;
 
-    // Create Real Plan
-    const plan = await prisma.plan.create({
-        data: {
-            userId,
-            title,
-            description,
-            status: 'planning',
-            priority: 'high'
-        }
-    });
-
-    // If created from suggestion, update suggestion status
-    if (suggestionId) {
-        await prisma.planSuggestion.update({
-            where: { id: suggestionId },
-            data: { status: 'accepted' }
-        });
-
-        // Log Explanation
-        await prisma.explanationLog.create({
+    try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
+        // Create Real Plan
+        const plan = await prisma.plan.create({
             data: {
-                title: "Plano de Execução Criado",
-                whatChanged: "Novo plano estratégico iniciado.",
-                whyChanged: "Sugestão de documento transformada em plano.",
-                impact: "Aumento na capacidade de execução.",
-                recommendation: "Acompanhar progresso das fases.",
-                event: {
-                    connect: {
-                        id: (await prisma.eventLog.create({
-                            data: {
-                                eventType: 'plan.created',
-                                entityType: 'plan',
-                                userId,
-                                metadata: JSON.stringify({ origin: 'document_suggestion', suggestionId })
-                            }
-                        })).id
-                    }
-                }
+                userId,
+                title,
+                description,
+                status: 'planning',
+                priority: 'high'
             }
         });
-    }
 
-    io.to(userId).emit('plan:created', plan);
-    res.json(plan);
+        // If created from suggestion, update suggestion status
+        if (suggestionId) {
+            await prisma.planSuggestion.update({
+                where: { id: suggestionId },
+                data: { status: 'accepted' }
+            });
+
+            // Log Explanation
+            await prisma.explanationLog.create({
+                data: {
+                    title: "Plano de Execução Criado",
+                    whatChanged: "Novo plano estratégico iniciado.",
+                    whyChanged: "Sugestão de documento transformada em plano.",
+                    impact: "Aumento na capacidade de execução.",
+                    recommendation: "Acompanhar progresso das fases.",
+                    event: {
+                        connect: {
+                            id: (await prisma.eventLog.create({
+                                data: {
+                                    eventType: 'plan.created',
+                                    entityType: 'plan',
+                                    userId,
+                                    metadata: JSON.stringify({ origin: 'document_suggestion', suggestionId })
+                                }
+                            })).id
+                        }
+                    }
+                }
+            });
+        }
+
+        io.to(userId).emit('plan:created', plan);
+        res.json(plan);
+    } catch (error) {
+        console.error('Error creating plan:', error);
+        res.status(500).json({ error: 'Failed to create plan' });
+    }
 });
 
 // User Endpoint
@@ -1731,64 +1750,68 @@ let userProfileCache: any = {
 // Endpoint duplicado removido - usar o endpoint na linha ~421
 
 app.put('/api/user/profile', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
     const { name, strategicMode, company, role, objective, deepMode, alertSensitivity, notifications, completingOnboarding } = req.body;
 
-    // Update Prisma fields
-    const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-            name,
-            strategicMode,
-            objective,
-            hasCompletedOnboarding: completingOnboarding !== undefined ? completingOnboarding : undefined
-        }
-    });
-
-    if (completingOnboarding) {
-        // Create an introductory Session
-        await prisma.session.create({
+    try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
+        // Update Prisma fields
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
             data: {
-                userId,
-                title: 'Primeira Sessão de Planejamento',
-                type: 'planning',
-                status: 'scheduled'
+                name,
+                strategicMode,
+                objective,
+                hasCompletedOnboarding: completingOnboarding !== undefined ? completingOnboarding : undefined
             }
         });
 
-        // Create an introductory Decision based on Objective
-        if (objective) {
-            await prisma.decision.create({
+        if (completingOnboarding) {
+            // Create an introductory Session
+            await prisma.session.create({
                 data: {
                     userId,
-                    title: `Atingir objetivo: ${objective.substring(0, 50)}${objective.length > 50 ? '...' : ''}`,
-                    description: `Decisão fundamental focada no objetivo estratégico principal fornecido durante o onboarding: ${objective}`,
-                    impact: 'high',
-                    confidence: 10,
-                    status: 'draft'
+                    title: 'Primeira Sessão de Planejamento',
+                    type: 'planning',
+                    status: 'scheduled'
                 }
             });
+
+            // Create an introductory Decision based on Objective
+            if (objective) {
+                await prisma.decision.create({
+                    data: {
+                        userId,
+                        title: `Atingir objetivo: ${objective.substring(0, 50)}${objective.length > 50 ? '...' : ''}`,
+                        description: `Decisão fundamental focada no objetivo estratégico principal fornecido durante o onboarding: ${objective}`,
+                        impact: 'high',
+                        confidence: 10,
+                        status: 'draft'
+                    }
+                });
+            }
         }
+
+        // Update Cache fields
+        userProfileCache = {
+            ...userProfileCache,
+            company,
+            role,
+            objective,
+            deepMode,
+            alertSensitivity,
+            notifications
+        };
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating user profile (PUT):', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    // Update Cache fields
-    userProfileCache = {
-        ...userProfileCache,
-        company,
-        role,
-        objective,
-        deepMode,
-        alertSensitivity,
-        notifications
-    };
-
-    res.json({ success: true });
 });
 
 app.delete('/api/user/account', authenticateUser, async (req, res) => {
-    const userId = req.userId!;
-
     try {
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         // Start a transaction to delete all user data
         await prisma.$transaction(async (tx) => {
             // Level 2 Dependencies (Depend on Level 1)
@@ -2574,13 +2597,13 @@ async function startServer() {
  */
 app.post('/api/agents/retrieve', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
         const { query, mode = 'equilibrado', documentIds = [], topK = 5 } = req.body;
 
         if (!query || query.trim().length === 0) {
             return res.status(400).json({ error: 'Query is required' });
         }
 
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         // Validate topK
         const limit = Math.min(Math.max(topK, 1), 20); // Clamp between 1-20
 
@@ -2656,21 +2679,18 @@ app.post('/api/agents/retrieve', authenticateUser, async (req, res) => {
  */
 app.post('/api/agents/decision', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
         const { decision, context = {}, documentIds = [] } = req.body;
 
         if (!decision || decision.trim().length === 0) {
             return res.status(400).json({ error: 'Statement description is required' });
         }
 
-        // 1. Get user to check credits/plan
-        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
 
         // 2. Create AgentJob
         const job = await prisma.agentJob.create({
             data: {
-                userId: user.id,
+                userId,
                 agentType: 'DECISION',
                 status: 'PENDING',
                 inputPayload: { decision, context, documentIds }
@@ -2679,11 +2699,11 @@ app.post('/api/agents/decision', authenticateUser, async (req, res) => {
 
         // 3. Log audit for relevant documents
         for (const docId of documentIds) {
-            await logDocumentAudit(docId, user.id, 'agent_query', 'DecisionForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
+            await logDocumentAudit(docId, userId, 'agent_query', 'DecisionForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
         }
 
         // 4. Trigger n8n (asynchronous)
-        triggerN8nAgent(job.id, 'DECISION', decision, user.id, documentIds);
+        triggerN8nAgent(job.id, 'DECISION', decision, userId, documentIds);
 
         // 5. Respond with jobId
         res.json({
@@ -2703,19 +2723,17 @@ app.post('/api/agents/decision', authenticateUser, async (req, res) => {
  */
 app.post('/api/agents/clarity', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
         const { input, context = {}, documentIds = [] } = req.body;
 
         if (!input || input.trim().length === 0) {
             return res.status(400).json({ error: 'Input is required' });
         }
 
-        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
 
         const job = await prisma.agentJob.create({
             data: {
-                userId: user.id,
+                userId,
                 agentType: 'CLARITY',
                 status: 'PENDING',
                 inputPayload: { input, context, documentIds }
@@ -2724,10 +2742,10 @@ app.post('/api/agents/clarity', authenticateUser, async (req, res) => {
 
         // Log audit for relevant documents
         for (const docId of documentIds) {
-            await logDocumentAudit(docId, user.id, 'agent_query', 'ClarityForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
+            await logDocumentAudit(docId, userId, 'agent_query', 'ClarityForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
         }
 
-        triggerN8nAgent(job.id, 'CLARITY', input, user.id, documentIds);
+        triggerN8nAgent(job.id, 'CLARITY', input, userId, documentIds);
 
         res.json({
             jobId: job.id,
@@ -2746,19 +2764,17 @@ app.post('/api/agents/clarity', authenticateUser, async (req, res) => {
  */
 app.post('/api/agents/leverage', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
         const { objective, context = {}, documentIds = [] } = req.body;
 
         if (!objective || objective.trim().length === 0) {
             return res.status(400).json({ error: 'Objective is required' });
         }
 
-        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
 
         const job = await prisma.agentJob.create({
             data: {
-                userId: user.id,
+                userId,
                 agentType: 'LEVERAGE',
                 status: 'PENDING',
                 inputPayload: { objective, context, documentIds }
@@ -2767,10 +2783,10 @@ app.post('/api/agents/leverage', authenticateUser, async (req, res) => {
 
         // Log audit for relevant documents
         for (const docId of documentIds) {
-            await logDocumentAudit(docId, user.id, 'agent_query', 'LeverageForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
+            await logDocumentAudit(docId, userId, 'agent_query', 'LeverageForge analysis initiated (Async)', { jobId: job.id }, req.ip).catch(console.error);
         }
 
-        triggerN8nAgent(job.id, 'LEVERAGE', objective, user.id, documentIds);
+        triggerN8nAgent(job.id, 'LEVERAGE', objective, userId, documentIds);
 
         res.json({
             jobId: job.id,
@@ -2789,12 +2805,10 @@ app.post('/api/agents/leverage', authenticateUser, async (req, res) => {
  */
 app.get('/api/agents/history', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
-        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
 
         const jobs = await prisma.agentJob.findMany({
-            where: { userId: user.id },
+            where: { userId },
             orderBy: { createdAt: 'desc' },
             take: 50
         });
@@ -2806,23 +2820,22 @@ app.get('/api/agents/history', authenticateUser, async (req, res) => {
     }
 });
 
+
 /**
  * GET /api/agents/jobs/:jobId
  * Get details of a specific agent job
  */
 app.get('/api/agents/jobs/:jobId', authenticateUser, async (req, res) => {
     try {
-        const userId = req.userId!;
+        const firebaseUid = req.userId!;
         const { jobId } = req.params;
 
-        const user = await prisma.user.findUnique({ where: { firebaseUid: userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
-
+        const internalId = await getInternalUserId(firebaseUid, req.user?.email, req.user?.name);
         const job = await prisma.agentJob.findUnique({
             where: { id: jobId }
         });
 
-        if (!job || job.userId !== user.id) {
+        if (!job || job.userId !== internalId) {
             return res.status(404).json({ error: 'Job not found' });
         }
 
