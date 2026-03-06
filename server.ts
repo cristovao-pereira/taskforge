@@ -2589,7 +2589,7 @@ app.get('/api/agents/jobs/:jobId', authenticateUser, async (req, res) => {
 // --- n8n Integration Helpers ---
 
 async function triggerN8nAgent(jobId: string, agentType: string, input: any, userId: string, documentIds: string[]) {
-    const webhookUrl = `${process.env.N8N_WEBHOOK_BASE_URL}/taskforge`;
+    const webhookUrl = `${process.env.N8N_WEBHOOK_BASE_URL}/taskforge-v4`;
     const apiKey = process.env.N8N_API_KEY;
 
     console.log(`[n8n] Triggering analysis for job ${jobId} (${agentType})`);
