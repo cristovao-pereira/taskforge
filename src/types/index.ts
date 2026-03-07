@@ -11,6 +11,7 @@ export interface User {
     strategicMode: 'conservative' | 'balanced' | 'aggressive';
     deepMode: boolean;
     alertSensitivity: 'normal' | 'high';
+    theme: 'light' | 'dark' | 'system';
   };
 }
 
@@ -25,6 +26,7 @@ export interface Decision {
   summary: string;
   rationale?: string;
   outcome?: 'Positive' | 'Negative' | 'Neutral' | 'Pending';
+  connections?: string[];
 }
 
 export interface Risk {

@@ -6,6 +6,7 @@ import { cardHover } from '../lib/motion';
 import { useStrategicMode } from '../contexts/StrategicContext';
 import { getStrategicRules } from '../utils/strategicRules';
 import { useApp } from '../contexts/AppContext';
+import { usePreferences } from '../contexts/PreferencesContext';
 import { toast } from 'sonner';
 
 interface Insight {
@@ -27,6 +28,7 @@ export default function RiskAlertsPage() {
   const { mode, getModeLabel, getModeColor } = useStrategicMode();
   const rules = getStrategicRules(mode);
   const { risks, resolveRisk, isLoading, health } = useApp();
+  const { alertSensitivity } = usePreferences();
   const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
   const activeRisks = useMemo(() => risks.filter(r => r.status === 'active' || r.status === 'monitoring'), [risks]);
@@ -74,6 +76,10 @@ export default function RiskAlertsPage() {
                 </div>
                 Alertas de Risco
               </h1>
+              <div className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-400 border border-zinc-700 flex items-center gap-1.5">
+                <Icons.Activity className="w-3 h-3" />
+                SISTEMA: {alertSensitivity === 'alta' ? 'SENSIBILIDADE ALTA' : 'SENSIBILIDADE NORMAL'}
+              </div>
             </div>
 
             <p className="text-xl text-zinc-400 font-light max-w-2xl">

@@ -13,6 +13,7 @@ import { MetricsProvider } from './contexts/MetricsContext';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { UpgradeProvider } from './contexts/UpgradeContext';
+import { PreferencesProvider } from './contexts/PreferencesContext';
 import { Toaster } from 'sonner';
 
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -45,60 +46,62 @@ export default function App() {
             <StrategicProvider>
               <MetricsProvider>
                 <UpgradeProvider>
-                <AppProvider>
-                <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
-                <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/como-funciona" element={<HowItWorksPage />} />
-                <Route path="/precos" element={<PricingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
+                  <PreferencesProvider>
+                    <AppProvider>
+                      <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+                        <Routes>
+                          {/* Public Routes */}
+                          <Route path="/" element={<LandingPage />} />
+                          <Route path="/como-funciona" element={<HowItWorksPage />} />
+                          <Route path="/precos" element={<PricingPage />} />
+                          <Route path="/login" element={<LoginPage />} />
+                          <Route path="/signup" element={<SignupPage />} />
 
-                {/* Protected Routes (App) */}
-                <Route path="/app" element={<AppLayout><Navigate to="/app/dashboard" replace /></AppLayout>} />
-                <Route path="/app/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
-                <Route path="/app/chat" element={<AppLayout><ChatPage /></AppLayout>} />
-                <Route path="/app/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
-                <Route path="/app/dna" element={<AppLayout><StrategicDNAPage /></AppLayout>} />
-                <Route path="/app/map" element={<AppLayout><DecisionMapPage /></AppLayout>} />
-                <Route path="/app/sessions" element={<AppLayout><StrategicSessionsPage /></AppLayout>} />
-                <Route path="/app/plans" element={<AppLayout><ExecutionPlansPage /></AppLayout>} />
-                <Route path="/app/plans/create" element={<AppLayout><PlanCreatePage /></AppLayout>} />
-                <Route path="/app/risks" element={<AppLayout><RiskAlertsPage /></AppLayout>} />
-                <Route path="/app/agent/decision" element={<AppLayout><DecisionForgePage /></AppLayout>} />
-                <Route path="/app/agent/clarity" element={<AppLayout><ClarityForgePage /></AppLayout>} />
-                <Route path="/app/agent/leverage" element={<AppLayout><LeverageForgePage /></AppLayout>} />
-                <Route path="/app/billing" element={<AppLayout><BillingPage /></AppLayout>} />
-                <Route path="/app/documents" element={<AppLayout><DocumentsPage /></AppLayout>} />
-                <Route path="/app/status" element={<AppLayout><SystemStatusPage /></AppLayout>} />
-                
-                {/* Placeholders for other routes */}
-                <Route path="/app/agents" element={<AppLayout><div className="p-8 text-white">Agentes (Em breve)</div></AppLayout>} />
-                <Route path="/app/analytics" element={<AppLayout><div className="p-8 text-white">Relatórios (Em breve)</div></AppLayout>} />
+                          {/* Protected Routes (App) */}
+                          <Route path="/app" element={<AppLayout />}>
+                            <Route index element={<Navigate to="dashboard" replace />} />
+                            <Route path="dashboard" element={<DashboardPage />} />
+                            <Route path="chat" element={<ChatPage />} />
+                            <Route path="settings" element={<SettingsPage />} />
+                            <Route path="dna" element={<StrategicDNAPage />} />
+                            <Route path="map" element={<DecisionMapPage />} />
+                            <Route path="sessions" element={<StrategicSessionsPage />} />
+                            <Route path="plans" element={<ExecutionPlansPage />} />
+                            <Route path="plans/create" element={<PlanCreatePage />} />
+                            <Route path="risks" element={<RiskAlertsPage />} />
+                            <Route path="agent/decision" element={<DecisionForgePage />} />
+                            <Route path="agent/clarity" element={<ClarityForgePage />} />
+                            <Route path="agent/leverage" element={<LeverageForgePage />} />
+                            <Route path="billing" element={<BillingPage />} />
+                            <Route path="documents" element={<DocumentsPage />} />
+                            <Route path="status" element={<SystemStatusPage />} />
+                            <Route path="agents" element={<div className="p-8 text-white">Agentes (Em breve)</div>} />
+                            <Route path="analytics" element={<div className="p-8 text-white">Relatórios (Em breve)</div>} />
+                          </Route>
 
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-              </Suspense>
-              <Toaster 
-                position="top-right" 
-                theme="dark"
-                toastOptions={{
-                  style: {
-                    background: '#1e293b',
-                    color: '#ffffff',
-                    border: '1px solid #3b82f6',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                  },
-                  duration: 3000,
-                }}
-              />
-                </AppProvider>
-              </UpgradeProvider>
-            </MetricsProvider>
-          </StrategicProvider>
+                          {/* Fallback */}
+                          <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                      </Suspense>
+                      <Toaster
+                        position="top-right"
+                        theme="dark"
+                        toastOptions={{
+                          style: {
+                            background: '#1e293b',
+                            color: '#ffffff',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.875rem',
+                          },
+                          duration: 3000,
+                        }}
+                      />
+                    </AppProvider>
+                  </PreferencesProvider>
+                </UpgradeProvider>
+              </MetricsProvider>
+            </StrategicProvider>
           </NotificationProvider>
         </EventProvider>
       </BrowserRouter>

@@ -15,6 +15,7 @@ interface AppContextType {
   refreshData: () => Promise<void>;
   updateUser: (user: Partial<User>) => Promise<void>;
   addDecision: (decision: Omit<Decision, 'id' | 'date'>) => Promise<void>;
+  updateDecision: (id: string, decision: Partial<Decision>) => Promise<void>;
   addRisk: (risk: Omit<Risk, 'id'>) => Promise<void>;
   addPlan: (plan: Omit<ExecutionPlan, 'id'>) => Promise<void>;
   addSession: (session: Omit<StrategicSession, 'id'>) => Promise<void>;
@@ -61,8 +62,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               plan: profileData.plan || 'gratis',
               preferences: {
                 strategicMode: profileData.strategicMode || 'equilibrado',
-                deepMode: true,
-                alertSensitivity: 'normal',
+                deepMode: typeof profileData.deepMode === 'boolean' ? profileData.deepMode : true,
+                alertSensitivity: profileData.alertSensitivity || 'normal',
+                theme: profileData.theme || 'system',
               },
             };
             setUser(userData);
@@ -115,6 +117,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (updatedUser.name) updateData.name = updatedUser.name;
       if (updatedUser.objective) updateData.objective = updatedUser.objective;
       if (updatedUser.preferences?.strategicMode) updateData.strategicMode = updatedUser.preferences.strategicMode;
+      if (typeof updatedUser.preferences?.deepMode === 'boolean') updateData.deepMode = updatedUser.preferences.deepMode;
+      if (updatedUser.preferences?.alertSensitivity) updateData.alertSensitivity = updatedUser.preferences.alertSensitivity;
 
       const response = await fetch('/api/user/profile', {
         method: 'PATCH',
@@ -140,6 +144,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           preferences: {
             ...user.preferences,
             strategicMode: profileData.strategicMode || user.preferences.strategicMode,
+            deepMode: typeof profileData.deepMode === 'boolean' ? profileData.deepMode : user.preferences.deepMode,
+            alertSensitivity: profileData.alertSensitivity || user.preferences.alertSensitivity,
           },
         });
       }
@@ -155,6 +161,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setDecisions(prev => [newDecision, ...prev]);
     } catch (error) {
       console.error('Failed to add decision:', error);
+    }
+  };
+
+  const updateDecision = async (id: string, updatedFields: Partial<Decision>) => {
+    try {
+      const updatedDecision = await dataApi.updateDecision(id, updatedFields);
+      setDecisions(prev => prev.map(d => d.id === id ? updatedDecision : d));
+    } catch (error) {
+      console.error('Failed to update decision:', error);
     }
   };
 
@@ -280,6 +295,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       refreshData,
       updateUser,
       addDecision,
+      updateDecision,
       addRisk,
       addPlan,
       addSession,

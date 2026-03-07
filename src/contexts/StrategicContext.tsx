@@ -17,7 +17,7 @@ const StrategicContext = createContext<StrategicContextType | undefined>(undefin
 export function StrategicProvider({ children }: { children: ReactNode }) {
   const { emitEvent } = useEvent();
   const { user, getIdToken } = useAuth();
-  
+
   const [mode, setModeState] = useState<StrategicMode>('equilibrado');
 
   // Fetch initial mode from backend
@@ -60,7 +60,7 @@ export function StrategicProvider({ children }: { children: ReactNode }) {
       const oldMode = mode;
       console.log('[StrategicContext] Mode changed:', oldMode, '->', newMode);
       setModeState(newMode);
-      
+
       // Emit event for audit log and backend persistence
       emitEvent('mode.changed', 'system', 'global-mode', {
         oldMode,
@@ -87,10 +87,10 @@ export function StrategicProvider({ children }: { children: ReactNode }) {
 
   const getModeColor = () => {
     switch (mode) {
-      case 'conservador': return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-      case 'equilibrado': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-      case 'expansao': return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
-      default: return 'text-zinc-400 bg-zinc-800 border-zinc-700';
+      case 'conservador': return 'text-[var(--status-info)] bg-[var(--status-info-bg)] border-[var(--status-info-bg)]';
+      case 'equilibrado': return 'text-[var(--status-success)] bg-[var(--status-success-bg)] border-[var(--status-success-bg)]';
+      case 'expansao': return 'text-[var(--status-warning)] bg-[var(--status-warning-bg)] border-[var(--status-warning-bg)]';
+      default: return 'text-[var(--text-secondary)] bg-[var(--bg-secondary)] border-[var(--border-color)]';
     }
   };
 

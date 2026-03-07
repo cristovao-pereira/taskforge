@@ -41,23 +41,23 @@ export function NotificationBell() {
     if (diffMins < 60) return `${diffMins}m atrás`;
     if (diffHours < 24) return `${diffHours}h atrás`;
     if (diffDays < 7) return `${diffDays}d atrás`;
-    
+
     return new Date(date).toLocaleDateString('pt-BR');
   };
 
   return (
     <div className="relative">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors relative group"
+        className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--nav-hover)] rounded-lg transition-colors relative group"
       >
         <Icons.Bell className="w-5 h-5" />
         {unreadCount > 0 && (
           <>
-            <span className="absolute top-1 right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full border-2 border-zinc-900">
+            <span className="absolute top-1 right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-[var(--status-error)] rounded-full border-2 border-[var(--bg-primary)]">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
-            <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-zinc-900 animate-pulse"></span>
+            <span className="absolute top-1 right-1 w-5 h-5 bg-[var(--status-error)] rounded-full border-2 border-[var(--bg-primary)] animate-pulse"></span>
           </>
         )}
       </button>
@@ -80,15 +80,15 @@ export function NotificationBell() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute right-0 mt-3 w-96 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden"
+              className="absolute right-0 mt-3 w-96 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl shadow-2xl z-50 overflow-hidden"
             >
               {/* Header */}
-              <div className="bg-zinc-800/50 px-4 py-3 border-b border-zinc-700/50 flex items-center justify-between">
+              <div className="bg-[var(--bg-secondary)] px-4 py-3 border-b border-[var(--border-color)] opacity-90 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Icons.Bell className="w-4 h-4 text-blue-400" />
-                  <h3 className="text-sm font-semibold text-white">Notificações</h3>
+                  <Icons.Bell className="w-4 h-4 text-[var(--accent-color)]" />
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Notificações</h3>
                   {unreadCount > 0 && (
-                    <span className="ml-auto text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-full font-medium">
+                    <span className="ml-auto text-xs bg-[var(--status-error-bg)] text-[var(--status-error)] px-2 py-1 rounded-full font-medium">
                       {unreadCount} não lida{unreadCount !== 1 ? 's' : ''}
                     </span>
                   )}
@@ -130,9 +130,8 @@ export function NotificationBell() {
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        className={`p-3 hover:bg-zinc-800/30 transition-colors cursor-pointer group ${
-                          !notification.read ? 'bg-zinc-800/20' : ''
-                        }`}
+                        className={`p-3 hover:bg-[var(--bg-tertiary)]/50 transition-colors cursor-pointer group ${!notification.read ? 'bg-[var(--accent-color)]/5' : ''
+                          }`}
                         onClick={() => handleNotificationClick(notification)}
                       >
                         <div className="flex gap-3">
@@ -141,11 +140,11 @@ export function NotificationBell() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-medium text-white leading-snug">
+                              <p className="text-sm font-medium text-[var(--text-primary)] leading-snug">
                                 {notification.title}
                               </p>
                               {!notification.read && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></div>
+                                <div className="w-2 h-2 bg-[var(--accent-color)] rounded-full flex-shrink-0 mt-1.5"></div>
                               )}
                             </div>
                             {notification.description && (
@@ -176,13 +175,13 @@ export function NotificationBell() {
 
               {/* Footer */}
               {notifications.length > 0 && (
-                <div className="bg-zinc-800/30 px-4 py-2 border-t border-zinc-700/50 text-center">
+                <div className="bg-[var(--bg-secondary)] px-4 py-2 border-t border-[var(--border-color)] text-center">
                   <button
                     onClick={() => {
                       navigate('/app/dashboard');
                       setIsOpen(false);
                     }}
-                    className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                    className="text-xs text-[var(--accent-color)] hover:opacity-80 font-medium transition-colors"
                   >
                     Ver todas
                   </button>

@@ -47,8 +47,8 @@ export default function StrategicSessionsPage() {
     return (
       <div className="flex items-center justify-center h-96 animate-pulse">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-2 border-zinc-800 border-t-purple-500 animate-spin"></div>
-          <p className="text-zinc-500 text-sm">Carregando sessões...</p>
+          <div className="w-12 h-12 rounded-full border-2 border-[var(--border-color)] border-t-[var(--status-priority)] animate-spin"></div>
+          <p className="text-[var(--text-secondary)] text-sm">Carregando sessões...</p>
         </div>
       </div>
     );
@@ -63,17 +63,17 @@ export default function StrategicSessionsPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <h1 className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 shadow-lg shadow-blue-500/5">
-                  <Icons.Brain className="w-6 h-6 text-blue-500" />
+                <div className="p-2 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] shadow-lg shadow-[var(--accent-color)]/5">
+                  <Icons.Brain className="w-6 h-6 text-[var(--accent-color)]" />
                 </div>
                 Sessões Estratégicas
               </h1>
             </div>
 
-            <p className="text-xl text-zinc-400 font-light max-w-2xl">
+            <p className="text-xl text-[var(--text-secondary)] font-light max-w-2xl">
               Seu histórico estratégico estruturado.
             </p>
-            <p className="text-sm text-zinc-500 max-w-lg leading-relaxed">
+            <p className="text-sm text-[var(--text-secondary)] opacity-80 max-w-lg leading-relaxed">
               Revise análises passadas, retome sessões ativas e acompanhe sua evolução estratégica.
             </p>
           </div>
@@ -108,7 +108,10 @@ export default function StrategicSessionsPage() {
 
           <div className="absolute right-0 top-full mt-2 w-40 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
             <div className="py-1">
-              <button onClick={() => setSortMode('recent')} className="w-full text-left px-4 py-2 text-xs text-orange-500 bg-orange-500/5 font-medium flex items-center justify-between">
+              <button onClick={() => setSortMode('recent')} className="w-full text-left px-4 py-2 text-xs font-medium flex items-center justify-between" style={{
+                color: 'var(--status-warning)',
+                backgroundColor: 'var(--status-warning-bg)'
+              }}>
                 Mais Recentes
                 {sortMode === 'recent' && <Icons.Check className="w-3 h-3" />}
               </button>
@@ -130,23 +133,23 @@ export default function StrategicSessionsPage() {
       {activeSession && (
         <section className="space-y-4">
           <h2 className="text-zinc-500 uppercase tracking-widest px-1">Sessão Ativa</h2>
-          <div className="card-standard border-orange-500/30 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-orange-500/5 to-transparent opacity-50"></div>
+          <div className="card-standard border-[var(--status-warning)]/30 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full bg-[var(--status-warning)]"></div>
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-[var(--status-warning)]/5 to-transparent opacity-50"></div>
 
             <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-wider border border-blue-500/20">
+                  <span className="px-2 py-1 rounded bg-[var(--accent-color)]/10 text-[var(--accent-color)] text-[10px] font-bold uppercase tracking-wider border border-[var(--accent-color)]/20">
                     {activeSession.module}
                   </span>
-                  <span className="text-xs text-zinc-400 flex items-center gap-1">
+                  <span className="text-xs text-[var(--text-secondary)] opacity-70 flex items-center gap-1">
                     <Icons.Clock className="w-3 h-3" />
                     {activeSession.date}
                   </span>
                 </div>
                 <h3>{activeSession.title}</h3>
-                <div className="flex items-center gap-2 text-sm text-blue-400">
+                <div className="flex items-center gap-2 text-sm text-[var(--accent-color)]">
                   <Icons.Loader2 className="w-4 h-4 animate-spin" />
                   <span>Em andamento</span>
                 </div>
@@ -158,8 +161,8 @@ export default function StrategicSessionsPage() {
                     <span>Progresso</span>
                     <span>{activeSession.progress || 0}%</span>
                   </div>
-                  <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-orange-500 rounded-full" style={{ width: `${activeSession.progress || 0}%` }}></div>
+                  <div className="h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                    <div className="h-full bg-[var(--status-warning)] rounded-full" style={{ width: `${activeSession.progress || 0}%` }}></div>
                   </div>
                 </div>
                 <button className="btn-primary w-full md:w-auto" onClick={() => navigate('/app/chat')}>
@@ -215,8 +218,10 @@ export default function StrategicSessionsPage() {
               <div className="text-xl font-bold text-white">{sessions.length}</div>
             </div>
             <div className="space-y-1 text-center md:text-right">
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Tendência de Risco</div>
-              <div className={`text-sm font-medium flex items-center gap-1 justify-center md:justify-end ${sessions.length > 0 ? 'text-emerald-500' : 'text-zinc-500'}`}>
+              <div className="text-[10px] text-[var(--text-secondary)] opacity-70 uppercase tracking-wider">Tendência de Risco</div>
+              <div className={`text-sm font-medium flex items-center gap-1 justify-center md:justify-end`} style={{
+                color: sessions.length > 0 ? 'var(--status-success)' : 'var(--text-secondary)'
+              }}>
                 {sessions.length > 0 ? <Icons.TrendingUp className="w-4 h-4" /> : null}
                 {sessions.length > 0 ? 'Otimizando' : 'N/A'}
               </div>
@@ -229,7 +234,7 @@ export default function StrategicSessionsPage() {
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
         <SummaryMetric label="Total de Sessões" value={sessions.length.toString()} />
         <SummaryMetric label="Sessões Profundas" value={sessions.filter(s => s.mode === 'deep').length.toString()} />
-        <SummaryMetric label="Risco Médio" value={sessions.length > 0 ? "Médio" : "N/A"} color={sessions.length > 0 ? "text-yellow-500" : "text-zinc-500"} />
+        <SummaryMetric label="Risco Médio" value={sessions.length > 0 ? "Médio" : "N/A"} color={sessions.length > 0 ? "var(--status-warning)" : "var(--text-secondary)"} />
         <SummaryMetric label="Módulo Principal" value={mainModule} />
       </section>
 
@@ -264,12 +269,12 @@ function FilterButton({ label, active, onClick }: { label: string, active?: bool
 }
 
 const SessionCard: React.FC<{ session: any, onOpen?: () => void }> = ({ session, onOpen }) => {
-  const getModuleColor = (module: string) => {
+  const getModuleStyles = (module: string) => {
     switch (module) {
-      case 'DecisionForge': return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
-      case 'ClarityForge': return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-      case 'LeverageForge': return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-      default: return 'text-zinc-400 bg-zinc-800 border-zinc-700';
+      case 'DecisionForge': return { color: 'var(--status-warning)', backgroundColor: 'var(--status-warning-bg)', borderColor: 'var(--status-warning)20' };
+      case 'ClarityForge': return { color: 'var(--accent-color)', backgroundColor: 'var(--accent-color)10', borderColor: 'var(--accent-color)20' };
+      case 'LeverageForge': return { color: 'var(--accent-color)', backgroundColor: 'var(--accent-color)10', borderColor: 'var(--accent-color)20' };
+      default: return { color: 'var(--text-secondary)', backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' };
     }
   };
 
@@ -278,7 +283,7 @@ const SessionCard: React.FC<{ session: any, onOpen?: () => void }> = ({ session,
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${getModuleColor(session.module)}`}>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border`} style={getModuleStyles(session.module)}>
               {session.module}
             </span>
             <span className="text-xs text-zinc-500 border border-zinc-800 px-2 py-0.5 rounded bg-zinc-950">
@@ -307,11 +312,11 @@ const SessionCard: React.FC<{ session: any, onOpen?: () => void }> = ({ session,
   );
 }
 
-function SummaryMetric({ label, value, color = 'text-white' }: { label: string, value: string, color?: string }) {
+function SummaryMetric({ label, value, color = 'white' }: { label: string, value: string, color?: string }) {
   return (
-    <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900 flex flex-col items-center justify-center text-center gap-1">
-      <span className={`text-xl font-bold ${color}`}>{value}</span>
-      <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{label}</span>
+    <div className="p-4 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex flex-col items-center justify-center text-center gap-1">
+      <span className={`text-xl font-bold`} style={{ color }}>{value}</span>
+      <span className="text-[10px] text-[var(--text-secondary)] opacity-70 uppercase tracking-wider">{label}</span>
     </div>
   );
 }

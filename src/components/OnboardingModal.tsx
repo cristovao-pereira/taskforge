@@ -86,17 +86,18 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl"
+            className="rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl"
+            style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', border: '1px solid var(--border-color)' }}
           >
             {/* Header */}
             <div className="mb-8">
               <div className="text-4xl mb-3">
                 {step === 1 ? '🎯' : step === 2 ? '⚡' : '🚀'}
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-2xl font-bold mb-2 uppercase tracking-tight" style={{ color: 'var(--text-primary)' }}>
                 {step === 1 ? 'Seu Objetivo' : step === 2 ? 'Escolha seu Modo' : 'Bem-vindo ao TaskForge!'}
               </h2>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm opacity-70" style={{ color: 'var(--text-secondary)' }}>
                 {step === 1
                   ? 'Vamos entender melhor o seu contexto atual.'
                   : step === 2
@@ -110,8 +111,9 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
               {[1, 2, 3].map((s) => (
                 <motion.div
                   key={s}
-                  className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-blue-500' : 'bg-zinc-800'
+                  className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-blue-500' : 'opacity-20'
                     }`}
+                  style={{ backgroundColor: s <= step ? undefined : 'var(--text-secondary)' }}
                   layoutId={`step-${s}`}
                 />
               ))}
@@ -128,35 +130,38 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
                   className="space-y-4 mb-8"
                 >
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300">Qual o nome do seu projeto ou empresa?</label>
+                    <label className="text-sm font-medium opacity-80" style={{ color: 'var(--text-primary)' }}>Qual o nome do seu projeto ou empresa?</label>
                     <input
                       autoFocus
                       value={project}
                       onChange={(e) => setProject(e.target.value)}
                       placeholder="Ex: Startup Tech, Nova Filial, etc."
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-4 py-3 rounded-lg border focus:border-blue-500 focus:outline-none transition-colors"
+                      style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300">Qual é seu principal objetivo estratégico hoje?</label>
+                    <label className="text-sm font-medium opacity-80" style={{ color: 'var(--text-primary)' }}>Qual é seu principal objetivo estratégico hoje?</label>
                     <input
                       value={objective}
                       onChange={(e) => setObjective(e.target.value)}
                       placeholder="Ex: Dobrar a receita, Lançar novo produto..."
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-4 py-3 rounded-lg border focus:border-blue-500 focus:outline-none transition-colors"
+                      style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300">Qual o maior obstáculo ou desafio atual?</label>
+                    <label className="text-sm font-medium opacity-80" style={{ color: 'var(--text-primary)' }}>Qual o maior obstáculo ou desafio atual?</label>
                     <textarea
                       value={challenge}
                       onChange={(e) => setChallenge(e.target.value)}
                       placeholder="Ex: Equipe engessada, gargalos na operação..."
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                      className="w-full px-4 py-3 rounded-lg border focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                      style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                       rows={3}
                     />
                   </div>
-                  <p className="text-xs text-zinc-500 mt-2">
+                  <p className="text-xs mt-2 opacity-50" style={{ color: 'var(--text-secondary)' }}>
                     📝 Seja específico. Estas respostas guiarão as análises dos agentes do TaskForge.
                   </p>
                 </motion.div>
@@ -175,17 +180,18 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
                       key={m.value}
                       onClick={() => setMode(m.value)}
                       className={`w-full p-4 border-2 rounded-lg transition-all text-left ${mode === m.value
-                          ? `${m.color.split(' ')[0]} ${m.color.split(' ')[1]}`
-                          : `${m.color} border-zinc-700`
+                        ? `${m.color.split(' ')[0]} ${m.color.split(' ')[1]}`
+                        : `${m.color.split(' ')[0]} border-transparent hover:bg-[var(--nav-hover)]`
                         }`}
+                      style={{ borderColor: mode === m.value ? undefined : 'var(--border-color)' }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-3xl">{m.icon}</span>
                         <div className="flex-1">
-                          <p className="font-bold text-white">{m.label}</p>
-                          <p className="text-xs text-zinc-400">{m.description}</p>
+                          <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{m.label}</p>
+                          <p className="text-xs opacity-70" style={{ color: 'var(--text-secondary)' }}>{m.description}</p>
                         </div>
                         {mode === m.value && (
                           <Icons.Check className="w-5 h-5 text-blue-400" />
@@ -226,7 +232,7 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
                     </div>
                   </div>
 
-                  <p className="text-xs text-zinc-500 flex items-center gap-2">
+                  <p className="text-xs opacity-50 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
                     <Icons.HelpCircle className="w-4 h-4" />
                     Vamos guiá-lo na sua primeira decisão estratégica!
                   </p>
@@ -239,7 +245,7 @@ export function OnboardingModal({ isOpen, onComplete }: OnboardingModalProps) {
               {step > 1 && (
                 <button
                   onClick={() => setStep(step - 1)}
-                  className="px-6 py-2 text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-lg transition-colors"
+                  className="px-6 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg transition-colors border border-transparent hover:bg-[var(--nav-hover)]"
                   disabled={isLoading}
                 >
                   Anterior

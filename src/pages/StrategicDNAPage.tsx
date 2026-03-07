@@ -1,5 +1,5 @@
 import { Icons } from '../components/Icons';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../contexts/EventContext';
 import { useMetrics } from '../contexts/MetricsContext';
 
@@ -39,7 +39,7 @@ export default function StrategicDNAPage() {
               </h1>
             </div>
 
-            <p className="text-xl text-zinc-400 font-light max-w-2xl">
+            <p className="text-xl font-light max-w-2xl opacity-70" style={{ color: 'var(--text-primary)' }}>
               Um perfil vivo de como você pensa, decide e executa.
             </p>
           </div>
@@ -61,17 +61,17 @@ export default function StrategicDNAPage() {
       </section>
 
       {isEmpty ? (
-        <div className="card-standard text-center py-20 mt-12 border-dashed border-2 border-zinc-800 bg-transparent">
+        <div className="card-standard text-center py-20 mt-12 border-dashed border-2 bg-transparent" style={{ borderColor: 'var(--border-color)' }}>
           <div className="mx-auto w-16 h-16 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mb-6">
             <Icons.Fingerprint className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">DNA em Construção</h2>
-          <p className="text-zinc-400 max-w-md mx-auto mb-8">
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>DNA em Construção</h2>
+          <p className="max-w-md mx-auto mb-8 opacity-70" style={{ color: 'var(--text-secondary)' }}>
             Seu perfil estratégico será moldado aqui. Comece a registrar suas decisões, identificar riscos e criar planos.
           </p>
-          <button className="btn-primary mx-auto" onClick={() => navigate('/app/decision-forge')}>
+          <Link to="/app/agent/decision" className="btn-primary mx-auto w-fit">
             Registrar Primeira Decisão
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="space-y-12 mt-12">
@@ -79,23 +79,23 @@ export default function StrategicDNAPage() {
           {dnaChanges.length > 0 && (
             <section className="space-y-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-px flex-1 bg-zinc-800"></div>
-                <h2 className="text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
+                <h2 className="uppercase tracking-widest flex items-center gap-2 text-[10px] font-bold opacity-50" style={{ color: 'var(--text-secondary)' }}>
                   <Icons.Activity className="w-4 h-4" />
                   O que mudou recentemente
                 </h2>
-                <div className="h-px flex-1 bg-zinc-800"></div>
+                <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
                 {dnaChanges.map((change) => (
                   <div key={change.id} className="card-standard flex items-start gap-4">
-                    <div className="p-2 bg-zinc-800 rounded-lg shrink-0 mt-1">
-                      <Icons.GitCommit className="w-4 h-4 text-zinc-400" />
+                    <div className="p-2 rounded-lg shrink-0 mt-1" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <Icons.GitCommit className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                     </div>
                     <div className="space-y-1">
-                      <h3>{change.title}</h3>
-                      <p className="text-xs text-zinc-400">{change.whatChanged} — <span className="text-zinc-500 italic">{change.whyChanged}</span></p>
+                      <h3 style={{ color: 'var(--text-primary)' }}>{change.title}</h3>
+                      <p className="text-xs opacity-70" style={{ color: 'var(--text-secondary)' }}>{change.whatChanged} — <span className="italic opacity-70">{change.whyChanged}</span></p>
                       <p className="text-xs text-emerald-500/80 mt-1 flex items-center gap-1">
                         <Icons.ArrowRight className="w-3 h-3" />
                         {change.impact}
@@ -110,9 +110,9 @@ export default function StrategicDNAPage() {
           {/* Section 1: Strengths */}
           <section className="space-y-6">
             <div className="flex items-center gap-3 mb-8">
-              <div className="h-px flex-1 bg-zinc-800"></div>
-              <h2 className="text-zinc-500 uppercase tracking-widest">Forças Estratégicas</h2>
-              <div className="h-px flex-1 bg-zinc-800"></div>
+              <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
+              <h2 className="uppercase tracking-widest text-[10px] font-bold opacity-50" style={{ color: 'var(--text-secondary)' }}>Forças Estratégicas</h2>
+              <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -142,12 +142,12 @@ export default function StrategicDNAPage() {
           {/* Section 2: Blind Spots */}
           <section className="space-y-6">
             <div className="flex items-center gap-3 mb-8">
-              <div className="h-px flex-1 bg-zinc-800"></div>
-              <h2 className="text-zinc-500 uppercase tracking-widest">Pontos Cegos Recorrentes</h2>
-              <div className="h-px flex-1 bg-zinc-800"></div>
+              <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
+              <h2 className="uppercase tracking-widest text-[10px] font-bold opacity-50" style={{ color: 'var(--text-secondary)' }}>Pontos Cegos Recorrentes</h2>
+              <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
             </div>
 
-            <div className="card-standard overflow-hidden divide-y divide-zinc-800/50">
+            <div className="card-standard overflow-hidden divide-y" style={{ borderColor: 'var(--border-color)', divideColor: 'var(--border-color)' }}>
               <BlindSpotItem
                 title="Prazos excessivamente otimistas"
                 description="Tendência a subestimar a integração de dívida técnica em ~40%."
@@ -175,30 +175,30 @@ export default function StrategicDNAPage() {
             {/* Risk Tendencies */}
             <section className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
-                <h2 className="text-zinc-500 uppercase tracking-widest">Seu Perfil de Risco</h2>
-                <div className="h-px flex-1 bg-zinc-800"></div>
+                <h2 className="uppercase tracking-widest text-[10px] font-bold opacity-50" style={{ color: 'var(--text-secondary)' }}>Seu Perfil de Risco</h2>
+                <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
               </div>
 
               <div className="card-standard space-y-6">
                 <div className="flex justify-between items-end">
                   <div>
-                    <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Score Médio de Risco</div>
-                    <div className="text-3xl font-bold text-white">7.2<span className="text-zinc-600 text-lg font-normal">/10</span></div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-1" style={{ color: 'var(--text-secondary)' }}>Score Médio de Risco</div>
+                    <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>7.2<span className="opacity-30 text-lg font-normal">/10</span></div>
                   </div>
                   <div className="text-right">
-                    <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Perfil de Risco</div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-1" style={{ color: 'var(--text-secondary)' }}>Perfil de Risco</div>
                     <div className="text-orange-400 font-medium">Crescimento Agressivo</div>
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-4 border-t border-zinc-800">
+                <div className="space-y-3 pt-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-400">Risco Mais Comum</span>
-                    <span className="text-zinc-200">Runway Operacional</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Risco Mais Comum</span>
+                    <span style={{ color: 'var(--text-primary)' }}>Runway Operacional</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-400">Frequência de Alto Risco</span>
-                    <span className="text-zinc-200">34% das decisões</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Frequência de Alto Risco</span>
+                    <span style={{ color: 'var(--text-primary)' }}>34% das decisões</span>
                   </div>
                 </div>
               </div>
@@ -207,8 +207,8 @@ export default function StrategicDNAPage() {
             {/* Execution Profile */}
             <section className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
-                <h2 className="text-zinc-500 uppercase tracking-widest">Como Você Executa</h2>
-                <div className="h-px flex-1 bg-zinc-800"></div>
+                <h2 className="uppercase tracking-widest text-[10px] font-bold opacity-50" style={{ color: 'var(--text-secondary)' }}>Como Você Executa</h2>
+                <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
               </div>
 
               <div className="card-standard space-y-6">
@@ -224,12 +224,12 @@ export default function StrategicDNAPage() {
           {/* Section 5: Strategic Evolution */}
           <section className="space-y-8">
             <div className="flex items-center gap-3 mb-8">
-              <div className="h-px flex-1 bg-zinc-800"></div>
-              <h2 className="text-zinc-500 uppercase tracking-widest">Sua Evolução</h2>
-              <div className="h-px flex-1 bg-zinc-800"></div>
+              <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
+              <h2 className="uppercase tracking-widest text-[10px] font-bold opacity-50" style={{ color: 'var(--text-secondary)' }}>Sua Evolução</h2>
+              <div className="h-px flex-1" style={{ backgroundColor: 'var(--border-color)' }}></div>
             </div>
 
-            <div className="relative border-l border-zinc-800 ml-4 space-y-8 pl-8 py-2">
+            <div className="relative border-l ml-4 space-y-8 pl-8 py-2" style={{ borderColor: 'var(--border-color)' }}>
               <EvolutionItem
                 date="Atual"
                 title="Foco na Execução"
@@ -256,10 +256,10 @@ export default function StrategicDNAPage() {
       {/* Footer */}
       <footer className="text-center space-y-8 pt-12 mt-12 border-t border-zinc-900">
         <div className="space-y-2">
-          <div className="flex justify-center opacity-50 mb-4">
-            <Icons.Quote className="w-8 h-8 text-zinc-700" />
+          <div className="flex justify-center opacity-30 mb-4">
+            <Icons.Quote className="w-8 h-8" style={{ color: 'var(--text-secondary)' }} />
           </div>
-          <p className="text-2xl font-serif italic text-zinc-300">"Estratégia não é talento. É pensamento treinado."</p>
+          <p className="text-2xl font-serif italic" style={{ color: 'var(--text-primary)' }}>"Estratégia não é talento. É pensamento treinado."</p>
         </div>
 
         <button className="btn-primary mx-auto px-8" onClick={() => navigate('/app/sessions')}>
@@ -281,7 +281,7 @@ function DnaPillar({ label, value }: any) {
 
   return (
     <div className="card-standard p-4 text-center">
-      <h4 className="text-zinc-500 uppercase tracking-wider mb-1">{label}</h4>
+      <h4 className="uppercase tracking-widest text-[10px] font-bold opacity-50 mb-1" style={{ color: 'var(--text-secondary)' }}>{label}</h4>
       <div className={`text-2xl font-bold ${getColor(value)}`}>{value}</div>
     </div>
   );
@@ -290,11 +290,11 @@ function DnaPillar({ label, value }: any) {
 function StrengthCard({ icon: Icon, title, description }: any) {
   return (
     <div className="card-standard group">
-      <div className="w-10 h-10 bg-zinc-950 rounded-lg flex items-center justify-center mb-4 border border-zinc-800 group-hover:border-blue-500/30 group-hover:text-blue-500 transition-all text-zinc-400">
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4 border group-hover:border-blue-500/30 group-hover:text-blue-500 transition-all opacity-70" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
         <Icon className="w-5 h-5" />
       </div>
-      <h3>{title}</h3>
-      <p className="text-sm text-zinc-400 leading-relaxed">{description}</p>
+      <h3 style={{ color: 'var(--text-primary)' }}>{title}</h3>
+      <p className="text-sm leading-relaxed opacity-70" style={{ color: 'var(--text-secondary)' }}>{description}</p>
     </div>
   );
 }

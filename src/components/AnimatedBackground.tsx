@@ -5,9 +5,9 @@ interface AnimatedBackgroundProps {
   color?: string;
 }
 
-const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ 
-  className = "", 
-  color = "#FF5E41" 
+const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
+  className = "",
+  color = "var(--accent-color)"
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -18,10 +18,10 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animationFrameId: number;
-    let particles: Particle[] = [];
-    let shapes: GeometricShape[] = [];
-    
+    const resolvedColor = color.startsWith('var(')
+      ? getComputedStyle(document.documentElement).getPropertyValue(color.match(/var\(([^)]+)\)/)?.[1] || '').trim() || '#3b82f6'
+      : color;
+
     // Configuration
     const particleCount = 60;
     const shapeCount = 15; // New shapes
@@ -70,7 +70,7 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
           const forceDirectionX = dx / distance;
           const forceDirectionY = dy / distance;
           const force = (mouseDistance - distance) / mouseDistance;
-          
+
           // Push away gently
           const repelForce = 2;
           this.vx -= forceDirectionX * force * repelForce * 0.05;
@@ -90,7 +90,7 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
         if (!ctx) return;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = color;
+        ctx.fillStyle = resolvedColor;
         ctx.globalAlpha = 0.6;
         ctx.fill();
       }
@@ -141,14 +141,19 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
           else ctx.lineTo(px, py);
         }
         ctx.closePath();
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = resolvedColor;
         ctx.lineWidth = 0.8;
         ctx.globalAlpha = 0.08; // Very subtle
         ctx.stroke();
       }
     }
 
+    let animationFrameId: number;
+    let particles: Particle[] = [];
+    let shapes: GeometricShape[] = [];
+
     const init = () => {
+
       particles = [];
       shapes = [];
       for (let i = 0; i < particleCount; i++) {
@@ -162,7 +167,7 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
     const animate = () => {
       if (!ctx) return;
       ctx.clearRect(0, 0, w, h);
-      
+
       // Draw shapes first (background layer)
       for (let i = 0; i < shapes.length; i++) {
         shapes[i].update();
@@ -185,7 +190,7 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
 
           if (distance < connectionDistance) {
             ctx.beginPath();
-            ctx.strokeStyle = color;
+            ctx.strokeStyle = resolvedColor;
             // Opacity based on distance
             ctx.globalAlpha = 1 - distance / connectionDistance;
             ctx.moveTo(particles[i].x, particles[i].y);
@@ -225,8 +230,8 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none ${className}`}>
-      <canvas 
-        ref={canvasRef} 
+      <canvas
+        ref={canvasRef}
         className="absolute inset-0 w-full h-full"
         style={{ opacity: 0.4 }}
       />

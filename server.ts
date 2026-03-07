@@ -485,6 +485,9 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
             hasCompletedOnboarding: user.hasCompletedOnboarding,
             objective: user.objective,
             strategicMode: user.strategicMode,
+            deepMode: user.deepMode,
+            alertSensitivity: user.alertSensitivity,
+            theme: user.theme,
             plan: user.plan?.toLowerCase() || 'gratis',
         });
     } catch (error) {
@@ -497,13 +500,16 @@ app.patch('/api/user/profile', authenticateUser, async (req, res) => {
     try {
         const firebaseUid = req.userId!;
         const internalId = await getInternalUserId(firebaseUid, req.user?.email, req.user?.name);
-        const { hasCompletedOnboarding, objective, strategicMode, name } = req.body;
+        const { hasCompletedOnboarding, objective, strategicMode, name, deepMode, alertSensitivity, theme } = req.body;
 
         const updateData: any = {};
         if (hasCompletedOnboarding !== undefined) updateData.hasCompletedOnboarding = hasCompletedOnboarding;
         if (objective !== undefined) updateData.objective = objective;
         if (strategicMode !== undefined) updateData.strategicMode = strategicMode;
         if (name !== undefined) updateData.name = name;
+        if (typeof deepMode === 'boolean') updateData.deepMode = deepMode;
+        if (alertSensitivity !== undefined) updateData.alertSensitivity = alertSensitivity;
+        if (theme !== undefined) updateData.theme = theme;
 
         const user = await prisma.user.update({
             where: { id: internalId },
@@ -517,6 +523,9 @@ app.patch('/api/user/profile', authenticateUser, async (req, res) => {
             hasCompletedOnboarding: user.hasCompletedOnboarding,
             objective: user.objective,
             strategicMode: user.strategicMode,
+            deepMode: user.deepMode,
+            alertSensitivity: user.alertSensitivity,
+            theme: user.theme,
         });
     } catch (error) {
         console.error('Error updating user profile:', error);
@@ -1540,7 +1549,8 @@ app.post('/api/decisions', authenticateUser, async (req, res) => {
                 description: description || '',
                 impact: impact || 'medium',
                 confidence: confidence || 50,
-                status: status || 'draft'
+                status: status || 'draft',
+                connections: req.body.connections || []
             }
         });
         res.status(201).json(decision);
@@ -1559,7 +1569,14 @@ app.put('/api/decisions/:id', authenticateUser, async (req, res) => {
         const userId = await getInternalUserId(req.userId!, req.user?.email, req.user?.name);
         const decision = await prisma.decision.updateMany({
             where: { id: decisionId, userId },
-            data: { title, description, impact, confidence, status }
+            data: {
+                title,
+                description,
+                impact,
+                confidence,
+                status,
+                connections: req.body.connections
+            }
         });
         if (decision.count === 0) return res.status(404).json({ error: 'Decision not found' });
 

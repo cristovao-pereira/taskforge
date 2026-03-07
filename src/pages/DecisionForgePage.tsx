@@ -8,6 +8,7 @@ import { useStrategicMode } from '../contexts/StrategicContext';
 import { useUpgrade } from '../contexts/UpgradeContext';
 import { useEvent } from '../contexts/EventContext';
 import { useApp } from '../contexts/AppContext';
+import { usePreferences } from '../contexts/PreferencesContext';
 import { agentAPI } from '../lib/api';
 import { toast } from 'sonner';
 
@@ -50,6 +51,7 @@ export default function DecisionForgePage() {
   const { metrics, checkUpgradeTriggers } = useUpgrade();
   const { socket } = useEvent();
   const { decisions, addDecision, addRisk } = useApp();
+  const { deepMode: savedDeepMode } = usePreferences();
 
   const [activeTab, setActiveTab] = useState<'analysis' | 'map' | 'history'>('analysis');
   const [decisionTheme, setDecisionTheme] = useState('');
@@ -67,6 +69,13 @@ export default function DecisionForgePage() {
   const [historySort, setHistorySort] = useState<'date_desc' | 'impact_desc'>('date_desc');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Initialize deepMode from saved preferences
+  useEffect(() => {
+    if (metrics.plan !== 'free') {
+      setDeepMode(savedDeepMode);
+    }
+  }, [savedDeepMode, metrics.plan]);
 
   // Fechar menu quando clicar fora
   useEffect(() => {
@@ -207,7 +216,7 @@ export default function DecisionForgePage() {
         status: d.status === 'analyzing' ? 'analyzing' : d.status === 'reverted' ? 'reverted' : 'validated',
         date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
         description: d.summary || 'Análise de decisão estratégica.',
-        connections: [],
+        connections: (d as any).connections || [],
       };
     });
   }, [decisions]);
@@ -355,18 +364,18 @@ export default function DecisionForgePage() {
           <div className="space-y-2">
             <div className="flex items-center gap-4">
               <h1 className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 shadow-lg shadow-blue-500/5">
-                  <Icons.Scale className="w-6 h-6 text-blue-500" />
+                <div className="p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] shadow-lg shadow-[var(--accent-color)]/5">
+                  <Icons.Scale className="w-6 h-6 text-[var(--accent-color)]" />
                 </div>
-                DecisionForge
+                <span className="text-[var(--text-primary)]">DecisionForge</span>
               </h1>
               <div className={`px-3 py-1 rounded-full border text-xs font-medium flex items-center gap-2 ${getModeColor()}`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                 Modo: {getModeLabel()}
               </div>
             </div>
-            <p className="text-xl text-zinc-400 font-light">Análise estruturada para decisões críticas.</p>
-            <p className="text-sm text-zinc-500 max-w-xl leading-relaxed">
+            <p className="text-xl text-[var(--text-primary)] opacity-60 font-light">Análise estruturada para decisões críticas.</p>
+            <p className="text-sm text-[var(--text-secondary)] opacity-50 max-w-xl leading-relaxed">
               Transforme decisões complexas em análises claras, com avaliação de risco e impacto.
             </p>
           </div>
@@ -383,7 +392,7 @@ export default function DecisionForgePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-8 border-b border-zinc-800">
+        <div className="flex items-center gap-8 border-b" style={{ borderColor: 'var(--border-color)' }}>
           <TabButton
             active={activeTab === 'analysis'}
             onClick={() => setActiveTab('analysis')}
@@ -427,14 +436,15 @@ export default function DecisionForgePage() {
                     setDeepMode(false);
                     toast.info('Modo de análise rápida ativado.');
                   }}
+                  style={{ backgroundColor: !deepMode ? 'var(--bg-secondary)' : undefined, borderColor: !deepMode ? 'var(--accent-color)' : undefined }}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-zinc-800 rounded-lg group-hover:bg-zinc-700 transition-colors">
-                      <Icons.Zap className="w-5 h-5 text-blue-500" />
+                    <div className="p-2 bg-[var(--bg-secondary)] rounded-lg group-hover:bg-[var(--nav-hover)] transition-colors border border-[var(--border-color)]">
+                      <Icons.Zap className={`w-5 h-5 ${!deepMode ? 'text-[var(--accent-color)]' : 'opacity-40'}`} />
                     </div>
-                    <h3>Análise Rápida</h3>
+                    <h3 style={{ color: 'var(--text-primary)' }}>Análise Rápida</h3>
                   </div>
-                  <p className="text-sm text-zinc-500">Avaliação rápida de viabilidade e risco para decisões táticas.</p>
+                  <p className="text-sm opacity-60" style={{ color: 'var(--text-secondary)' }}>Avaliação rápida de viabilidade e risco para decisões táticas.</p>
                 </div>
 
                 <div
@@ -447,43 +457,44 @@ export default function DecisionForgePage() {
                     setDeepMode(true);
                     toast.success('Deep Mode ativado.');
                   }}
+                  style={{ backgroundColor: deepMode ? 'var(--bg-secondary)' : undefined, borderColor: deepMode ? 'var(--accent-color)' : undefined }}
                 >
                   <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-bl-full -mr-10 -mt-10 transition-all group-hover:bg-blue-500/10"></div>
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-zinc-800 rounded-lg group-hover:bg-blue-500/20 transition-colors">
-                      <Icons.Layers className="w-5 h-5 text-blue-500" />
+                    <div className="p-2 bg-[var(--bg-secondary)] rounded-lg group-hover:bg-[var(--accent-color)]/20 transition-colors border border-[var(--border-color)]">
+                      <Icons.Layers className={`w-5 h-5 ${deepMode ? 'text-[var(--accent-color)]' : 'opacity-40'}`} />
                     </div>
-                    <h3>Sessão Estratégica</h3>
+                    <h3 style={{ color: 'var(--text-primary)' }}>Sessão Estratégica</h3>
                   </div>
-                  <p className="text-sm text-zinc-500">Análise completa com cenários e trade-offs para decisões complexas.</p>
+                  <p className="text-sm opacity-60" style={{ color: 'var(--text-secondary)' }}>Análise completa com cenários e trade-offs para decisões complexas.</p>
                 </div>
               </div>
 
               {/* Input Area */}
-              <div className="max-w-3xl mx-auto card-standard">
+              <div className="max-w-3xl mx-auto card-standard shadow-xl shadow-black/5">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300 ml-1">Tema da decisão</label>
+                    <label className="text-sm font-medium text-[var(--text-primary)] opacity-70 ml-1">Tema da decisão</label>
                     <input
                       type="text"
                       value={decisionTheme}
                       onChange={(e) => setDecisionTheme(e.target.value)}
                       placeholder="Ex: Devemos migrar para modelo B2B Enterprise?"
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:opacity-30 focus:outline-none focus:border-[var(--accent-color)]/50 focus:ring-1 focus:ring-[var(--accent-color)]/50 transition-all font-medium"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300 ml-1">Contexto adicional</label>
+                    <label className="text-sm font-medium text-[var(--text-primary)] opacity-70 ml-1">Contexto adicional</label>
                     <textarea
                       value={context}
                       onChange={(e) => setContext(e.target.value)}
                       placeholder="Adicione detalhes sobre o cenário atual, restrições ou objetivos..."
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all min-h-[120px] resize-none"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:opacity-30 focus:outline-none focus:border-[var(--accent-color)]/50 focus:ring-1 focus:ring-[var(--accent-color)]/50 transition-all min-h-[120px] resize-none"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between gap-3 p-4 bg-zinc-900/50 rounded-xl border border-zinc-800 cursor-pointer hover:bg-zinc-900 transition-colors"
+                  <div className="flex items-center justify-between gap-3 p-4 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] cursor-pointer hover:bg-[var(--nav-hover)] transition-colors"
                     onClick={() => {
                       if (metrics.plan === 'free') {
                         checkUpgradeTriggers('attempt_deep_mode');
@@ -493,14 +504,14 @@ export default function DecisionForgePage() {
                     }}
                   >
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-white flex items-center gap-2">
-                        <Icons.Layers className={`w-4 h-4 ${deepMode ? 'text-blue-400' : 'text-zinc-500'}`} />
+                      <div className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <Icons.Layers className={`w-4 h-4 ${deepMode ? 'text-[var(--accent-color)]' : 'opacity-40'}`} />
                         Deep Mode
-                        {metrics.plan === 'free' && <Icons.Lock className="w-3 h-3 text-orange-400" />}
+                        {metrics.plan === 'free' && <Icons.Lock className="w-3 h-3 text-[var(--status-warning)]" />}
                       </div>
-                      <div className="text-xs text-zinc-500 mt-1">Análise de risco de 2ª ordem e simulação de cenários.</div>
+                      <div className="text-xs opacity-50 mt-1" style={{ color: 'var(--text-secondary)' }}>Análise de risco de 2ª ordem e simulação de cenários.</div>
                     </div>
-                    <div className={`w-11 h-6 rounded-full p-1 transition-colors relative ${deepMode ? 'bg-blue-600' : 'bg-zinc-700'}`}>
+                    <div className={`w-11 h-6 rounded-full p-1 transition-colors relative ${deepMode ? 'bg-[var(--accent-color)]' : 'bg-[var(--bg-tertiary)]'}`}>
                       <motion.div
                         layout
                         className="w-4 h-4 bg-white rounded-full shadow-sm"
@@ -513,7 +524,7 @@ export default function DecisionForgePage() {
                   <button
                     onClick={handleAnalyze}
                     disabled={!decisionTheme || isAnalyzing}
-                    className="btn-primary w-full"
+                    className="btn-primary w-full shadow-[var(--accent-color)]/30"
                   >
                     {isAnalyzing ? (
                       <>
@@ -533,17 +544,17 @@ export default function DecisionForgePage() {
               {/* Result (Conditional) */}
               {result && (
                 <div className="card-standard animate-in slide-in-from-bottom-4 duration-700">
-                  <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-6">
+                  <div className="flex items-center justify-between mb-8 border-b pb-6" style={{ borderColor: 'var(--border-color)' }}>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                        <Icons.Target className="w-5 h-5 text-blue-500" />
+                      <div className="p-2 bg-[var(--status-info-bg)] rounded-lg border border-[var(--status-info)]/20">
+                        <Icons.Target className="w-5 h-5 text-[var(--status-info)]" />
                       </div>
-                      <h2 className="text-xl font-bold text-white">Resultado da Análise</h2>
+                      <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Resultado da Análise</h2>
                     </div>
                     {typeof result === 'object' && result?.confidence && (
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Nível de Confiança</span>
-                        <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-500 font-bold text-sm">
+                        <span className="text-[10px] opacity-40 uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Nível de Confiança</span>
+                        <div className="px-3 py-1 bg-[var(--status-success-bg)] border border-[var(--status-success)]/20 rounded-full text-[var(--status-success)] font-bold text-sm">
                           {result.confidence}%
                         </div>
                       </div>
@@ -551,7 +562,7 @@ export default function DecisionForgePage() {
                   </div>
 
                   {typeof result === 'string' ? (
-                    <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-8 text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                    <div className="rounded-xl p-6 mb-8 text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                       {result}
                     </div>
                   ) : (
@@ -559,32 +570,32 @@ export default function DecisionForgePage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                         <div className="space-y-6">
                           <div className="space-y-2">
-                            <h3 className="text-zinc-500 uppercase tracking-widest">Resumo</h3>
-                            <p className="text-zinc-300 leading-relaxed">{result.summary || 'Não disponível'}</p>
+                            <h3 className="opacity-40 uppercase tracking-widest text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>Resumo</h3>
+                            <p className="leading-relaxed" style={{ color: 'var(--text-primary)' }}>{result.summary || 'Não disponível'}</p>
                           </div>
 
                           <div className="space-y-2">
-                            <h3 className="text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                            <h3 className="opacity-40 uppercase tracking-widest flex items-center gap-2 text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
                               <Icons.TrendingUp className="w-3 h-3" /> Impacto Estimado
                             </h3>
-                            <p className="text-emerald-400 font-medium">{result.impact || '-'}</p>
+                            <p className="text-[var(--status-success)] font-medium">{result.impact || '-'}</p>
                           </div>
 
                           <div className="space-y-2">
-                            <h3 className="text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                            <h3 className="opacity-40 uppercase tracking-widest flex items-center gap-2 text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
                               <Icons.AlertTriangle className="w-3 h-3" /> Risco Identificado
                             </h3>
-                            <p className="text-orange-400 font-medium">{result.risk || '-'}</p>
+                            <p className="text-[var(--status-warning)] font-medium">{result.risk || '-'}</p>
                           </div>
                         </div>
 
                         <div className="space-y-6">
                           <div className="space-y-2">
-                            <h3 className="text-zinc-500 uppercase tracking-widest">Principais Suposições</h3>
+                            <h3 className="opacity-40 uppercase tracking-widest text-xs font-bold text-[var(--text-secondary)]">Principais Suposições</h3>
                             <ul className="space-y-2">
                               {(result.assumptions || []).map((item: string, i: number) => (
-                                <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
-                                  <span className="w-1 h-1 rounded-full bg-zinc-600 mt-2"></span>
+                                <li key={i} className="flex items-start gap-2 text-sm text-[var(--text-primary)] opacity-60">
+                                  <span className="w-1 h-1 rounded-full bg-[var(--accent-color)] mt-2"></span>
                                   {item}
                                 </li>
                               ))}
@@ -593,12 +604,12 @@ export default function DecisionForgePage() {
                         </div>
                       </div>
 
-                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 mb-8">
-                        <h3 className="text-white uppercase tracking-wider mb-3 flex items-center gap-2">
-                          <Icons.Lightbulb className="w-4 h-4 text-yellow-500" />
+                      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-6 mb-8">
+                        <h3 className="uppercase tracking-wider mb-3 flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+                          <Icons.Lightbulb className="w-4 h-4 text-[var(--status-warning)]" />
                           Recomendação
                         </h3>
-                        <p className="text-zinc-300 leading-relaxed border-l-2 border-yellow-500/50 pl-4">
+                        <p className="leading-relaxed border-l-2 border-[var(--status-warning)]/50 pl-4" style={{ color: 'var(--text-primary)' }}>
                           {result.recommendation || 'Não disponível'}
                         </p>
                       </div>
@@ -607,8 +618,8 @@ export default function DecisionForgePage() {
                 </div>
               )}
 
-              <div className="space-y-6 pt-8 border-t border-zinc-800/50">
-                <h2 className="text-zinc-500 uppercase tracking-widest px-1">Decisões Recentes</h2>
+              <div className="space-y-6 pt-8 border-t" style={{ borderColor: 'var(--border-color)' }}>
+                <h2 className="opacity-40 uppercase tracking-widest px-1 text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>Decisões Recentes</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {filteredHistory.slice(0, 3).map((decision) => (
                     <div
@@ -626,31 +637,31 @@ export default function DecisionForgePage() {
                       }}
                     >
                       <div className="flex justify-between items-start mb-3">
-                        <div className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md ${decision.riskLevel === 'Alto' ? 'bg-orange-500/10 text-orange-400' :
-                          decision.riskLevel === 'Médio' ? 'bg-yellow-500/10 text-yellow-400' :
-                            'bg-emerald-500/10 text-emerald-400'
+                        <div className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md ${decision.riskLevel === 'Alto' ? 'bg-[var(--status-error-bg)] text-[var(--status-error)]' :
+                          decision.riskLevel === 'Médio' ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning)]' :
+                            'bg-[var(--status-success-bg)] text-[var(--status-success)]'
                           }`}>
                           Risco {decision.riskLevel}
                         </div>
-                        <span className="text-xs text-zinc-500">{decision.date}</span>
+                        <span className="text-xs opacity-40" style={{ color: 'var(--text-secondary)' }}>{decision.date}</span>
                       </div>
-                      <h4 className="text-sm font-medium text-white group-hover:text-blue-500 transition-colors mb-2 line-clamp-2">
+                      <h4 className="text-sm font-medium group-hover:text-[var(--accent-color)] transition-colors mb-2 line-clamp-2" style={{ color: 'var(--text-primary)' }}>
                         {decision.title}
                       </h4>
-                      <div className="flex items-center gap-2 text-xs text-zinc-500">
+                      <div className="flex items-center gap-2 text-xs opacity-40" style={{ color: 'var(--text-secondary)' }}>
                         <Icons.Activity className="w-3 h-3" />
-                        Score de Impacto: <span className="text-zinc-300">{decision.impactScore}</span>
+                        Score de Impacto: <span style={{ color: 'var(--text-primary)' }}>{decision.impactScore}</span>
                       </div>
                     </div>
                   ))}
                   {filteredHistory.length === 0 && !isLoadingHistory && (
-                    <div className="col-span-3 py-10 text-center text-zinc-500 border border-dashed border-zinc-800 rounded-xl">
+                    <div className="col-span-3 py-10 text-center border border-dashed rounded-xl" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}>
                       Nenhuma análise encontrada.
                     </div>
                   )}
                   {isLoadingHistory && (
                     <div className="col-span-3 py-10 text-center">
-                      <Icons.Loader2 className="w-6 h-6 animate-spin mx-auto text-zinc-700" />
+                      <Icons.Loader2 className="w-6 h-6 animate-spin mx-auto opacity-50" />
                     </div>
                   )}
                 </div>
@@ -669,24 +680,24 @@ export default function DecisionForgePage() {
               className="flex flex-col lg:flex-row gap-6 h-[600px]"
             >
               {/* Main Graph Area */}
-              <div className="flex-1 card-standard relative overflow-hidden shadow-inner shadow-black/50">
+              <div className="flex-1 card-standard relative overflow-hidden shadow-inner shadow-black/20" style={{ backgroundColor: 'var(--bg-sidebar)' }}>
                 <div className="absolute top-4 right-4 z-20">
                   <Link
                     to="/app/map"
-                    className="flex items-center gap-2 px-3 py-1.5 bg-zinc-950/80 backdrop-blur border border-zinc-800 text-xs font-medium text-zinc-400 hover:text-white hover:border-zinc-700 rounded-lg transition-all"
+                    className="flex items-center gap-2 px-3 py-1.5 backdrop-blur border text-xs font-medium transition-all rounded-lg bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-secondary)]"
                   >
                     <Icons.Maximize2 className="w-3 h-3" />
                     Abrir Análise Completa
                   </Link>
                 </div>
 
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800/20 to-transparent opacity-50"></div>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[var(--accent-color)]/5 to-transparent opacity-50"></div>
 
                 {/* Grid Background */}
                 <div className="absolute inset-0" style={{
-                  backgroundImage: 'radial-gradient(circle, #3f3f46 1px, transparent 1px)',
+                  backgroundImage: 'radial-gradient(circle, var(--border-color) 1px, transparent 1px)',
                   backgroundSize: '24px 24px',
-                  opacity: 0.1
+                  opacity: 0.2
                 }}></div>
 
                 {/* Connections (SVG Layer) */}
@@ -702,10 +713,11 @@ export default function DecisionForgePage() {
                           y1={`${node.y}%`}
                           x2={`${target.x}%`}
                           y2={`${target.y}%`}
-                          stroke="#52525b"
+                          stroke="currentColor"
                           strokeWidth="1"
                           strokeDasharray="4 4"
-                          className="opacity-40"
+                          className="opacity-20"
+                          style={{ color: 'var(--text-secondary)' }}
                         />
                       );
                     })
@@ -714,10 +726,10 @@ export default function DecisionForgePage() {
 
                 {/* Nodes */}
                 {decisionNodes.length === 0 ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 z-10">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10" style={{ color: 'var(--text-secondary)' }}>
                     <Icons.GitFork className="w-12 h-12 mb-4 opacity-20" />
                     <p>Nenhuma decisão no mapa ainda.</p>
-                    <button className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors" onClick={() => setActiveTab('analysis')}>
+                    <button className="mt-4 px-4 py-2 bg-[var(--accent-color)] hover:opacity-90 text-white rounded-lg text-sm transition-colors" onClick={() => setActiveTab('analysis')}>
                       Criar Primeira Decisão
                     </button>
                   </div>
@@ -732,9 +744,9 @@ export default function DecisionForgePage() {
                     >
                       <div className={`rounded-full border-2 shadow-lg transition-all duration-300 flex items-center justify-center
                         ${selectedNodeId === node.id ? 'ring-4 ring-white/10 scale-110' : ''}
-                        ${node.risk === 'high' ? 'bg-orange-500/20 border-orange-500 text-orange-500' :
-                          node.risk === 'medium' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-500' :
-                            'bg-emerald-500/20 border-emerald-500 text-emerald-500'}
+                        ${node.risk === 'high' ? 'bg-[var(--status-error)]/20 border-[var(--status-error)] text-[var(--status-error)]' :
+                          node.risk === 'medium' ? 'bg-[var(--status-warning)]/20 border-[var(--status-warning)] text-[var(--status-warning)]' :
+                            'bg-[var(--status-success)]/20 border-[var(--status-success)] text-[var(--status-success)]'}
                       `}
                         style={{
                           width: `${Math.max(40, node.impact * 0.8)}px`,
@@ -745,7 +757,7 @@ export default function DecisionForgePage() {
                       </div>
 
                       {/* Label */}
-                      <div className="mt-2 px-2 py-1 bg-zinc-950/80 backdrop-blur-sm rounded border border-zinc-800 text-xs text-zinc-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="mt-2 px-2 py-1 backdrop-blur-sm rounded border text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
                         {node.label}
                       </div>
                     </motion.div>
@@ -753,29 +765,29 @@ export default function DecisionForgePage() {
                 )}
 
                 {/* Legend */}
-                <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur p-3 rounded-lg border border-zinc-800 text-xs space-y-2">
+                <div className="absolute bottom-4 left-4 backdrop-blur p-3 rounded-lg border text-xs space-y-2 bg-[var(--bg-primary)] border-[var(--border-color)]">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div> <span className="text-zinc-400">Baixo Risco</span>
+                    <div className="w-2 h-2 rounded-full bg-[var(--status-success)]"></div> <span className="text-[var(--text-secondary)]">Baixo Risco</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div> <span className="text-zinc-400">Médio Risco</span>
+                    <div className="w-2 h-2 rounded-full bg-[var(--status-warning)]"></div> <span className="text-[var(--text-secondary)]">Médio Risco</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-orange-500"></div> <span className="text-zinc-400">Alto Risco</span>
+                    <div className="w-2 h-2 rounded-full bg-[var(--status-error)]"></div> <span className="text-[var(--text-secondary)]">Alto Risco</span>
                   </div>
                 </div>
               </div>
 
               {/* Detail Panel */}
-              <div className="w-full lg:w-80 card-standard flex flex-col h-full">
+              <div className="w-full lg:w-80 card-standard flex flex-col h-full bg-[var(--bg-primary)]">
                 {selectedNode ? (
-                  <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  <div className="space-y-6 animate-in slide-in-from-right-4 duration-300 h-full flex flex-col">
                     <div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">{selectedNode.date}</div>
-                      <h3>{selectedNode.label}</h3>
-                      <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium mt-3 ${selectedNode.status === 'validated' ? 'bg-emerald-500/10 text-emerald-500' :
-                        selectedNode.status === 'reverted' ? 'bg-orange-500/10 text-orange-500' :
-                          'bg-blue-500/10 text-blue-500'
+                      <div className="text-[10px] opacity-40 uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>{selectedNode.date}</div>
+                      <h3 style={{ color: 'var(--text-primary)' }}>{selectedNode.label}</h3>
+                      <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium mt-3 ${selectedNode.status === 'validated' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-500' :
+                        selectedNode.status === 'reverted' ? 'bg-orange-500/10 text-orange-600 dark:text-orange-500' :
+                          'bg-blue-500/10 text-blue-600 dark:text-blue-500'
                         }`}>
                         {selectedNode.status === 'validated' && <Icons.CheckCircle className="w-3 h-3" />}
                         {selectedNode.status === 'reverted' && <Icons.XCircle className="w-3 h-3" />}
@@ -785,38 +797,38 @@ export default function DecisionForgePage() {
                     </div>
 
                     <div className="space-y-4">
-                      <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800">
-                        <h4 className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Resumo Estratégico</h4>
-                        <p className="text-sm text-zinc-300 leading-relaxed">
+                      <div className="p-4 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]">
+                        <h4 className="text-[10px] font-bold opacity-40 uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Resumo Estratégico</h4>
+                        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                           {selectedNode.description}
                         </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-center">
-                          <div className="text-[10px] text-zinc-500 uppercase">Impacto</div>
-                          <div className="text-lg font-bold text-white">{selectedNode.impact}</div>
+                        <div className="p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] text-center">
+                          <div className="text-[10px] opacity-40 uppercase" style={{ color: 'var(--text-secondary)' }}>Impacto</div>
+                          <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{selectedNode.impact}</div>
                         </div>
-                        <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-center">
-                          <div className="text-[10px] text-zinc-500 uppercase">Risco</div>
-                          <div className={`text-lg font-bold capitalize ${selectedNode.risk === 'high' ? 'text-orange-500' :
-                            selectedNode.risk === 'medium' ? 'text-yellow-500' :
-                              'text-emerald-500'
+                        <div className="p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] text-center">
+                          <div className="text-[10px] opacity-40 uppercase" style={{ color: 'var(--text-secondary)' }}>Risco</div>
+                          <div className={`text-lg font-bold capitalize ${selectedNode.risk === 'high' ? 'text-[var(--status-error)]' :
+                            selectedNode.risk === 'medium' ? 'text-[var(--status-warning)]' :
+                              'text-[var(--status-success)]'
                             }`}>{selectedNode.risk}</div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-auto space-y-3 pt-6 border-t border-zinc-800">
+                    <div className="mt-auto space-y-3 pt-6 border-t border-[var(--border-color)]">
                       <button
-                        className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-2 bg-[var(--accent-color)] hover:opacity-90 text-white rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
                         onClick={() => navigate('/app/map')}
                       >
                         <Icons.FileText className="w-4 h-4" />
                         Ver Análise Completa
                       </button>
                       <button
-                        className="w-full py-2 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-lg text-sm font-medium transition-colors border border-zinc-800"
+                        className="w-full py-2 bg-transparent hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg text-sm font-medium transition-all border border-[var(--border-color)]"
                         onClick={() => {
                           const title = selectedNode ? selectedNode.label : 'Nova decisão';
                           navigate(`/app/plans/create?source=decisionforge&title=${encodeURIComponent(title)}`);
@@ -827,9 +839,9 @@ export default function DecisionForgePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center space-y-4 text-zinc-500">
-                    <div className="p-4 bg-zinc-950 rounded-full border border-zinc-800">
-                      <Icons.Map className="w-8 h-8 opacity-50" />
+                  <div className="flex flex-col items-center justify-center h-full text-center space-y-4 text-[var(--text-secondary)]">
+                    <div className="p-4 bg-[var(--bg-secondary)] rounded-full border border-[var(--border-color)] opacity-60">
+                      <Icons.Map className="w-8 h-8" />
                     </div>
                     <p className="text-sm max-w-[200px]">Selecione uma decisão no mapa para ver os detalhes estratégicos.</p>
                   </div>
@@ -849,16 +861,16 @@ export default function DecisionForgePage() {
               className="space-y-6"
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white">Histórico de Decisões</h2>
+                <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Histórico de Decisões</h2>
                 <div className="flex gap-2">
                   <button
-                    className="px-3 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg hover:text-white transition-colors flex items-center gap-2"
+                    className="px-3 py-1.5 text-xs font-medium bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] transition-colors flex items-center gap-2"
                     onClick={cycleHistoryFilter}
                   >
                     <Icons.Filter className="w-3 h-3" /> Filtrar: {historyRiskFilter === 'all' ? 'Todos' : historyRiskFilter === 'high' ? 'Alto' : historyRiskFilter === 'medium' ? 'Médio' : 'Baixo'}
                   </button>
                   <button
-                    className="px-3 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg hover:text-white transition-colors flex items-center gap-2"
+                    className="px-3 py-1.5 text-xs font-medium bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] transition-colors flex items-center gap-2"
                     onClick={toggleHistorySort}
                   >
                     <Icons.SortDesc className="w-3 h-3" /> Ordenar: {historySort === 'date_desc' ? 'Data' : 'Impacto'}
@@ -866,9 +878,9 @@ export default function DecisionForgePage() {
                 </div>
               </div>
 
-              <div className="card-standard overflow-hidden">
+              <div className="card-standard overflow-hidden border border-[var(--border-color)] bg-[var(--bg-primary)] p-0">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-zinc-950 text-zinc-500 border-b border-zinc-800">
+                  <thead className="bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-b border-[var(--border-color)]">
                     <tr>
                       <th className="px-6 py-4 font-medium">Decisão</th>
                       <th className="px-6 py-4 font-medium">Data</th>
@@ -878,53 +890,53 @@ export default function DecisionForgePage() {
                       <th className="px-6 py-4 font-medium text-right">Ação</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-[var(--border-color)]">
                     {filteredHistory.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                        <td colSpan={6} className="px-6 py-12 text-center" style={{ color: 'var(--text-secondary)' }}>
                           Nenhuma decisão registrada no histórico.
                         </td>
                       </tr>
                     ) : (
                       filteredHistory.map((decision) => (
-                        <tr key={decision.id} className="hover:bg-zinc-800/30 transition-colors group">
-                          <td className="px-6 py-4 font-medium text-white">{decision.title}</td>
-                          <td className="px-6 py-4 text-zinc-400">{decision.date}</td>
+                        <tr key={decision.id} className="hover:bg-[var(--bg-secondary)]/50 transition-colors group">
+                          <td className="px-6 py-4 font-medium" style={{ color: 'var(--text-primary)' }}>{decision.title}</td>
+                          <td className="px-6 py-4" style={{ color: 'var(--text-secondary)' }}>{decision.date}</td>
                           <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${decision.type === 'Deep' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${decision.type === 'Deep' ? 'bg-purple-500/10 text-purple-400' : 'bg-[var(--accent-color)]/10 text-[var(--accent-color)]'
                               }`}>
                               {decision.type}
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`flex items-center gap-1.5 ${decision.riskLevel === 'Alto' ? 'text-orange-400' :
-                              decision.riskLevel === 'Médio' ? 'text-yellow-400' :
-                                'text-emerald-400'
+                            <span className={`flex items-center gap-1.5 ${decision.riskLevel === 'Alto' ? 'text-[var(--status-error)]' :
+                              decision.riskLevel === 'Médio' ? 'text-[var(--status-warning)]' :
+                                'text-[var(--status-success)]'
                               }`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${decision.riskLevel === 'Alto' ? 'bg-orange-400' :
-                                decision.riskLevel === 'Médio' ? 'bg-yellow-400' :
-                                  'bg-emerald-400'
+                              <div className={`w-1.5 h-1.5 rounded-full ${decision.riskLevel === 'Alto' ? 'bg-[var(--status-error)]' :
+                                decision.riskLevel === 'Médio' ? 'bg-[var(--status-warning)]' :
+                                  'bg-[var(--status-success)]'
                                 }`}></div>
                               {decision.riskLevel}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-zinc-300 font-mono">{decision.impactScore}</td>
+                          <td className="px-6 py-4 font-mono" style={{ color: 'var(--text-primary)' }}>{decision.impactScore}</td>
                           <td className="px-6 py-4 text-right relative">
                             <button
-                              className="text-zinc-500 hover:text-white transition-colors"
+                              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-2 rounded-lg hover:bg-[var(--nav-hover)]"
                               onClick={() => setOpenMenuId(openMenuId === decision.id ? null : decision.id)}
                             >
                               <Icons.MoreVertical className="w-4 h-4 ml-auto" />
                             </button>
                             {openMenuId === decision.id && (
-                              <div ref={menuRef} className="absolute right-0 mt-1 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg z-10">
+                              <div ref={menuRef} className="absolute right-0 mt-1 w-48 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl shadow-xl z-50 overflow-hidden">
                                 <button
                                   onClick={() => {
                                     setSelectedNodeId(decision.id);
                                     setActiveTab('map');
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2 border-b border-zinc-800"
+                                  className="w-full text-left px-4 py-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-2 border-b border-[var(--border-color)]"
                                 >
                                   <Icons.Map className="w-4 h-4" />
                                   Ver no Mapa
@@ -934,7 +946,7 @@ export default function DecisionForgePage() {
                                     toast.info('Editar decisão: ' + decision.title);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2"
+                                  className="w-full text-left px-4 py-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-2"
                                 >
                                   <Icons.Edit2 className="w-4 h-4" />
                                   Editar
@@ -961,15 +973,15 @@ function TabButton({ active, onClick, label, icon: Icon }: any) {
   return (
     <button
       onClick={onClick}
-      className={`pb-4 px-2 text-sm font-medium transition-all relative flex items-center gap-2 ${active ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+      className={`pb-4 px-2 text-sm font-medium transition-all relative flex items-center gap-2 ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
         }`}
     >
-      <Icon className={`w-4 h-4 ${active ? 'text-blue-500' : 'text-zinc-500'}`} />
+      <Icon className={`w-4 h-4 ${active ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}`} />
       {label}
       {active && (
         <motion.div
           layoutId="activeTab"
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"
+          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent-color)]"
         />
       )}
     </button>

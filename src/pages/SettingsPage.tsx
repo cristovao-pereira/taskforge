@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { useStrategicMode } from '../contexts/StrategicContext';
+import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { deleteUserAccount } from '../lib/api';
@@ -65,6 +66,7 @@ const CustomDropdown = ({ value, onChange, options, icon: Icon }: any) => {
 export default function SettingsPage() {
     const navigate = useNavigate();
     const { setMode } = useStrategicMode();
+    const { deepMode: ctxDeepMode, alertSensitivity: ctxAlertSensitivity, savePreferences } = usePreferences();
     const { getIdToken, logout, deleteAccount } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -102,6 +104,11 @@ export default function SettingsPage() {
         }
     });
 
+    // Sync deepMode and alertSensitivity from context when context loads
+    useEffect(() => {
+        setProfile(prev => ({ ...prev, deepMode: ctxDeepMode, alertSensitivity: ctxAlertSensitivity }));
+    }, [ctxDeepMode, ctxAlertSensitivity]);
+
     // Credits State
     const [credits, setCredits] = useState<any>(null);
 
@@ -134,8 +141,8 @@ export default function SettingsPage() {
                         role: 'User', // Not in backend yet
                         objective: profileData.objective || '',
                         strategicMode: profileData.strategicMode || 'equilibrado',
-                        deepMode: true,
-                        alertSensitivity: 'normal',
+                        deepMode: typeof profileData.deepMode === 'boolean' ? profileData.deepMode : true,
+                        alertSensitivity: profileData.alertSensitivity || 'normal',
                         notifications: {
                             emailCritical: true,
                             weeklyReport: true,
@@ -183,6 +190,8 @@ export default function SettingsPage() {
                     name: profile.name,
                     objective: profile.objective,
                     strategicMode: profile.strategicMode,
+                    deepMode: profile.deepMode,
+                    alertSensitivity: profile.alertSensitivity,
                 })
             });
 
@@ -190,8 +199,10 @@ export default function SettingsPage() {
                 throw new Error('Failed to save profile');
             }
 
-            // Update context if mode changed
+            // Update strategic mode context
             setMode(profile.strategicMode as any);
+            // Update preferences context (deepMode & alertSensitivity)
+            await savePreferences({ deepMode: profile.deepMode, alertSensitivity: profile.alertSensitivity as any });
 
             toast.success('⚙️ Configurações salvas!');
         } catch (error) {
