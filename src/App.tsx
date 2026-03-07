@@ -45,9 +45,9 @@ export default function App() {
           <NotificationProvider>
             <StrategicProvider>
               <MetricsProvider>
-                <UpgradeProvider>
-                  <PreferencesProvider>
-                    <AppProvider>
+                <PreferencesProvider>
+                  <AppProvider>
+                    <UpgradeProvider>
                       <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
                         <Routes>
                           {/* Public Routes */}
@@ -97,9 +97,9 @@ export default function App() {
                           duration: 3000,
                         }}
                       />
-                    </AppProvider>
-                  </PreferencesProvider>
-                </UpgradeProvider>
+                    </UpgradeProvider>
+                  </AppProvider>
+                </PreferencesProvider>
               </MetricsProvider>
             </StrategicProvider>
           </NotificationProvider>

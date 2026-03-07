@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useApp } from './AppContext';
 
 // --- Types ---
 
-export type UpgradeTriggerType = 
-  | 'credits_low' 
-  | 'deep_mode_locked' 
-  | 'strategic_upsell' 
-  | 'processing_blocked' 
+export type UpgradeTriggerType =
+  | 'credits_low'
+  | 'deep_mode_locked'
+  | 'strategic_upsell'
+  | 'processing_blocked'
   | null;
 
 export interface UsageMetrics {
@@ -45,10 +46,23 @@ const MOCK_INITIAL_METRICS: UsageMetrics = {
 };
 
 export const UpgradeProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useApp();
   const [metrics, setMetrics] = useState<UsageMetrics>(MOCK_INITIAL_METRICS);
   const [activeTrigger, setActiveTrigger] = useState<UpgradeTriggerType>(null);
   const [showModal, setShowModal] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    if (user?.plan) {
+      let mappedPlan: 'free' | 'builder' | 'strategic' = 'free';
+      const p = user.plan.toLowerCase();
+      if (p === 'estrategico') mappedPlan = 'strategic';
+      else if (['profissional', 'essencial', 'construtor'].includes(p)) mappedPlan = 'builder';
+      else mappedPlan = 'free';
+
+      setMetrics(prev => ({ ...prev, plan: mappedPlan }));
+    }
+  }, [user?.plan]);
 
   // Reset triggers on route change (optional, depending on desired persistence)
   useEffect(() => {
@@ -80,21 +94,21 @@ export const UpgradeProvider = ({ children }: { children: ReactNode }) => {
     // Triggers if: 4+ sessions/week OR 3+ plans active AND high health score
     if ((metrics.weeklySessions >= 4 || metrics.activeExecutionPlans >= 3) && metrics.strategicHealthScore > 75) {
       if (metrics.plan !== 'strategic') { // Don't upsell if already on top tier
-         setActiveTrigger('strategic_upsell');
-         // Could be banner or modal. Let's start with banner for less intrusion, or modal for "milestone" feel.
-         // Request says: "Exibir: Você está operando em nível estratégico elevado..."
-         // Let's use a banner for this one as per "Contextual, non-aggressive"
-         trackUpgradeEvent('trigger_activated', { type: 'strategic_upsell' });
-         return;
+        setActiveTrigger('strategic_upsell');
+        // Could be banner or modal. Let's start with banner for less intrusion, or modal for "milestone" feel.
+        // Request says: "Exibir: Você está operando em nível estratégico elevado..."
+        // Let's use a banner for this one as per "Contextual, non-aggressive"
+        trackUpgradeEvent('trigger_activated', { type: 'strategic_upsell' });
+        return;
       }
     }
 
     // 4. Processing Blocked (100% credits or specific feature)
     if (action === 'process_advanced' && metrics.plan === 'free') {
-        setActiveTrigger('processing_blocked');
-        setShowModal(true); // Blocking action usually requires modal
-        trackUpgradeEvent('trigger_activated', { type: 'processing_blocked' });
-        return;
+      setActiveTrigger('processing_blocked');
+      setShowModal(true); // Blocking action usually requires modal
+      trackUpgradeEvent('trigger_activated', { type: 'processing_blocked' });
+      return;
     }
 
     // Default: No activation

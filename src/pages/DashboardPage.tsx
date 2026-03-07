@@ -41,13 +41,12 @@ export default function DashboardPage() {
   const [showSimulation, setShowSimulation] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  // Verificação unificada do plano
+  const hasStrategicPlan = (user?.plan || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'estrategico';
+
   const handleSimulationClick = () => {
     // Debug log
     console.log('User plan:', user?.plan, 'Type:', typeof user?.plan);
-
-    // Verificação case-insensitive e normalizada
-    const userPlan = (user?.plan || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const hasStrategicPlan = userPlan === 'estrategico';
 
     if (hasStrategicPlan) {
       setShowSimulation(true);
@@ -220,13 +219,13 @@ export default function DashboardPage() {
           onClick={handleSimulationClick}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          className={`p-4 rounded-full text-white transition-all duration-300 flex items-center justify-center group shadow-lg ${(user?.plan?.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'estrategico')
+          className={`p-4 rounded-full text-white transition-all duration-300 flex items-center justify-center group shadow-lg ${hasStrategicPlan
             ? 'bg-[var(--accent-color)] hover:brightness-110 shadow-[var(--accent-color)]/50'
             : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-color)] shadow-black/20'
             }`}
-          title={(user?.plan?.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'estrategico') ? 'Simular Cenário Estratégico' : 'Disponível no plano Estratégico'}
+          title={hasStrategicPlan ? 'Simular Cenário Estratégico' : 'Disponível no plano Estratégico'}
         >
-          {(user?.plan?.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'estrategico') ? (
+          {hasStrategicPlan ? (
             <Zap className="w-6 h-6 group-hover:rotate-12 transition-transform" />
           ) : (
             <Lock className="w-5 h-5" />

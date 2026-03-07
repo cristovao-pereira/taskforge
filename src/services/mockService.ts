@@ -9,10 +9,12 @@ let MOCK_USER: User = {
   company: 'TechFlow Solutions',
   role: 'CTO',
   objective: 'Escalar a operação técnica para suportar o crescimento de 3x em 12 meses.',
+  plan: 'estrategico',
   preferences: {
     strategicMode: 'balanced',
     deepMode: true,
     alertSensitivity: 'normal',
+    theme: 'system',
   },
 };
 
