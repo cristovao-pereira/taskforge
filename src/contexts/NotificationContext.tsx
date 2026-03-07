@@ -47,7 +47,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           type: 'document',
           title: '📄 Documento Enviado',
           description: `${data.title} foi enviado com sucesso`,
-          actionUrl: `/app/documents/${data.id}`
+          actionUrl: '/app/documents'
         };
         break;
 
@@ -56,7 +56,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           type: 'document',
           title: '✅ Análise Concluída',
           description: `Análise do documento "${data.title}" foi finalizada`,
-          actionUrl: `/app/documents/${data.id}`
+          actionUrl: '/app/documents'
         };
         break;
 
@@ -65,7 +65,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           type: 'document',
           title: '💡 Insights Extraídos',
           description: `Novas sugestões disponíveis para: ${data.title}`,
-          actionUrl: `/app/documents/${data.id}`
+          actionUrl: '/app/documents'
         };
         break;
 
@@ -74,7 +74,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           type: 'plan',
           title: '📋 Plano Criado',
           description: `Novo plano de execução: ${data.title}`,
-          actionUrl: `/app/plans/${data.id}`
+          actionUrl: '/app/plans'
         };
         break;
 
@@ -83,14 +83,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           type: 'decision',
           title: '🎯 Decisão Registrada',
           description: `Nova decisão: ${data.title}`,
-          actionUrl: `/app/decisions/${data.id}`
+          actionUrl: '/app/map'
         };
         break;
 
       case 'metrics:health:update':
         const healthScore = data.overallScore;
         const healthStatus = healthScore >= 75 ? 'good' : healthScore >= 55 ? 'warning' : 'critical';
-        
+
         if (healthStatus === 'critical' || healthStatus === 'warning') {
           notification = {
             type: 'system',
@@ -115,7 +115,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           type: 'warning',
           title: '⏰ Tarefa Atrasada',
           description: `Tarefa "${data.title}" passou da data. Ação necessária!`,
-          actionUrl: `/app/plans/${data.planId}`
+          actionUrl: '/app/plans'
         };
         break;
 

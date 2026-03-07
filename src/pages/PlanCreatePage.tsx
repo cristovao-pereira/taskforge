@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
 
 export default function PlanCreatePage() {
     const [searchParams] = useSearchParams();
@@ -20,8 +21,7 @@ export default function PlanCreatePage() {
     useEffect(() => {
         if (suggestionId) {
             setLoading(true);
-            fetch(`/api/suggestions/plan/${suggestionId}`)
-                .then(res => res.json())
+            api.get(`/api/suggestions/plan/${suggestionId}`)
                 .then(data => {
                     setFormData({
                         title: data.title,
@@ -44,24 +44,16 @@ export default function PlanCreatePage() {
         setLoading(true);
 
         try {
-            const res = await fetch('/api/plans', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...formData,
-                    suggestionId // Pass ID to link back and update status
-                })
+            await api.post('/api/plans', {
+                ...formData,
+                suggestionId // Pass ID to link back and update status
             });
 
-            if (res.ok) {
-                toast.success('✅ Plano criado!');
-                navigate('/app/plans');
-            } else {
-                toast.error('Erro ao criar plano.');
-            }
+            toast.success('✅ Plano criado!');
+            navigate('/app/plans');
         } catch (error) {
             console.error(error);
-            toast.error('Erro ao conectar com o servidor.');
+            toast.error('Erro ao conectar com o servidor ou criar plano.');
         } finally {
             setLoading(false);
         }
@@ -85,10 +77,10 @@ export default function PlanCreatePage() {
             <form onSubmit={handleSubmit} className="card-standard space-y-6">
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-zinc-400">Título do Plano</label>
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         value={formData.title}
-                        onChange={e => setFormData({...formData, title: e.target.value})}
+                        onChange={e => setFormData({ ...formData, title: e.target.value })}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         required
                     />
@@ -96,9 +88,9 @@ export default function PlanCreatePage() {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-zinc-400">Objetivo Estratégico</label>
-                    <textarea 
+                    <textarea
                         value={formData.objective}
-                        onChange={e => setFormData({...formData, objective: e.target.value})}
+                        onChange={e => setFormData({ ...formData, objective: e.target.value })}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white h-32 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
                         required
                     />
@@ -107,34 +99,34 @@ export default function PlanCreatePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-zinc-400">Fases (JSON ou Texto)</label>
-                        <textarea 
+                        <textarea
                             value={formData.phases}
-                            onChange={e => setFormData({...formData, phases: e.target.value})}
+                            onChange={e => setFormData({ ...formData, phases: e.target.value })}
                             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white h-40 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
                         />
                         <p className="text-xs text-zinc-600">Estrutura sugerida das fases do projeto.</p>
                     </div>
                     <div className="space-y-2">
-                         <label className="text-sm font-medium text-zinc-400">Tarefas Iniciais (JSON ou Texto)</label>
-                        <textarea 
+                        <label className="text-sm font-medium text-zinc-400">Tarefas Iniciais (JSON ou Texto)</label>
+                        <textarea
                             value={formData.tasks}
-                            onChange={e => setFormData({...formData, tasks: e.target.value})}
+                            onChange={e => setFormData({ ...formData, tasks: e.target.value })}
                             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white h-40 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
                         />
-                         <p className="text-xs text-zinc-600">Lista preliminar de tarefas para execução.</p>
+                        <p className="text-xs text-zinc-600">Lista preliminar de tarefas para execução.</p>
                     </div>
                 </div>
 
                 <div className="pt-6 border-t border-zinc-800 flex justify-end gap-4">
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         onClick={() => navigate(-1)}
                         className="btn-secondary px-6"
                     >
                         Cancelar
                     </button>
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={loading}
                         className="btn-primary px-6"
                     >

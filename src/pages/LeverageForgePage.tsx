@@ -461,19 +461,30 @@ export default function LeverageForgePage() {
           {history.map((job) => {
             const output = job.outputPayload || {};
             const input = job.inputPayload || {};
+
+            const textContent = input.input || input.inputText || input.objective || '';
+            const displayTitle = textContent
+              ? (textContent.length > 40 ? textContent.substring(0, 40) + '...' : textContent)
+              : 'Análise de Alavancagem';
+
             return (
               <HistoryItem
                 key={job.id}
-                title={input.input?.substring(0, 40) + '...' || 'Análise de Alavancagem'}
+                title={displayTitle}
                 date={new Date(job.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 score={output.leverageScore || 'N/A'}
                 impact={parseFloat(output.estimatedImpact) > 20 ? 'Alto' : 'Médio'}
                 onOpen={() => {
                   if (job.outputPayload) {
                     setResult(job.outputPayload);
-                    setInputText(input.input || '');
+                    setInputText(textContent);
                     setShowResult(true);
                     window.scrollTo({ top: 500, behavior: 'smooth' });
+                  } else {
+                    setInputText(textContent);
+                    setShowResult(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    toast.info('Esta análise não possui um resultado concluído. Você pode tentar novamente.');
                   }
                 }}
               />
@@ -548,7 +559,7 @@ function ActionButton({ icon: Icon, label, variant = 'primary', onClick }: any) 
 
 function HistoryItem({ title, date, score, impact, onOpen }: any) {
   return (
-    <div className="p-4 flex items-center justify-between hover:bg-[var(--bg-secondary)]/50 transition-colors group">
+    <div onClick={onOpen} className="p-4 flex items-center justify-between hover:bg-[var(--bg-secondary)]/50 transition-colors group cursor-pointer">
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-lg flex flex-col items-center justify-center border border-[var(--border-color)] bg-[var(--bg-secondary)]">
           <span className="text-[10px] text-[var(--text-secondary)] uppercase">Score</span>
@@ -563,10 +574,10 @@ function HistoryItem({ title, date, score, impact, onOpen }: any) {
           </div>
         </div>
       </div>
-      <button onClick={onOpen} className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--accent-color)] flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100">
-        Ver análise completa
+      <div className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-[var(--accent-color)] flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100">
+        Ver análise
         <Icons.ArrowRight className="w-3 h-3" />
-      </button>
+      </div>
     </div>
   );
 }

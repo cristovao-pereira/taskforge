@@ -475,20 +475,34 @@ export default function ClarityForgePage() {
               'strategic': 'Estratégica',
               'executive': 'Executiva'
             };
+
+            const textContent = input.input || input.inputText || '';
+            const displayTitle = textContent
+              ? (textContent.length > 40 ? textContent.substring(0, 40) + '...' : textContent)
+              : 'Estruturação';
+
+            const mode = input.activeMode || input.context?.activeMode || 'strategic';
+
             return (
               <HistoryItem
                 key={job.id}
                 onOpen={() => {
                   if (job.outputPayload) {
                     setResult(job.outputPayload);
-                    setInputText(input.input || '');
+                    setInputText(textContent);
                     setShowResult(true);
-                    setActiveMode(input.activeMode || 'strategic');
+                    setActiveMode(mode);
                     window.scrollTo({ top: 500, behavior: 'smooth' });
+                  } else {
+                    setInputText(textContent);
+                    setShowResult(false);
+                    setActiveMode(mode);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    toast.info('Esta análise não possui um resultado concluído. Você pode tentar novamente.');
                   }
                 }}
-                title={input.input?.substring(0, 40) + '...' || 'Estruturação'}
-                type={typeLabels[input.activeMode] || 'Estratégica'}
+                title={displayTitle}
+                type={typeLabels[mode] || 'Estratégica'}
                 date={new Date(job.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
               />
             );
@@ -576,15 +590,21 @@ function ActionButton({ icon: Icon, label, variant = 'primary', onClick }: any) 
 
 function HistoryItem({ title, type, date, onOpen }: any) {
   return (
-    <div className="p-4 flex items-center justify-between hover:bg-[var(--bg-secondary)]/50 transition-colors group">
+    <div onClick={onOpen} className="p-4 flex items-center justify-between hover:bg-[var(--bg-secondary)]/50 transition-colors group cursor-pointer">
       <div className="flex items-center gap-4">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center border border-[var(--border-color)] ${type === 'Brainstorm' ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning)]' :
-          type === 'Reunião' ? 'bg-[var(--status-info-bg)] text-[var(--status-info)]' :
-            'bg-[var(--status-priority-bg)] text-[var(--status-priority)]'
+            type === 'Reunião' ? 'bg-[var(--status-info-bg)] text-[var(--status-info)]' :
+              type === 'Simples' ? 'bg-[var(--status-success-bg)] text-[var(--status-success)]' :
+                type === 'Executiva' ? 'bg-[var(--status-error-bg)] text-[var(--status-error)]' :
+                  'bg-[var(--status-priority-bg)] text-[var(--status-priority)]'
           }`}>
           {type === 'Brainstorm' && <Icons.Lightbulb className="w-4 h-4" />}
           {type === 'Reunião' && <Icons.Users className="w-4 h-4" />}
           {type === 'Documento' && <Icons.FileText className="w-4 h-4" />}
+          {type === 'Simples' && <Icons.Zap className="w-4 h-4" />}
+          {type === 'Estratégica' && <Icons.Sparkles className="w-4 h-4" />}
+          {type === 'Executiva' && <Icons.Search className="w-4 h-4" />}
+          {!['Brainstorm', 'Reunião', 'Documento', 'Simples', 'Estratégica', 'Executiva'].includes(type) && <Icons.Sparkles className="w-4 h-4" />}
         </div>
         <div>
           <h4 className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent-color)] transition-colors">{title}</h4>
@@ -595,13 +615,10 @@ function HistoryItem({ title, type, date, onOpen }: any) {
           </div>
         </div>
       </div>
-      <button
-        onClick={onOpen}
-        className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--accent-color)] flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100"
-      >
-        Ver estrutura completa
+      <div className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-[var(--accent-color)] flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100">
+        Ver estrutura
         <Icons.ArrowRight className="w-3 h-3" />
-      </button>
+      </div>
     </div>
   );
 }
