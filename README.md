@@ -1,99 +1,57 @@
-# TaskForge
+# 🛠️ TaskForge
 
-Sistema Operacional Estratégico Pessoal para decisão estruturada e execução.
+> **Sistema Operacional Estratégico Pessoal** — Transforme pensamento complexo em estrutura executável.
 
-TaskForge transforma pensamento complexo em estrutura executável, combinando:
-- Frontend React + Vite
-- Backend Express (API + Socket.io)
-- Prisma ORM (SQLite em desenvolvimento)
-- Autenticação Firebase (cliente + admin)
-- Motion System v1.1 (interações sofisticadas e controladas)
+<div align="center">
 
-## Stack do Projeto
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&style=flat-square)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&style=flat-square)
+![Node](https://img.shields.io/badge/Node-20+-339933?logo=node&style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-- React 19 + TypeScript
-- Vite 6 (middleware no servidor Express)
-- Tailwind CSS 4
-- Framer Motion (`motion/react`)
-- Express 4 + Socket.io
-- Prisma 6 + PostgreSQL (Neon em produção, SQLite em desenvolvimento)
-- Firebase Auth + Firebase Admin
-- Stripe para pagamentos e subscriptions
+**Frontend** · **Backend** · **Database** · **Auth** · **Payments**
 
-## Como Rodar Localmente
+</div>
 
-### Pré-requisitos
+---
 
-- Node.js 20+
-- npm
+## ✨ O que é o TaskForge?
 
-### 1) Instalar dependências
+TaskForge combina ferramentas modernas para entregar uma experiência completa de **decisão estruturada e execução**:
 
-```bash
-npm install
-```
+| Tecnologia | Função |
+|------------|--------|
+| React 19 + Vite | Frontend performático |
+| Express + Socket.io | API REST + tempo real |
+| Prisma + PostgreSQL | Banco de dados relacional |
+| Firebase Auth | Autenticação segura |
+| Stripe | Pagamentos e assinaturas |
+| Motion System | Animações sofisticadas |
 
-### 2) Configurar variáveis de ambiente
+---
 
-Crie um arquivo `.env` na raiz do projeto com as variáveis do Firebase Web/Admin.
+## 🚀 Como Rodar Localmente
 
-Exemplo mínimo (ajuste com seus valores):
+## 📦 Scripts Disponíveis
 
-```bash
-# Firebase Web (frontend)
-VITE_FIREBASE_API_KEY=""
-VITE_FIREBASE_AUTH_DOMAIN=""
-VITE_FIREBASE_PROJECT_ID=""
-VITE_FIREBASE_STORAGE_BUCKET=""
-VITE_FIREBASE_MESSAGING_SENDER_ID=""
-VITE_FIREBASE_APP_ID=""
+| Comando | Descrição |
+|---------|-----------|
+| `npm run dev` | Backend Express + Vite middleware |
+| `npm run build` | Build do frontend |
+| `npm run preview` | Preview do build |
+| `npm run lint` | Validação TypeScript |
+| `npm run db:generate` | Gera cliente Prisma |
+| `npm run db:migrate` | Aplica migrações (dev) |
+| `npm run db:migrate:prod` | Aplica migrações (prod) |
+| `npm run db:seed` | Popula dados iniciais |
+| `npm run db:studio` | Abre Prisma Studio |
+| `npm run db:status` | Status de migrações |
+| `npm run db:reset` | Reset completo do banco local |
 
-# Firebase Admin (backend) - use uma das opções
-FIREBASE_SERVICE_ACCOUNT_JSON=""
-# ou
-FIREBASE_SERVICE_ACCOUNT_PATH=""
-# bucket para persistência de documentos no backend
-FIREBASE_STORAGE_BUCKET=""
+---
 
-# Retenção de documentos (padrão: 90 dias)
-DOCUMENT_RETENTION_DAYS=90
-
-# CORS (opcional em dev)
-CORS_ORIGIN="http://localhost:5000,http://localhost:5173"
-```
-
-### 3) Preparar banco local
-
-```bash
-npm run db:generate
-npm run db:migrate
-npm run db:seed
-```
-
-### 4) Iniciar aplicação
-
-```bash
-npm run dev
-```
-
-O servidor sobe por padrão em `http://localhost:5000`.
-Se a porta estiver ocupada, o backend escolhe automaticamente a próxima disponível.
-
-## Scripts Disponíveis
-
-- `npm run dev` — sobe backend Express + Vite middleware
-- `npm run build` — build do frontend
-- `npm run preview` — preview do build
-- `npm run lint` — validação TypeScript
-- `npm run db:migrate` — aplica migrações de desenvolvimento
-- `npm run db:migrate:prod` — aplica migrações em produção
-- `npm run db:generate` — gera cliente Prisma
-- `npm run db:seed` — popula dados iniciais
-- `npm run db:studio` — abre Prisma Studio
-- `npm run db:status` — status de migrações
-- `npm run db:reset` — reset completo do banco local
-
-## Estrutura Principal
+## 📁 Estrutura do Projeto
 
 - `src/` — frontend React (pages, contexts, components)
 - `server.ts` — backend Express + integração Vite middleware
@@ -107,26 +65,22 @@ Se a porta estiver ocupada, o backend escolhe automaticamente a próxima dispon�
 - Contextos do frontend evitam chamadas protegidas quando não há usuário autenticado
 - Fluxo de visitante exibe UX de “Modo Visitante” em áreas internas
 
-## Troubleshooting Rápido
+---
 
-### `401 Unauthorized: No token provided`
-- Faça login no app antes de acessar rotas protegidas
-- Verifique configuração do Firebase no `.env`
+---
 
-### Erro de porta em uso (`EADDRINUSE`)
-- O servidor tenta automaticamente próxima porta livre
-- Em caso extremo, finalize processos `node` antigos e rode `npm run dev` novamente
+## 🔧 Troubleshooting
 
-### API retornando HTML em vez de JSON
-- Em execução via Vite standalone (`:5173`), use proxy configurado no `vite.config.ts`
-- Recomendado: usar `npm run dev` (backend integrado) e abrir a porta do backend
+| Problema | Solução |
+|----------|---------|
+| `401 Unauthorized` | Faça login no app ou verifique configuração do Firebase |
+| `EADDRINUSE` (porta) | O servidor tenta próxima porta; mate processos `node` antigos se necessário |
+| API retorna HTML | Use `npm run dev` (backend integrado), não Vite standalone |
+| `Port 24678 in use` | Feche processos Vite antigos; reinicie o terminal se preciso |
 
-### `WebSocket server error: Port 24678 is already in use`
-- O app continua funcional, mas esse conflito pode afetar HMR
-- Feche processos antigos do Vite/Node e reinicie com `npm run dev`
-- Se necessário, reinicie o terminal/sessão do VS Code para limpar sockets órfãos
+---
 
-## Motion System v1.1
+## 🎨 Motion System v1.1
 
 - Curva oficial: `EASE_STANDARD = [0.16, 1, 0.3, 1]`
 - Durações oficiais: micro `0.14`, hover `0.18`, card `0.24`, modal `0.3`, page `0.36`
@@ -134,70 +88,73 @@ Se a porta estiver ocupada, o backend escolhe automaticamente a próxima dispon�
 - Performance: animar apenas `transform` e `opacity`
 - Componentes base: `AnimatedPage`, `MotionButton`, `CardWithHover`, `AnimatedCounter`, `AnimatedRiskAlert`, `AnimatedLogo`
 
+---
+
 ## 🚀 Deployment
 
-### Produção
+> **Status:** ✅ Totalmente operacional
 
-**Status:** ✅ Totalmente operacional
+### Infraestrutura
 
-#### Infraestrutura:
-- **Frontend (Vercel):** https://taskforge-lime.vercel.app (✅ Ativo)
-- **Backend Express (Render):** https://taskforge-api-j84h.onrender.com (✅ Ativo)
-  - API REST respondendo (HTTP 200)
-  - Socket.io configurado para comunicação real-time
-  - Health check: `/api/health` retorna `{"status":"ok","timestamp":"..."}`
-- **Database (Neon):** PostgreSQL com replicação automática (✅ Sincronizado)
+| Serviço | URL | Status |
+|---------|-----|--------|
+| Frontend (Vercel) | https://taskforge-lime.vercel.app | ✅ Ativo |
+| Backend (Render) | https://taskforge-api-j84h.onrender.com | ✅ Ativo |
+| Database (Neon) | PostgreSQL com replicação automática | ✅ Sincronizado |
 
-#### Configuração:
-- ✅ Variáveis de ambiente configuradas em Vercel e Render
-- ✅ Firebase domains autorizados para produção
-- ✅ Stripe webhooks integrados (8 eventos configurados)
-- ✅ CORS configurado para comunicação frontend-backend
-- ✅ Express + Socket.io rodando no Render com suporte a WebSockets
+### Recursos
+- API REST respondendo (HTTP 200)
+- Socket.io para comunicação em tempo real
+- Health check: `/api/health`
+- Firebase domains autorizados
+- Stripe webhooks integrados (8 eventos)
+- CORS configurado
 
-Para detalhes completos, veja:
-- [Vercel Setup](VERCEL_SETUP.md)
-- [Deploy Manual Configuration](configure-deployment-manual.md)
-- [Deployment Status](DEPLOYMENT_STATUS.md)
+### Documentação
+- [Deploy Manual](configure-deployment-manual.md)
+- [Stripe Integration](docs/stripe-integration.md)
 
-## 💳 Integração Stripe
+---
 
-Sistema de pagamentos com suporte a:
+## 💳 Stripe
+
+Sistema de pagamentos com suporte a Checkout, Subscriptions e Webhooks.
+
+### Eventos Configurados
+`checkout.session.completed` · `customer.subscription.*` · `invoice.payment_succeeded/failed` · `payment_intent.succeeded/failed`
+
+### Recursos
 - Checkout com sessões
-- Subscriptions (planos recorrentes)
-- Webhooks para eventos de pagamento (8 tipos configurados)
+- Assinaturas recorrentes
 - Gestão de clientes e faturas
 
-**Eventos configurados:**
-- `checkout.session.completed`
-- `customer.subscription.created/updated/deleted`
-- `invoice.payment_succeeded/failed`
-- `payment_intent.succeeded/failed`
+📄 [Documentação completa](docs/stripe-integration.md)
 
-Para documentação completa: [Stripe Integration](docs/stripe-integration.md)
+---
 
-## 🔐 Multi-tenant Segurança
+## 🔐 Segurança Multi-tenant
 
-Cada usuário está completamente isolado com:
-- **Autenticação Firebase**: Token JWT verificado em todo endpoint
-- **Isolamento Socket.io**: Eventos por room de usuário (não global)
-- **Firebase Rules**: Acesso restrito por `request.auth.uid` (Firestore + Storage)
-- **Banco de Dados**: Todas queries filtram por `userId`
-- **Auditoria Completa**: Trilha de: upload, view, retrieve, delete de documentos
-- **Retenção Automática**: 90 dias + direito de esquecimento
+### Isolation by Design
+- **Auth**: Firebase JWT verificado em todo endpoint
+- **Socket.io**: Rooms por usuário (não global)
+- **Firebase Rules**: Acesso restrito por `request.auth.uid`
+- **Database**: Todas queries filtram por `userId`
+- **Auditoria**: Upload, view, retrieve, delete de documentos
+- **Retenção**: 90 dias + direito de esquecimento
 
-Para detalhes técnicos e verificação: [Política de Privacidade e Segurança](docs/PRIVACY_AND_SECURITY.md)
+📄 [Política de Privacidade](docs/PRIVACY_AND_SECURITY.md)
 
-## 🤖 Agentes Especialistas (MVP)
+---
 
-Três agentes trabalham em harmonia para decisão estruturada:
-- **DecisionForge**: Análise de risco e impacto estratégico (endpoints: `/api/agents/decision`)
-- **ClarityForge**: Estruturação de pensamento complexo (endpoints: `/api/agents/clarity`)
-- **LeverageForge**: Execução com foco em alto impacto (endpoints: `/api/agents/leverage`)
+## 🤖 Agentes Especialistas
 
-Todos os agentes:
-- Consultam documentos do usuário via `/api/agents/retrieve`
-- Respeitam modo estratégico (conservador/equilibrado/expansão)
+| Agente | Função | Endpoint |
+|--------|--------|----------|
+| **DecisionForge** | Análise de risco e impacto | `/api/agents/decision` |
+| **ClarityForge** | Estruturação de pensamento | `/api/agents/clarity` |
+| **LeverageForge** | Execução de alto impacto | `/api/agents/leverage` |
+
+Todos consultam documentos via `/api/agents/retrieve` e respeitam o modo estratégico configurado.
 - Emitem eventos isolados por Socket.io (só o dono vê)
 - Registram auditoria de consultas
 
