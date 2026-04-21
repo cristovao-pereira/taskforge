@@ -174,10 +174,8 @@ Todos consultam documentos via `/api/agents/retrieve` e respeitam o modo estrat�
 
 ## 📷 Demonstração (GIF)
 
-
-		![Demonstração da UI](./public/assets/demo-screen.gif)
-
+![Demonstração da UI](public/assets/demo-screen.gif)
 
 ## Licença
 
-Uso interno do projeto TaskForge.
+Este projeto está licenciado sob a [Licença MIT](LICENSE).
