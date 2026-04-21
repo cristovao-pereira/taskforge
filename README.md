@@ -8,6 +8,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&style=flat-square)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&style=flat-square)
 ![Node](https://img.shields.io/badge/Node-20+-339933?logo=node&style=flat-square)
+![n8n](https://img.shields.io/badge/n8n-Automation-EA4B71?logo=n8n&style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 **Frontend** · **Backend** · **Database** · **Auth** · **Payments**
@@ -27,6 +28,7 @@ TaskForge combina ferramentas modernas para entregar uma experiência completa d
 | Prisma + PostgreSQL | Banco de dados relacional |
 | Firebase Auth | Autenticação segura |
 | Stripe | Pagamentos e assinaturas |
+| n8n | Criação e orquestração de agentes OpenAI |
 | Motion System | Animações sofisticadas |
 
 ---
