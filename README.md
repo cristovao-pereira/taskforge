@@ -171,32 +171,12 @@ Todos consultam documentos via `/api/agents/retrieve` e respeitam o modo estrat�
 - [Checklist Firebase Free Tier](docs/firebase-free-tier-checklist.md)
 - [Relatório de Implementação Fase 1](docs/implementation-report-phase1.md)
 
-## Licença
-
-Uso interno do projeto TaskForge.
 
 ## 📷 Demonstração (GIF)
 
-Para incluir um GIF que mostre a tela do sistema, siga estas instruções:
-
-- **Local sugerido:** coloque o arquivo em `public/assets/` (ex.: `public/assets/demo-screen.gif`).
-- **Como inserir no README:**
-
-	- Markdown simples:
-
-		![Demonstração da UI](./public/assets/demo-screen.gif)
-
-	- Ou usando HTML para controlar largura/altura:
-
 		<img src="/assets/demo-screen.gif" alt="Demonstração da interface" width="900" />
 
-- **Boas práticas:**
-	- Otimize o GIF (preferível < 5MB) — use ferramentas como `gifsicle`, `ffmpeg` ou serviços online.
-	- Loop contínuo, sem áudio. Use resolução reduzida (ex.: 1280×720 ou 960×540) para menor tamanho.
-	- Nomeie claramente (`demo-screen.gif`, `ui-flow.gif`).
-	- Se o arquivo for grande, considere usar `git lfs` ou hospedar externamente (CDN, Cloudinary) e referenciar a URL.
-	- Sempre inclua `alt` descritivo para acessibilidade.
 
-- **Exemplo de uso em docs ou páginas:** referencie como `/assets/demo-screen.gif` em produção (Vite/Express serve `public/`).
+## Licença
 
-Se quiser, eu posso otimizar um GIF de exemplo e adicioná-lo ao `public/assets/`.
+Uso interno do projeto TaskForge.
