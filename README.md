@@ -178,4 +178,4 @@ Todos consultam documentos via `/api/agents/retrieve` e respeitam o modo estrat�
 
 ## Licença
 
-Este projeto está licenciado sob a [Licença MIT](LICENSE).
+Este projeto é de propriedade exclusiva da TaskForge. O código é disponibilizado apenas para visualização pública. Qualquer uso, cópia, modificação ou distribuição é proibido sem autorização prévia. Consulte [LICENSE](LICENSE) para detalhes.
