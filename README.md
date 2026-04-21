@@ -148,6 +148,8 @@ Sistema de pagamentos com suporte a Checkout, Subscriptions e Webhooks.
 
 ## 🤖 Agentes Especialistas
 
+Criação e orquestração dos agentes da OpenAI realizadas com n8n.
+
 | Agente | Função | Endpoint |
 |--------|--------|----------|
 | **DecisionForge** | Análise de risco e impacto | `/api/agents/decision` |
